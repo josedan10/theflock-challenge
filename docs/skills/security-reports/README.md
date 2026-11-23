@@ -8,6 +8,8 @@ Raw JSON reports were generated for every row and reviewed to produce this inven
 
 | Skill | Score / rating | Findings | Coverage | Project disposition |
 |---|---|---:|---:|---|
+| social-app-feature-delivery | 0 / LOW | 0 | 100% | Approved (project-local) |
+| social-app-review | 0 / LOW | 0 | 100% | Approved (project-local) |
 | accessibility | 0 / LOW | 0 | 100% | Approved |
 | architecture-decision-records | 0 / LOW | 0 | 100% | Approved |
 | backend-patterns | 0 / LOW | 0 | 100% | Approved |
