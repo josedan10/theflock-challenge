@@ -1,0 +1,153 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Profile, Followers, and Following Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Profile UI"
+    },
+    {
+      "id": "api",
+      "label": "Users Module"
+    },
+    {
+      "id": "guard",
+      "label": "Visibility and Cursor",
+      "variant": "exception"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "open",
+    "resolve",
+    "authorize",
+    "query",
+    "relations",
+    "shape",
+    "render"
+  ],
+  "nodes": [
+    {
+      "id": "open",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Open Profile",
+      "sublabel": "username route",
+      "width": 150
+    },
+    {
+      "id": "render",
+      "lane": "web",
+      "col": 5,
+      "type": "frontend",
+      "label": "Render Profile",
+      "sublabel": "counts + list page",
+      "width": 150
+    },
+    {
+      "id": "resolve",
+      "lane": "api",
+      "col": 1,
+      "type": "backend",
+      "label": "Resolve Username",
+      "sublabel": "normalized lookup",
+      "width": 150
+    },
+    {
+      "id": "authorize",
+      "lane": "api",
+      "col": 2,
+      "type": "security",
+      "label": "Apply Visibility",
+      "sublabel": "public v1 policy",
+      "width": 150
+    },
+    {
+      "id": "query",
+      "lane": "api",
+      "col": 3,
+      "type": "backend",
+      "label": "Query Profile or List",
+      "sublabel": "cursor pagination",
+      "width": 150
+    },
+    {
+      "id": "shape",
+      "lane": "api",
+      "col": 4,
+      "type": "backend",
+      "label": "Shape Public DTO",
+      "sublabel": "relationship state",
+      "width": 150
+    },
+    {
+      "id": "notFound",
+      "lane": "guard",
+      "col": 3,
+      "type": "security",
+      "label": "404 State",
+      "sublabel": "no data leakage",
+      "width": 150
+    },
+    {
+      "id": "relations",
+      "lane": "db",
+      "col": 4,
+      "type": "database",
+      "label": "Users + Follows",
+      "sublabel": "reverse indexes",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "open",
+      "to": "resolve",
+      "label": "GET /users/:username",
+      "role": "main"
+    },
+    {
+      "from": "resolve",
+      "to": "authorize",
+      "role": "main"
+    },
+    {
+      "from": "authorize",
+      "to": "query",
+      "role": "main"
+    },
+    {
+      "from": "query",
+      "to": "relations",
+      "label": "bounded read",
+      "role": "branch"
+    },
+    {
+      "from": "relations",
+      "to": "shape",
+      "label": "rows + counts",
+      "role": "return"
+    },
+    {
+      "from": "shape",
+      "to": "render",
+      "label": "public DTO",
+      "role": "main"
+    },
+    {
+      "from": "resolve",
+      "to": "notFound",
+      "label": "missing",
+      "role": "error",
+      "variant": "security"
+    }
+  ]
+}

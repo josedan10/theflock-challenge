@@ -1,0 +1,151 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "User Search Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Search UI"
+    },
+    {
+      "id": "api",
+      "label": "Search Module"
+    },
+    {
+      "id": "guard",
+      "label": "Input Safety",
+      "variant": "exception"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "input",
+    "debounce",
+    "normalize",
+    "escape",
+    "search",
+    "results"
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Enter Query",
+      "sublabel": "2\u201350 characters",
+      "width": 150
+    },
+    {
+      "id": "debounce",
+      "lane": "web",
+      "col": 1,
+      "type": "frontend",
+      "label": "Debounce",
+      "sublabel": "cancel stale request",
+      "width": 150
+    },
+    {
+      "id": "results",
+      "lane": "web",
+      "col": 5,
+      "type": "frontend",
+      "label": "Render Results",
+      "sublabel": "public fields only",
+      "width": 150
+    },
+    {
+      "id": "normalize",
+      "lane": "api",
+      "col": 2,
+      "type": "backend",
+      "label": "Normalize Query",
+      "sublabel": "case-insensitive",
+      "width": 150
+    },
+    {
+      "id": "escape",
+      "lane": "api",
+      "col": 3,
+      "type": "security",
+      "label": "Escape Literals",
+      "sublabel": "% _ and slash",
+      "width": 150
+    },
+    {
+      "id": "search",
+      "lane": "api",
+      "col": 4,
+      "type": "backend",
+      "label": "Rank Matches",
+      "sublabel": "exact \u2192 prefix \u2192 similar",
+      "width": 150
+    },
+    {
+      "id": "reject",
+      "lane": "guard",
+      "col": 3,
+      "type": "security",
+      "label": "Reject Input",
+      "sublabel": "too short or invalid",
+      "width": 150
+    },
+    {
+      "id": "index",
+      "lane": "db",
+      "col": 4,
+      "type": "database",
+      "label": "Trigram Index",
+      "sublabel": "bounded query",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "input",
+      "to": "debounce",
+      "role": "main"
+    },
+    {
+      "from": "debounce",
+      "to": "normalize",
+      "label": "GET /users/search",
+      "role": "main"
+    },
+    {
+      "from": "normalize",
+      "to": "escape",
+      "role": "main"
+    },
+    {
+      "from": "escape",
+      "to": "search",
+      "role": "main"
+    },
+    {
+      "from": "search",
+      "to": "index",
+      "label": "indexed SQL",
+      "role": "branch"
+    },
+    {
+      "from": "search",
+      "to": "results",
+      "label": "ranked page",
+      "role": "main"
+    },
+    {
+      "from": "normalize",
+      "to": "reject",
+      "label": "invalid",
+      "role": "error",
+      "variant": "security"
+    }
+  ]
+}
