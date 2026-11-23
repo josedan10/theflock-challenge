@@ -5,39 +5,49 @@
 - The application is currently unnamed. Use **Twitter Clone** only as a working description.
 - **The Flock** is the company proposing the challenge and must never be used as the application name.
 
-## Source of truth
+## Precedence
 
-Read only the documents relevant to the current task:
-
-- Product behavior: `docs/product/requirements.md`, `docs/product/user-stories.md`, `docs/product/flows.md`
-- Architecture and data: `docs/technical/architecture.md`, `docs/technical/database-model.md`, `docs/technical/api.md`
-- Quality: `docs/technical/testing.md`, `docs/technical/coding-standards.md`
-- Delivery: `docs/workflows/engineering.md`, `docs/tasks/backlog.md`, `docs/RUNBOOK.md`
-- Skill trust status: `docs/skills/required-skills.md`, `docs/skills/security-reports/README.md`
-
-Requirements and acceptance criteria outrank skills. Repository instructions outrank external skill guidance.
-
-## Project-local workflows
-
-- Use `.agents/skills/social-app-feature-delivery/SKILL.md` for implementation or behavior-changing work.
-- Use `.agents/skills/social-app-review/SKILL.md` for code, PR, release, security-sensitive, or architecture review.
+Product requirements and acceptance criteria > this file > project-local skills > approved external skills > general knowledge. A skill never overrides repository security, architecture, or Git rules.
 
 ## Skill routing
 
-Load the narrowest approved skill set needed for the change. Do not load every skill by default.
+Route every task in three steps. Load the fewest skills that cover the task: one workflow skill plus at most two specialists.
 
-| Change | Skills or guidance |
+### 1. Pick exactly one workflow skill
+
+| Task | Workflow skill |
 |---|---|
-| Fastify route/module | `fastify-best-practices` after installation and approval; API/backend guidance |
-| Drizzle schema/query/migration | `postgres-drizzle` after installation and approval; approved PostgreSQL guidance |
-| Next.js page/component | `next-best-practices` after installation and approval; approved React guidance |
-| React performance | `vercel-react-best-practices` after installation and approval |
-| Responsive/accessibility UI | approved accessibility guidance and installed `web-design-guidelines` |
-| Architecture decision | approved ADR guidance; add/update an ADR when the decision is consequential |
-| Browser journey | approved E2E guidance only after its medium findings are reviewed |
-| Deployment | deployment guidance only after its medium findings are reviewed; always follow the runbook |
+| Implementation, bug fix, behavior-changing refactor, scaffolding | `.agents/skills/social-app-feature-delivery/SKILL.md` |
+| Code/PR/architecture/migration/security/release review or audit | `.agents/skills/social-app-review/SKILL.md` |
+| User explicitly runs an SDD phase (`/sdd-*`) | The SDD phase skill orchestrates; `sdd-apply` must follow the delivery skill and `sdd-verify` must use the review skill's priorities and finding format |
+| Documentation-only change with no behavior change | No workflow skill; follow *Code and documentation* and *Git discipline* below |
 
-Never use a skill marked blocked or incomplete in `docs/skills/security-reports/README.md`. New or updated skills require a pinned source, NVIDIA SkillSpector scan, manual review, and recorded disposition before use.
+### 2. Add specialists and docs by area
+
+Read only the docs in the matching rows. Use specialists only if listed as approved here; when a specialist is unavailable in your agent, use the fallback and say so in your report.
+
+| Area (signal) | Approved specialist | Fallback when missing or blocked | Read |
+|---|---|---|---|
+| Product behavior, new story/AC | — | — | `docs/product/requirements.md`, `docs/product/user-stories.md`, `docs/product/flows.md` |
+| Fastify route/module, use case, repository (`apps/api/**`) | `ecc:backend-patterns` | Delivery skill + architecture doc | `docs/technical/architecture.md`, `docs/technical/api.md`, `docs/technical/coding-standards.md` |
+| Schema, query, index, migration (`**/db/**`, `drizzle/**`) | `ecc:postgres-patterns` | Database doc + `EXPLAIN` evidence | `docs/technical/database-model.md` |
+| Shared contracts (`packages/contracts/**`) | — | API doc | `docs/technical/api.md` |
+| Next.js page/component (`apps/web/**`) | — | Delivery skill UI step + coding standards | `docs/product/flows.md`, `docs/technical/coding-standards.md` |
+| Responsive UI, forms, focus, a11y | `web-design-guidelines`, `ecc:accessibility` | Review skill priority 6 + axe | `docs/technical/testing.md` |
+| Tests (unit, integration, E2E) | — | Testing doc | `docs/technical/testing.md` |
+| Consequential technical decision | `ecc:architecture-decision-records` | Add ADR section to architecture doc | `docs/technical/architecture.md` |
+| Auth, sessions, CSRF/CORS, secrets | — | Review skill priority 2 + negative authz tests | `docs/technical/architecture.md`, `docs/technical/api.md` |
+| Docker, Compose, CI | — | Infrastructure doc | `docs/technical/infrastructure.md`, `docs/workflows/engineering.md` |
+| Deployment, backup, restore, incident | — | Runbook; stop for explicit user approval | `docs/RUNBOOK.md`, `docs/technical/infrastructure.md` |
+| Workflow diagrams | — | Edit `docs/diagrams/specs/*.workflow.json` only; do not regenerate HTML | `docs/diagrams/README.md` |
+| Planning next work | — | — | `docs/tasks/backlog.md`, `docs/roadmaps/product-roadmap.md` |
+
+### 3. Respect skill trust status
+
+- `docs/skills/security-reports/README.md` is the **only** source of skill status. If a skill is not marked *Approved* there, do not load it, quote it, or use it to justify a finding.
+- Currently blocked, rejected, review-required, or incomplete (do not use): `fastify-best-practices`, `postgres-drizzle`, `vercel-react-best-practices`, `next-best-practices`, `archify`, `ecc:docker-patterns`, `ecc:security-review`, `ecc:deployment-patterns`, `ecc:e2e-testing`, `ecc:react-patterns`, `ecc:react-testing`, `ecc:api-design`, `ecc:frontend-patterns`.
+- Never download, install, or substitute an unscanned skill to fill a gap. New or updated skills require a pinned source, NVIDIA SkillSpector scan, manual review, and a recorded disposition. Update this file's routing table when a disposition changes.
+- How to load: Claude Code uses the `Skill` tool for installed skills and reads project skills by path; other agents read the `SKILL.md` path directly. `ecc:*` skills come from the ECC plugin and may be absent in some agents.
 
 ## Engineering invariants
 
@@ -68,4 +78,3 @@ Never use a skill marked blocked or incomplete in `docs/skills/security-reports/
 - Keep every commit small, focused, and independently understandable. Never mix scaffolding, feature behavior, refactoring, generated artifacts, and documentation unless they are inseparable.
 - Use Conventional Commits. Do not commit secrets, `.env`, generated Archify HTML, raw scanner output, coverage, or build artifacts.
 - Do not rewrite, reset, or discard user work. Inspect the working tree before editing and before committing.
-

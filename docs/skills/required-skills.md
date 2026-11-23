@@ -28,28 +28,30 @@ This is a competency/ownership map, not a list of technologies to install.
 4. Complete the entire app with keyboard and a screen reader.
 5. Explain an API timeline query plan and which index satisfies it.
 
-## Approved agent-skill set
+## Candidate agent-skill set
 
-Only the following installed skills are approved for project work. Their instructions are advisory unless a task explicitly invokes them; project requirements and repository rules remain authoritative.
+These skills were evaluated for project work. **Status comes only from [`security-reports/README.md`](security-reports/README.md)**; a skill listed here is usable only when that inventory marks it *Approved*. Routing (which skill for which task) lives in [`AGENTS.md`](../../AGENTS.md#skill-routing). Instructions are advisory; project requirements and repository rules remain authoritative.
 
-| Skill | Use in this project | Trigger |
+| Skill | Use in this project | Status (2026-11-23) |
 |---|---|---|
-| `social-app-feature-delivery` | Deliver vertical slices from acceptance criteria through tests, docs, and focused commits | Feature, bug fix, or behavior-changing refactor |
-| `social-app-review` | Review code, migrations, architecture, or release readiness against project invariants | Review or audit request |
-| `web-design-guidelines` | Review responsive UI, accessibility, forms, focus, motion, and interface quality | UI review or release audit |
-| `archify` | Produce validated workflow and architecture diagrams | Diagram or topology work |
-| `ecc:architecture-decision-records` | Record consequential technical decisions and alternatives | New or reversed architecture decision |
-| `ecc:api-design` | Review REST contracts, errors, versioning, and pagination | API route/contract change |
-| `ecc:backend-patterns` | Apply modular-monolith boundaries, repositories, services, and transactions | Backend feature/refactor |
-| `ecc:frontend-patterns` | Structure accessible, maintainable frontend modules and data flows | Frontend feature/refactor |
-| `ecc:react-patterns` | Apply React composition, state, hooks, and server/client boundaries | React implementation/review |
-| `ecc:postgres-patterns` | Review schema, indexes, query plans, concurrency, and migrations | Database/query change |
-| `ecc:docker-patterns` | Create hardened development/production containers and Compose workflows | Container/Compose work |
-| `ecc:react-testing` | Design component and React integration tests | React behavior change |
-| `ecc:e2e-testing` | Design reliable Playwright journeys and fixtures | User-flow implementation |
-| `ecc:accessibility` | Review WCAG semantics, keyboard, focus, and assistive technology | UI change/release audit |
-| `ecc:security-review` | Threat-model and review authentication, authorization, input, secrets | Security-sensitive change/release |
-| `ecc:deployment-patterns` | Review immutable deployment, rollback, health, and promotion | Infrastructure/release work |
+| `social-app-feature-delivery` | Deliver vertical slices from acceptance criteria through tests, docs, and focused commits | Approved |
+| `social-app-review` | Review code, migrations, architecture, or release readiness against project invariants | Approved |
+| `web-design-guidelines` | Review responsive UI, accessibility, forms, focus, motion, and interface quality | Approved |
+| `ecc:architecture-decision-records` | Record consequential technical decisions and alternatives | Approved |
+| `ecc:backend-patterns` | Apply modular-monolith boundaries, repositories, services, and transactions | Approved |
+| `ecc:postgres-patterns` | Review schema, indexes, query plans, concurrency, and migrations | Approved |
+| `ecc:accessibility` | Review WCAG semantics, keyboard, focus, and assistive technology | Approved |
+| `ecc:react-patterns` | Apply React composition, state, hooks, and server/client boundaries | Review required |
+| `ecc:react-testing` | Design component and React integration tests | Review required |
+| `ecc:e2e-testing` | Design reliable Playwright journeys and fixtures | Review required |
+| `ecc:deployment-patterns` | Review immutable deployment, rollback, health, and promotion | Review required |
+| `ecc:api-design` | Review REST contracts, errors, versioning, and pagination | Incomplete scan |
+| `ecc:frontend-patterns` | Structure accessible, maintainable frontend modules and data flows | Incomplete scan |
+| `ecc:docker-patterns` | Create hardened development/production containers and Compose workflows | Blocked |
+| `ecc:security-review` | Threat-model and review authentication, authorization, input, secrets | Blocked |
+| `archify` | Produce validated workflow and architecture diagrams | Blocked for future use |
+
+When a status changes, update the inventory first, then this table and the `AGENTS.md` routing table in the same commit.
 
 ## Skill trust policy
 
