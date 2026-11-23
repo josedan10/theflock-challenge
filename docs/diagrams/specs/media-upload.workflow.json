@@ -1,0 +1,160 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Optional Tweet Image Upload Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Composer UI"
+    },
+    {
+      "id": "api",
+      "label": "Media API"
+    },
+    {
+      "id": "security",
+      "label": "Media Safety",
+      "variant": "exception"
+    },
+    {
+      "id": "storage",
+      "label": "Object Storage and PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "select",
+    "intent",
+    "validate",
+    "upload",
+    "verify",
+    "attach"
+  ],
+  "nodes": [
+    {
+      "id": "select",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Select Image",
+      "sublabel": "JPEG, PNG, or WebP",
+      "width": 150
+    },
+    {
+      "id": "attach",
+      "lane": "web",
+      "col": 5,
+      "type": "frontend",
+      "label": "Create Tweet",
+      "sublabel": "verified media key",
+      "width": 150
+    },
+    {
+      "id": "intent",
+      "lane": "api",
+      "col": 1,
+      "type": "backend",
+      "label": "Request Upload Intent",
+      "sublabel": "short-lived URL",
+      "width": 150
+    },
+    {
+      "id": "verify",
+      "lane": "api",
+      "col": 4,
+      "type": "security",
+      "label": "Verify Object",
+      "sublabel": "decoded type + size",
+      "width": 150
+    },
+    {
+      "id": "validate",
+      "lane": "security",
+      "col": 2,
+      "type": "security",
+      "label": "Validate Metadata",
+      "sublabel": "limits + ownership",
+      "width": 150
+    },
+    {
+      "id": "reject",
+      "lane": "security",
+      "col": 3,
+      "type": "security",
+      "label": "Quarantine or Delete",
+      "sublabel": "invalid upload",
+      "width": 150
+    },
+    {
+      "id": "upload",
+      "lane": "storage",
+      "col": 3,
+      "type": "cloud",
+      "label": "Direct Upload",
+      "sublabel": "private object",
+      "width": 150
+    },
+    {
+      "id": "media",
+      "lane": "storage",
+      "col": 5,
+      "type": "database",
+      "label": "Tweet Media Row",
+      "sublabel": "one object per tweet",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "select",
+      "to": "intent",
+      "role": "main"
+    },
+    {
+      "from": "intent",
+      "to": "validate",
+      "label": "name + type + size",
+      "role": "main"
+    },
+    {
+      "from": "validate",
+      "to": "upload",
+      "label": "signed intent",
+      "role": "main"
+    },
+    {
+      "from": "upload",
+      "to": "verify",
+      "label": "object key",
+      "role": "main"
+    },
+    {
+      "from": "verify",
+      "to": "attach",
+      "label": "verified key",
+      "role": "main"
+    },
+    {
+      "from": "attach",
+      "to": "media",
+      "label": "transactional metadata",
+      "role": "branch"
+    },
+    {
+      "from": "validate",
+      "to": "reject",
+      "label": "invalid metadata",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "verify",
+      "to": "reject",
+      "label": "content mismatch",
+      "role": "error",
+      "variant": "security"
+    }
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Real-Time Timeline and Notifications Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Connected Browser"
+    },
+    {
+      "id": "api",
+      "label": "API and SSE"
+    },
+    {
+      "id": "async",
+      "label": "Async Delivery"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "action",
+    "transaction",
+    "outbox",
+    "worker",
+    "sse",
+    "refresh"
+  ],
+  "nodes": [
+    {
+      "id": "action",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Social Action",
+      "sublabel": "tweet, like, follow",
+      "width": 150
+    },
+    {
+      "id": "refresh",
+      "lane": "web",
+      "col": 5,
+      "type": "frontend",
+      "label": "Refetch Authority",
+      "sublabel": "dedupe + announce",
+      "width": 150
+    },
+    {
+      "id": "transaction",
+      "lane": "api",
+      "col": 1,
+      "type": "backend",
+      "label": "Domain Transaction",
+      "sublabel": "write state + event",
+      "width": 150
+    },
+    {
+      "id": "sse",
+      "lane": "api",
+      "col": 4,
+      "type": "messagebus",
+      "label": "SSE Event",
+      "sublabel": "IDs, not full entities",
+      "width": 150
+    },
+    {
+      "id": "outbox",
+      "lane": "async",
+      "col": 2,
+      "type": "messagebus",
+      "label": "Outbox Event",
+      "sublabel": "durable and deduped",
+      "width": 150
+    },
+    {
+      "id": "worker",
+      "lane": "async",
+      "col": 3,
+      "type": "backend",
+      "label": "Delivery Worker",
+      "sublabel": "retry with backoff",
+      "width": 150
+    },
+    {
+      "id": "catchup",
+      "lane": "async",
+      "col": 5,
+      "type": "messagebus",
+      "label": "Cursor Catch-Up",
+      "sublabel": "after reconnect",
+      "width": 150
+    },
+    {
+      "id": "events",
+      "lane": "db",
+      "col": 2,
+      "type": "database",
+      "label": "Outbox + Notifications",
+      "sublabel": "same commit",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "action",
+      "to": "transaction",
+      "role": "main"
+    },
+    {
+      "from": "transaction",
+      "to": "outbox",
+      "label": "commit event",
+      "role": "main"
+    },
+    {
+      "from": "outbox",
+      "to": "events",
+      "label": "durable record",
+      "role": "branch"
+    },
+    {
+      "from": "outbox",
+      "to": "worker",
+      "label": "claim",
+      "role": "main"
+    },
+    {
+      "from": "worker",
+      "to": "sse",
+      "label": "publish",
+      "role": "main"
+    },
+    {
+      "from": "sse",
+      "to": "refresh",
+      "label": "event ID",
+      "role": "main"
+    },
+    {
+      "from": "sse",
+      "to": "catchup",
+      "label": "disconnect",
+      "role": "error",
+      "variant": "dashed"
+    },
+    {
+      "from": "catchup",
+      "to": "refresh",
+      "label": "missed cursor",
+      "role": "return"
+    }
+  ]
+}
