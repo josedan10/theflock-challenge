@@ -36,6 +36,7 @@ Only the following installed skills are approved for project work. Their instruc
 |---|---|---|
 | `social-app-feature-delivery` | Deliver vertical slices from acceptance criteria through tests, docs, and focused commits | Feature, bug fix, or behavior-changing refactor |
 | `social-app-review` | Review code, migrations, architecture, or release readiness against project invariants | Review or audit request |
+| `web-design-guidelines` | Review responsive UI, accessibility, forms, focus, motion, and interface quality | UI review or release audit |
 | `archify` | Produce validated workflow and architecture diagrams | Diagram or topology work |
 | `ecc:architecture-decision-records` | Record consequential technical decisions and alternatives | New or reversed architecture decision |
 | `ecc:api-design` | Review REST contracts, errors, versioning, and pagination | API route/contract change |

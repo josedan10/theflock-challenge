@@ -10,6 +10,11 @@ Raw JSON reports were generated for every row and reviewed to produce this inven
 |---|---|---:|---:|---|
 | social-app-feature-delivery | 0 / LOW | 0 | 100% | Approved (project-local) |
 | social-app-review | 0 / LOW | 0 | 100% | Approved (project-local) |
+| web-design-guidelines | 0 / LOW | 0 | 100% | Approved and installed; pinned source |
+| fastify-best-practices candidate | 88 / CRITICAL | 15 high, 4 medium | 61.9% partial | Blocked; not installed |
+| postgres-drizzle candidate | 37 / MEDIUM | 1 high, 27 medium | 87.5% partial | Blocked; not installed |
+| vercel-react-best-practices candidate | 59 / HIGH | 3 high, 2 medium | 98.7% partial | Blocked; not installed |
+| next-best-practices candidate | not scanned | Source path absent at pinned HEAD | — | Rejected; not installed |
 | accessibility | 0 / LOW | 0 | 100% | Approved |
 | architecture-decision-records | 0 / LOW | 0 | 100% | Approved |
 | backend-patterns | 0 / LOW | 0 | 100% | Approved |
@@ -30,6 +35,7 @@ Raw JSON reports were generated for every row and reviewed to produce this inven
 - Docker examples often contain privileged/system commands; this may explain some matches but does not waive review.
 - A `LOW` aggregate score can still contain an individual `HIGH` match. Project policy blocks on individual high findings, not only the aggregate label.
 - Zero-percent partial results for `api-design` and `frontend-patterns` are not clean bills of health.
+- External candidate provenance and exact source commits are recorded in `docs/skills/external-skills.lock.json`.
 
 ## Re-scan command
 

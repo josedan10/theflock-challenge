@@ -32,7 +32,7 @@ Load the narrowest approved skill set needed for the change. Do not load every s
 | Drizzle schema/query/migration | `postgres-drizzle` after installation and approval; approved PostgreSQL guidance |
 | Next.js page/component | `next-best-practices` after installation and approval; approved React guidance |
 | React performance | `vercel-react-best-practices` after installation and approval |
-| Responsive/accessibility UI | approved accessibility guidance; `web-design-guidelines` after installation and approval |
+| Responsive/accessibility UI | approved accessibility guidance and installed `web-design-guidelines` |
 | Architecture decision | approved ADR guidance; add/update an ADR when the decision is consequential |
 | Browser journey | approved E2E guidance only after its medium findings are reviewed |
 | Deployment | deployment guidance only after its medium findings are reviewed; always follow the runbook |

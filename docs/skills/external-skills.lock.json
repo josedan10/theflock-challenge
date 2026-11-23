@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "scanner": {
+    "name": "NVIDIA SkillSpector",
+    "commit": "f9bb13dd1667eb4e7ac97b8ebace3160041ed571",
+    "mode": "static-no-llm",
+    "baseline": null
+  },
+  "skills": [
+    {
+      "name": "web-design-guidelines",
+      "repository": "vercel-labs/agent-skills",
+      "commit": "5a37a6329fbad3666c3207392a6a7c0110e92efb",
+      "path": "skills/web-design-guidelines",
+      "scan": { "score": 0, "severity": "LOW", "findings": 0, "coveragePercent": 100.0 },
+      "disposition": "approved-installed"
+    },
+    {
+      "name": "fastify-best-practices",
+      "repository": "mcollina/skills",
+      "commit": "c75d70dbfbe991d8cec42aeda0b64ff14fbb9ac7",
+      "path": "skills/fastify",
+      "scan": { "score": 88, "severity": "CRITICAL", "high": 15, "medium": 4, "coveragePercent": 61.9 },
+      "disposition": "blocked-not-installed"
+    },
+    {
+      "name": "postgres-drizzle",
+      "repository": "ccheney/robust-skills",
+      "commit": "0eea7b060d12e3520556a73b15fbfa79480987d1",
+      "path": "skills/postgres-drizzle",
+      "scan": { "score": 37, "severity": "MEDIUM", "high": 1, "medium": 27, "coveragePercent": 87.5 },
+      "disposition": "blocked-not-installed"
+    },
+    {
+      "name": "vercel-react-best-practices",
+      "repository": "vercel-labs/agent-skills",
+      "commit": "5a37a6329fbad3666c3207392a6a7c0110e92efb",
+      "path": "skills/react-best-practices",
+      "scan": { "score": 59, "severity": "HIGH", "high": 3, "medium": 2, "coveragePercent": 98.7 },
+      "disposition": "blocked-not-installed"
+    },
+    {
+      "name": "next-best-practices",
+      "repository": "vercel-labs/next-skills",
+      "commit": "c522619e45aa3492fd2bfc916b308b275eff7798",
+      "path": "skills/next-best-practices",
+      "scan": null,
+      "disposition": "rejected-source-path-absent"
+    }
+  ]
+}
