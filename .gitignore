@@ -24,3 +24,6 @@ docs/diagrams/*.visual-check.json
 # NVIDIA SkillSpector raw reports are reproducible and verbose; keep the
 # reviewed concise inventory in README.md and publish raw output as a CI artifact.
 docs/skills/security-reports/*.json
+
+# Local agent skill registry
+.atl/
