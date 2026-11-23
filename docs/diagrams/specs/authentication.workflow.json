@@ -1,0 +1,170 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Authentication and Session Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "client",
+      "label": "Browser"
+    },
+    {
+      "id": "api",
+      "label": "Authentication API"
+    },
+    {
+      "id": "security",
+      "label": "Security Controls",
+      "variant": "exception"
+    },
+    {
+      "id": "data",
+      "label": "PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "credentials",
+    "validate",
+    "rateLimit",
+    "verify",
+    "persistSession",
+    "cookie"
+  ],
+  "nodes": [
+    {
+      "id": "credentials",
+      "lane": "client",
+      "col": 0,
+      "type": "frontend",
+      "label": "Submit Credentials",
+      "sublabel": "register or login",
+      "width": 150
+    },
+    {
+      "id": "cookie",
+      "lane": "client",
+      "col": 5,
+      "type": "security",
+      "label": "Session Cookie",
+      "sublabel": "HttpOnly + Secure",
+      "width": 150
+    },
+    {
+      "id": "validate",
+      "lane": "api",
+      "col": 1,
+      "type": "backend",
+      "label": "Validate Request",
+      "sublabel": "Zod contract",
+      "width": 150
+    },
+    {
+      "id": "verify",
+      "lane": "api",
+      "col": 3,
+      "type": "security",
+      "label": "Verify Identity",
+      "sublabel": "Argon2id",
+      "width": 150
+    },
+    {
+      "id": "persistSession",
+      "lane": "api",
+      "col": 4,
+      "type": "backend",
+      "label": "Create Session",
+      "sublabel": "rotate opaque token",
+      "width": 150
+    },
+    {
+      "id": "rateLimit",
+      "lane": "security",
+      "col": 2,
+      "type": "security",
+      "label": "Rate + CSRF Gate",
+      "sublabel": "reject abuse",
+      "width": 150
+    },
+    {
+      "id": "reject",
+      "lane": "security",
+      "col": 4,
+      "type": "security",
+      "label": "Safe Rejection",
+      "sublabel": "generic error",
+      "width": 150
+    },
+    {
+      "id": "sessions",
+      "lane": "data",
+      "col": 5,
+      "type": "database",
+      "label": "Sessions",
+      "sublabel": "token hash only",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "credentials",
+      "to": "validate",
+      "label": "HTTPS JSON",
+      "role": "main"
+    },
+    {
+      "from": "validate",
+      "to": "rateLimit",
+      "role": "main"
+    },
+    {
+      "from": "rateLimit",
+      "to": "verify",
+      "label": "allowed",
+      "role": "main"
+    },
+    {
+      "from": "verify",
+      "to": "persistSession",
+      "label": "authenticated",
+      "role": "main"
+    },
+    {
+      "from": "persistSession",
+      "to": "sessions",
+      "label": "store hash",
+      "role": "branch"
+    },
+    {
+      "from": "persistSession",
+      "to": "cookie",
+      "label": "Set-Cookie",
+      "role": "main"
+    },
+    {
+      "from": "rateLimit",
+      "to": "reject",
+      "label": "blocked",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "verify",
+      "to": "reject",
+      "label": "invalid",
+      "role": "error",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Session invariants",
+      "items": [
+        "Raw session tokens are never persisted",
+        "Logout revokes the server-side session"
+      ]
+    }
+  ]
+}
