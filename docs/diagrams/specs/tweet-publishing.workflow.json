@@ -1,0 +1,155 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Tweet Publishing and Deletion Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Web UI"
+    },
+    {
+      "id": "api",
+      "label": "Tweets Module"
+    },
+    {
+      "id": "policy",
+      "label": "Policy",
+      "variant": "exception"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "compose",
+    "contract",
+    "authorize",
+    "command",
+    "commit",
+    "reconcile"
+  ],
+  "nodes": [
+    {
+      "id": "compose",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Compose Tweet",
+      "sublabel": "1\u2013280 characters",
+      "width": 150
+    },
+    {
+      "id": "reconcile",
+      "lane": "web",
+      "col": 5,
+      "type": "frontend",
+      "label": "Reconcile UI",
+      "sublabel": "canonical response",
+      "width": 150
+    },
+    {
+      "id": "contract",
+      "lane": "api",
+      "col": 1,
+      "type": "backend",
+      "label": "Validate Contract",
+      "sublabel": "trim + Unicode rule",
+      "width": 150
+    },
+    {
+      "id": "authorize",
+      "lane": "api",
+      "col": 2,
+      "type": "security",
+      "label": "Authorize",
+      "sublabel": "session + ownership",
+      "width": 150
+    },
+    {
+      "id": "command",
+      "lane": "api",
+      "col": 3,
+      "type": "backend",
+      "label": "Execute Command",
+      "sublabel": "create or delete",
+      "width": 150
+    },
+    {
+      "id": "denied",
+      "lane": "policy",
+      "col": 3,
+      "type": "security",
+      "label": "Reject",
+      "sublabel": "401 / 403 / 422",
+      "width": 150
+    },
+    {
+      "id": "commit",
+      "lane": "db",
+      "col": 4,
+      "type": "database",
+      "label": "Commit Transaction",
+      "sublabel": "constraints + cascades",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "compose",
+      "to": "contract",
+      "label": "POST or DELETE",
+      "role": "main"
+    },
+    {
+      "from": "contract",
+      "to": "authorize",
+      "role": "main"
+    },
+    {
+      "from": "authorize",
+      "to": "command",
+      "label": "allowed",
+      "role": "main"
+    },
+    {
+      "from": "command",
+      "to": "commit",
+      "label": "atomic write",
+      "role": "main"
+    },
+    {
+      "from": "commit",
+      "to": "reconcile",
+      "label": "201 or 204",
+      "role": "main"
+    },
+    {
+      "from": "contract",
+      "to": "denied",
+      "label": "invalid",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "authorize",
+      "to": "denied",
+      "label": "not allowed",
+      "role": "error",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Write guarantees",
+      "items": [
+        "Ownership is checked in the write boundary",
+        "Database constraints repeat domain invariants"
+      ]
+    }
+  ]
+}

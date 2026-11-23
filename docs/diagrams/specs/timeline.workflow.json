@@ -1,0 +1,164 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Chronological Timeline Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Timeline UI"
+    },
+    {
+      "id": "api",
+      "label": "Timeline Query"
+    },
+    {
+      "id": "guard",
+      "label": "Query Guards",
+      "variant": "exception"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "sentinel",
+    "request",
+    "cursor",
+    "query",
+    "tweets",
+    "page",
+    "merge"
+  ],
+  "nodes": [
+    {
+      "id": "sentinel",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Load Trigger",
+      "sublabel": "initial or scroll",
+      "width": 144
+    },
+    {
+      "id": "merge",
+      "lane": "web",
+      "col": 5,
+      "type": "frontend",
+      "label": "Merge Page",
+      "sublabel": "dedupe by tweet ID",
+      "width": 144
+    },
+    {
+      "id": "request",
+      "lane": "api",
+      "col": 1,
+      "type": "backend",
+      "label": "Timeline Request",
+      "sublabel": "limit \u2264 30",
+      "width": 144
+    },
+    {
+      "id": "cursor",
+      "lane": "api",
+      "col": 2,
+      "type": "security",
+      "label": "Verify Cursor",
+      "sublabel": "opaque + signed",
+      "width": 144
+    },
+    {
+      "id": "query",
+      "lane": "api",
+      "col": 3,
+      "type": "backend",
+      "label": "Build Keyset Query",
+      "sublabel": "own + followed authors",
+      "width": 144
+    },
+    {
+      "id": "page",
+      "lane": "api",
+      "col": 4,
+      "type": "backend",
+      "label": "Shape Page",
+      "sublabel": "items + nextCursor",
+      "width": 144
+    },
+    {
+      "id": "badCursor",
+      "lane": "guard",
+      "col": 3,
+      "type": "security",
+      "label": "Reject Cursor",
+      "sublabel": "400 without query",
+      "width": 144
+    },
+    {
+      "id": "tweets",
+      "lane": "db",
+      "col": 3,
+      "type": "database",
+      "label": "Indexed Read",
+      "sublabel": "created_at + id",
+      "width": 144
+    }
+  ],
+  "edges": [
+    {
+      "from": "sentinel",
+      "to": "request",
+      "label": "GET /timeline",
+      "role": "main"
+    },
+    {
+      "from": "request",
+      "to": "cursor",
+      "role": "main"
+    },
+    {
+      "from": "cursor",
+      "to": "query",
+      "label": "valid boundary",
+      "role": "main"
+    },
+    {
+      "from": "query",
+      "to": "tweets",
+      "label": "single bounded query",
+      "role": "branch"
+    },
+    {
+      "from": "tweets",
+      "to": "page",
+      "label": "ordered rows",
+      "role": "return"
+    },
+    {
+      "from": "page",
+      "to": "merge",
+      "label": "JSON page",
+      "role": "main"
+    },
+    {
+      "from": "cursor",
+      "to": "badCursor",
+      "label": "tampered",
+      "role": "error",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "Ordering contract",
+      "items": [
+        "created_at DESC, id DESC",
+        "Concurrent inserts never shift the next page"
+      ]
+    }
+  ]
+}
