@@ -1,0 +1,182 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Test, Build, and Production Delivery Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "dev",
+      "label": "Developer"
+    },
+    {
+      "id": "ci",
+      "label": "Continuous Integration"
+    },
+    {
+      "id": "release",
+      "label": "Release Gates",
+      "variant": "exception"
+    },
+    {
+      "id": "prod",
+      "label": "Vercel and DigitalOcean"
+    }
+  ],
+  "mainPath": [
+    "pullRequest",
+    "quality",
+    "integration",
+    "security",
+    "artifact",
+    "approval",
+    "deploy"
+  ],
+  "nodes": [
+    {
+      "id": "pullRequest",
+      "lane": "dev",
+      "col": 0,
+      "type": "frontend",
+      "label": "Pull Request",
+      "sublabel": "AC IDs + docs",
+      "width": 150
+    },
+    {
+      "id": "quality",
+      "lane": "ci",
+      "col": 1,
+      "type": "backend",
+      "label": "Static Quality",
+      "sublabel": "format, lint, types",
+      "width": 150
+    },
+    {
+      "id": "integration",
+      "lane": "ci",
+      "col": 2,
+      "type": "database",
+      "label": "Test Matrix",
+      "sublabel": "unit, Postgres, browser",
+      "width": 150
+    },
+    {
+      "id": "security",
+      "lane": "ci",
+      "col": 3,
+      "type": "security",
+      "label": "Security Gates",
+      "sublabel": "SAST, secrets, image",
+      "width": 150
+    },
+    {
+      "id": "artifact",
+      "lane": "ci",
+      "col": 4,
+      "type": "cloud",
+      "label": "Immutable Artifacts",
+      "sublabel": "web build + image digest",
+      "width": 150
+    },
+    {
+      "id": "approval",
+      "lane": "release",
+      "col": 4,
+      "type": "security",
+      "label": "Release Approval",
+      "sublabel": "backup + migration plan",
+      "width": 150
+    },
+    {
+      "id": "blocked",
+      "lane": "release",
+      "col": 5,
+      "type": "security",
+      "label": "Block Release",
+      "sublabel": "fix then rerun",
+      "width": 150
+    },
+    {
+      "id": "deploy",
+      "lane": "prod",
+      "col": 5,
+      "type": "cloud",
+      "label": "Promote + Observe",
+      "sublabel": "Vercel + Droplet",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "pullRequest",
+      "to": "quality",
+      "role": "main"
+    },
+    {
+      "from": "quality",
+      "to": "integration",
+      "role": "main"
+    },
+    {
+      "from": "integration",
+      "to": "security",
+      "role": "main"
+    },
+    {
+      "from": "security",
+      "to": "artifact",
+      "role": "main"
+    },
+    {
+      "from": "artifact",
+      "to": "approval",
+      "label": "tested digest",
+      "role": "main"
+    },
+    {
+      "from": "approval",
+      "to": "deploy",
+      "label": "approved",
+      "role": "main"
+    },
+    {
+      "from": "quality",
+      "to": "blocked",
+      "label": "failed",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "integration",
+      "to": "blocked",
+      "label": "failed",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "security",
+      "to": "blocked",
+      "label": "finding",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "approval",
+      "to": "blocked",
+      "label": "not ready",
+      "role": "error",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Promotion rule",
+      "items": [
+        "Production receives the exact tested image digest",
+        "Migrations run as a separate one-shot task"
+      ]
+    }
+  ]
+}
