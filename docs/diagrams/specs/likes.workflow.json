@@ -1,0 +1,158 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Like and Unlike Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Tweet Card"
+    },
+    {
+      "id": "api",
+      "label": "Social Module"
+    },
+    {
+      "id": "policy",
+      "label": "Consistency",
+      "variant": "exception"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "action",
+    "optimistic",
+    "authenticate",
+    "findTweet",
+    "mutate",
+    "reconcile"
+  ],
+  "nodes": [
+    {
+      "id": "action",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Activate Like",
+      "sublabel": "keyboard or pointer",
+      "width": 150
+    },
+    {
+      "id": "optimistic",
+      "lane": "web",
+      "col": 1,
+      "type": "frontend",
+      "label": "Optimistic Count",
+      "sublabel": "prevent duplicate click",
+      "width": 150
+    },
+    {
+      "id": "reconcile",
+      "lane": "web",
+      "col": 5,
+      "type": "frontend",
+      "label": "Canonical State",
+      "sublabel": "liked + count",
+      "width": 150
+    },
+    {
+      "id": "authenticate",
+      "lane": "api",
+      "col": 2,
+      "type": "security",
+      "label": "Authenticate",
+      "sublabel": "session + CSRF",
+      "width": 150
+    },
+    {
+      "id": "findTweet",
+      "lane": "api",
+      "col": 3,
+      "type": "backend",
+      "label": "Resolve Tweet",
+      "sublabel": "reject deleted",
+      "width": 150
+    },
+    {
+      "id": "mutate",
+      "lane": "api",
+      "col": 4,
+      "type": "backend",
+      "label": "Upsert or Delete",
+      "sublabel": "idempotent",
+      "width": 150
+    },
+    {
+      "id": "rollback",
+      "lane": "policy",
+      "col": 4,
+      "type": "security",
+      "label": "Rollback UI",
+      "sublabel": "announce failure",
+      "width": 150
+    },
+    {
+      "id": "likes",
+      "lane": "db",
+      "col": 5,
+      "type": "database",
+      "label": "Likes",
+      "sublabel": "unique user + tweet",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "action",
+      "to": "optimistic",
+      "role": "main"
+    },
+    {
+      "from": "optimistic",
+      "to": "authenticate",
+      "label": "PUT or DELETE",
+      "role": "main"
+    },
+    {
+      "from": "authenticate",
+      "to": "findTweet",
+      "role": "main"
+    },
+    {
+      "from": "findTweet",
+      "to": "mutate",
+      "role": "main"
+    },
+    {
+      "from": "mutate",
+      "to": "likes",
+      "label": "atomic relation",
+      "role": "branch"
+    },
+    {
+      "from": "mutate",
+      "to": "reconcile",
+      "label": "state + count",
+      "role": "main"
+    },
+    {
+      "from": "authenticate",
+      "to": "rollback",
+      "label": "unauthorized",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "findTweet",
+      "to": "rollback",
+      "label": "not found",
+      "role": "error",
+      "variant": "security"
+    }
+  ]
+}

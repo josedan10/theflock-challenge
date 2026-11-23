@@ -1,0 +1,152 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Follow and Unfollow Workflow",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "web",
+      "label": "Profile UI"
+    },
+    {
+      "id": "api",
+      "label": "Social Module"
+    },
+    {
+      "id": "policy",
+      "label": "Relationship Policy",
+      "variant": "exception"
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL"
+    }
+  ],
+  "mainPath": [
+    "toggle",
+    "optimistic",
+    "authorize",
+    "validateTarget",
+    "upsert",
+    "canonical"
+  ],
+  "nodes": [
+    {
+      "id": "toggle",
+      "lane": "web",
+      "col": 0,
+      "type": "frontend",
+      "label": "Toggle Follow",
+      "sublabel": "disable while pending",
+      "width": 150
+    },
+    {
+      "id": "optimistic",
+      "lane": "web",
+      "col": 1,
+      "type": "frontend",
+      "label": "Optimistic State",
+      "sublabel": "button + count",
+      "width": 150
+    },
+    {
+      "id": "canonical",
+      "lane": "web",
+      "col": 5,
+      "type": "frontend",
+      "label": "Reconcile",
+      "sublabel": "state + count",
+      "width": 150
+    },
+    {
+      "id": "authorize",
+      "lane": "api",
+      "col": 2,
+      "type": "security",
+      "label": "Authenticate",
+      "sublabel": "member session",
+      "width": 150
+    },
+    {
+      "id": "validateTarget",
+      "lane": "api",
+      "col": 3,
+      "type": "backend",
+      "label": "Validate Target",
+      "sublabel": "exists and not self",
+      "width": 150
+    },
+    {
+      "id": "upsert",
+      "lane": "api",
+      "col": 4,
+      "type": "backend",
+      "label": "Apply Relationship",
+      "sublabel": "idempotent command",
+      "width": 150
+    },
+    {
+      "id": "reject",
+      "lane": "policy",
+      "col": 2,
+      "type": "security",
+      "label": "Reject + Roll Back",
+      "sublabel": "safe error",
+      "width": 150
+    },
+    {
+      "id": "follows",
+      "lane": "db",
+      "col": 5,
+      "type": "database",
+      "label": "Follows",
+      "sublabel": "composite primary key",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "from": "toggle",
+      "to": "optimistic",
+      "role": "main"
+    },
+    {
+      "from": "optimistic",
+      "to": "authorize",
+      "label": "PUT or DELETE",
+      "role": "main"
+    },
+    {
+      "from": "authorize",
+      "to": "validateTarget",
+      "role": "main"
+    },
+    {
+      "from": "validateTarget",
+      "to": "upsert",
+      "label": "valid",
+      "role": "main"
+    },
+    {
+      "from": "upsert",
+      "to": "follows",
+      "label": "ON CONFLICT safe",
+      "role": "branch"
+    },
+    {
+      "from": "upsert",
+      "to": "canonical",
+      "label": "canonical result",
+      "role": "main"
+    },
+    {
+      "from": "validateTarget",
+      "to": "reject",
+      "label": "self or missing",
+      "role": "error",
+      "variant": "security"
+    }
+  ]
+}
