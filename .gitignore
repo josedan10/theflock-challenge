@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+.turbo/
+*.log
+.DS_Store
+backups/*.dump
+
+# Archify outputs are reproducible from versioned JSON specifications.
+docs/diagrams/*.html
+docs/diagrams/*.png
+docs/diagrams/*.webp
+docs/diagrams/*.jpeg
+docs/diagrams/*.svg
+docs/diagrams/*.webm
+docs/diagrams/*.visual-check.json
