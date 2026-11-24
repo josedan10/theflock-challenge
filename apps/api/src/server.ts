@@ -21,6 +21,10 @@ const app = await buildApp({
     sessionSecret: environment.SESSION_SECRET,
   },
   corsOrigin: environment.CORS_ORIGIN,
+  tweetWriteRateLimit: {
+    max: environment.TWEET_RATE_LIMIT_PER_MINUTE,
+    timeWindowMs: 60_000,
+  },
   logger: environment.NODE_ENV !== "test",
   ...(environment.TRUST_PROXY === undefined
     ? {}
