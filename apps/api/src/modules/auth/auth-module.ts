@@ -1,6 +1,5 @@
 import { v7 as uuidv7 } from "uuid";
 
-
 import { createRegisterMember } from "./application/register-member.js";
 import { registerRoute } from "./http/register-route.js";
 import { createArgon2PasswordHasher } from "./infrastructure/argon2-password-hasher.js";

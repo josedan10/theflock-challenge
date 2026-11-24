@@ -3,7 +3,6 @@ import {
   registerRequestSchema,
 } from "@twitter-clone/contracts";
 
-
 import { AppError } from "../../../platform/http/errors.js";
 import { IdentityConflictError } from "../domain/errors.js";
 

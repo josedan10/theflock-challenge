@@ -1,7 +1,6 @@
 import type { StoredUser } from "../application/ports.js";
 import type { SessionUser } from "@twitter-clone/contracts";
 
-
 /**
  * Projects a stored member onto the session-safe contract: email, password
  * hash, and session material never leave the API.
