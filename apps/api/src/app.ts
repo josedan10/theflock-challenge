@@ -17,6 +17,8 @@ export interface BuildAppOptions {
   corsOrigin: string;
   logger?: boolean;
   readinessCheck?: () => Promise<boolean>;
+  /** Proxies allowed to set `X-Forwarded-For`; see `TRUST_PROXY`. */
+  trustProxy?: string[];
 }
 
 /** Creates an injectable API instance with the platform security baseline. */
@@ -27,6 +29,7 @@ export async function buildApp(
     bodyLimit: 1_048_576,
     logger: options.logger ?? false,
     requestIdHeader: "x-request-id",
+    trustProxy: options.trustProxy ?? false,
   });
 
   registerErrorHandling(app);

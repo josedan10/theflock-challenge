@@ -5,6 +5,38 @@ const booleanFlag = z
   .enum(["true", "false"])
   .transform((value) => value === "true");
 
+/**
+ * Proxies allowed to set `X-Forwarded-For`, as a comma-separated list of
+ * addresses, CIDRs, or the named ranges `loopback`, `linklocal`, `uniquelocal`
+ * (for example `loopback` when Caddy runs on the same host). Unset means no
+ * proxy: rate limits key on the socket address.
+ *
+ * Blanket `true` is refused because any client could spoof its address and
+ * evade per-client rate limits. Hop counts are refused because Fastify 5
+ * deliberately ignores them (they cannot validate the immediate peer).
+ */
+const trustProxy = z
+  .string()
+  .trim()
+  .transform((value, context) => {
+    if (value.length === 0) {
+      return undefined;
+    }
+    if (value === "true" || value === "false" || /^\d+$/.test(value)) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Use proxy addresses, CIDRs, or named ranges, not true/false or a hop count.",
+      });
+      return z.NEVER;
+    }
+    return value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  })
+  .optional();
+
 const environmentSchema = z
   .object({
     API_HOST: z.string().min(1).default("0.0.0.0"),
@@ -30,6 +62,7 @@ const environmentSchema = z
       .min(300)
       .max(30 * 24 * 60 * 60)
       .default(7 * 24 * 60 * 60),
+    TRUST_PROXY: trustProxy,
   })
   .refine(
     (environment) =>

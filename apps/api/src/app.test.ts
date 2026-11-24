@@ -63,4 +63,27 @@ describe("platform health", () => {
     );
     expect(denied.headers["access-control-allow-origin"]).toBeUndefined();
   });
+
+  it("US-A01 AC-A01.5 ignores X-Forwarded-For unless a proxy is trusted", async () => {
+    const direct = await buildApp({ corsOrigin: "http://localhost:3000" });
+    const proxied = await buildApp({
+      corsOrigin: "http://localhost:3000",
+      trustProxy: ["loopback"],
+    });
+    openApps.push(direct, proxied);
+    for (const app of [direct, proxied]) {
+      app.get("/ip", async (request) => ({ ip: request.ip }));
+    }
+    const request = {
+      headers: { "x-forwarded-for": "198.51.100.9" },
+      method: "GET" as const,
+      remoteAddress: "127.0.0.1",
+      url: "/ip",
+    };
+
+    expect((await direct.inject(request)).json()).toEqual({ ip: "127.0.0.1" });
+    expect((await proxied.inject(request)).json()).toEqual({
+      ip: "198.51.100.9",
+    });
+  });
 });

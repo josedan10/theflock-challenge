@@ -70,4 +70,27 @@ describe("environment validation", () => {
       parseEnvironment({ ...base, SESSION_TTL_SECONDS: String(31 * 86_400) }),
     ).toThrow();
   });
+
+  it("US-A01 AC-A01.5 trusts no proxy by default", () => {
+    expect(parseEnvironment(base).TRUST_PROXY).toBeUndefined();
+    expect(
+      parseEnvironment({ ...base, TRUST_PROXY: " " }).TRUST_PROXY,
+    ).toBeUndefined();
+  });
+
+  it("US-A01 AC-A01.5 accepts proxy addresses, CIDRs, and named ranges", () => {
+    expect(
+      parseEnvironment({
+        ...base,
+        TRUST_PROXY: "loopback, 10.0.0.0/8, 172.18.0.2",
+      }).TRUST_PROXY,
+    ).toEqual(["loopback", "10.0.0.0/8", "172.18.0.2"]);
+  });
+
+  it.each(["true", "false", "1"])(
+    "US-A01 AC-A01.5 refuses TRUST_PROXY=%s, which would allow spoofing or be ignored",
+    (value) => {
+      expect(() => parseEnvironment({ ...base, TRUST_PROXY: value })).toThrow();
+    },
+  );
 });
