@@ -46,6 +46,7 @@ export default defineConfig({
         API_PORT: String(apiPort),
         // Journeys register and log in many times from one address.
         AUTH_RATE_LIMIT_PER_MINUTE: "1000",
+        TWEET_RATE_LIMIT_PER_MINUTE: "1000",
         COOKIE_SECURE: "false",
         CORS_ORIGIN: webUrl,
         DATABASE_URL: databaseUrl,
