@@ -102,7 +102,7 @@ v1 profiles are public (requirements rule 10, PROFILE-01, US-A03). A viewer does
 
 `avatarUrl` is `null` until image upload exists; clients render a placeholder. The document never includes `avatarKey`, email, or password material. Username lookup is case-insensitive and uses the stored lowercase form. Unknown, malformed, and soft-deleted usernames all return `404 NOT_FOUND` with the message "That profile does not exist." and no profile body.
 
-`tweetCount`, `followerCount`, and `followingCount` are computed from committed rows. Tweet and follow tables arrive with their own slices, so these counts are `0` until then. The fields stay part of the contract.
+`tweetCount`, `followerCount`, and `followingCount` are computed from committed rows. No denormalized counters are stored.
 
 Bio is plain text. The API stores it and returns it as a JSON string; it does not interpret or strip markup. Clients must render it as text (AC-A03.3). Reads are limited to 120 attempts per minute per client address.
 
@@ -139,6 +139,12 @@ Both routes require a session and `X-CSRF-Token`. The author is always the sessi
 | `401`  | No valid session                                                                                   |
 
 Tweet text is plain text that clients escape, and it is never logged: logs carry ids only. The basic write limit is 20 per minute per client, applied to create and to delete separately (set by `TWEET_RATE_LIMIT_PER_MINUTE`). Profiles now count committed tweets in `tweetCount`.
+
+## Home timeline (`GET /v1/timeline`)
+
+Requires a live session; no CSRF token is needed for this read. Returns `200 { items: Tweet[], nextCursor: string | null }` with `Cache-Control: no-store`. Cards contain only the member's and currently followed authors' tweets, newest first (ties: descending tweet ID), with committed like counts and the session member's liked state.
+
+Omit `cursor` on the first page. Pass the returned cursor unchanged for the next page; `null` means the end. A cursor is signed and bound to its viewer. The strict keyset survives deletion of its anchor and does not shift under newer inserts; following changes take effect on the next request. `limit` defaults to 20; positive decimal integers above 30 are clamped to 30. Invalid, unknown or repeated parameters and bad or cross-viewer cursors return `400 MALFORMED_REQUEST`. Missing, expired or revoked sessions return `401 UNAUTHENTICATED`. The read limit is 120 per minute per client address. Rotating `SESSION_SECRET` invalidates outstanding cursors; restart pagination without one.
 
 ## Sessions and CSRF
 
