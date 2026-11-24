@@ -35,6 +35,9 @@ function formAlert(page: Page) {
   return page.locator('form [role="alert"]:not([data-slot="field-error"])');
 }
 
+/** Budget for a navigation that may trigger a first `next dev` route compile. */
+const FIRST_VISIT_TIMEOUT_MS = 15_000;
+
 async function expectNoSeriousA11yViolations(page: Page) {
   const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations.filter(
@@ -191,14 +194,22 @@ test("navigates between home and the member's profile from the header", async ({
   const primary = page.getByRole("navigation", { name: "Primary" });
 
   await primary.getByRole("link", { name: "Profile" }).click();
-  await expect(page).toHaveURL(new RegExp(`/u/${member.username}$`));
+  // `next dev` compiles a route on its first visit, which can exceed the
+  // default 5 s under parallel load. This is a time budget, not a retry.
+  await expect(page).toHaveURL(new RegExp(`/u/${member.username}$`), {
+    timeout: FIRST_VISIT_TIMEOUT_MS,
+  });
+  await expect(page).toHaveTitle("Profile · Twitter Clone");
   await expect(primary.getByRole("link", { name: "Profile" })).toHaveAttribute(
     "aria-current",
     "page",
   );
 
   await primary.getByRole("link", { name: "Home" }).click();
-  await expect(page).toHaveURL(/\/home$/);
+  await expect(page).toHaveURL(/\/home$/, { timeout: FIRST_VISIT_TIMEOUT_MS });
+  // Client navigation applies the new <title> slightly after the URL changes;
+  // scan only once the page has settled.
+  await expect(page).toHaveTitle("Home · Twitter Clone");
   await expect(primary.getByRole("link", { name: "Home" })).toHaveAttribute(
     "aria-current",
     "page",
