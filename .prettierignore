@@ -5,3 +5,6 @@ pnpm-lock.yaml
 # rewritten by general-purpose formatters.
 .agents/skills/
 docs/skills/external-skills.lock.json
+
+# Drizzle owns generated migrations and metadata; migrations are verified by execution.
+apps/api/drizzle/
