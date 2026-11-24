@@ -58,6 +58,7 @@ export function AppHeader() {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuLink
+                    className="no-underline"
                     active={pathname === "/home"}
                     render={<Link href="/home" />}
                   >
@@ -66,6 +67,7 @@ export function AppHeader() {
                 </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuLink
+                    className="no-underline"
                     active={pathname === `/u/${user.username}`}
                     render={<Link href={`/u/${user.username}`} />}
                   >

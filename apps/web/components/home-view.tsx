@@ -3,10 +3,9 @@
 import { CircleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-import { apiFormErrors } from "../lib/form-errors";
-import { useLogOut, useSession } from "../lib/session";
+import { useSession } from "../lib/session";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -27,11 +25,9 @@ import { Spinner } from "@/components/ui/spinner";
 export function HomeView() {
   const router = useRouter();
   const session = useSession();
-  const logOut = useLogOut();
-  const [error, setError] = useState<string | null>(null);
-  // A logout clears the session too; only an unexpected sign-out goes to /login.
-  const loggingOut = logOut.isPending || logOut.isSuccess;
-  const signedOut = session.isSuccess && session.data === null && !loggingOut;
+  // Logout leaves with a full page navigation (see AppHeader), so a null
+  // session here always means the visitor is not signed in.
+  const signedOut = session.isSuccess && session.data === null;
 
   useEffect(() => {
     if (signedOut) {
@@ -79,29 +75,7 @@ export function HomeView() {
       </CardHeader>
       <CardContent className="grid gap-4">
         <p>Your timeline will appear here.</p>
-        {error === null ? null : (
-          <Alert variant="destructive">
-            <CircleAlertIcon aria-hidden="true" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
       </CardContent>
-      <CardFooter>
-        <Button
-          aria-busy={logOut.isPending}
-          disabled={logOut.isPending}
-          onClick={() =>
-            logOut.mutate(undefined, {
-              onError: (failure) => setError(apiFormErrors(failure).form),
-              onSuccess: () => router.replace("/"),
-            })
-          }
-          type="button"
-          variant="outline"
-        >
-          {logOut.isPending ? "Logging out…" : "Log out"}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

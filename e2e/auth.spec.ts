@@ -181,3 +181,47 @@ test("PRO-02 US-A03 AC-A03.2 shows an unknown profile state", async ({
   await expect(page.getByText("That profile does not exist.")).toBeVisible();
   await expectNoSeriousA11yViolations(page);
 });
+
+test("navigates between home and the member's profile from the header", async ({
+  page,
+}, testInfo) => {
+  const member = uniqueMember(testInfo);
+  await register(page, member);
+  await expect(page).toHaveURL(/\/home$/);
+  const primary = page.getByRole("navigation", { name: "Primary" });
+
+  await primary.getByRole("link", { name: "Profile" }).click();
+  await expect(page).toHaveURL(new RegExp(`/u/${member.username}$`));
+  await expect(primary.getByRole("link", { name: "Profile" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+
+  await primary.getByRole("link", { name: "Home" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(primary.getByRole("link", { name: "Home" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expectNoSeriousA11yViolations(page);
+});
+
+test("offers Log in and Create account on a public profile when signed out", async ({
+  page,
+}, testInfo) => {
+  const member = uniqueMember(testInfo);
+  await register(page, member);
+  await page.getByRole("button", { name: "Log out" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  await page.goto(`/u/${member.username}`);
+
+  await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute(
+    "href",
+    "/login",
+  );
+  await expect(
+    page.getByRole("link", { name: "Create account" }),
+  ).toHaveAttribute("href", "/register");
+  await expect(page.getByRole("button", { name: "Log out" })).toHaveCount(0);
+});

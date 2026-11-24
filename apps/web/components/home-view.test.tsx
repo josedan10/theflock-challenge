@@ -5,12 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../lib/api-client";
 
 import { HomeView } from "./home-view";
-import {
-  fakeApiClient,
-  formAlert,
-  renderWithSession,
-  testSession,
-} from "./test-utils";
+import { fakeApiClient, renderWithSession, testSession } from "./test-utils";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
@@ -53,44 +48,6 @@ describe("HomeView", () => {
     expect(
       screen.queryByRole("button", { name: "Log out" }),
     ).not.toBeInTheDocument();
-  });
-
-  it("US-A02 AC-A02.3 logs out with the CSRF token and returns to the landing page", async () => {
-    const apiClient = signedIn();
-    renderWithSession(<HomeView />, apiClient);
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByRole("button", { name: "Log out" }));
-
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
-    expect(apiClient.logOut).toHaveBeenCalledWith(testSession.csrfToken);
-    // Logging out must not look like an expired session (flows §2.4).
-    expect(replace).not.toHaveBeenCalledWith("/login");
-  });
-
-  it("keeps the member signed in and explains a failed logout", async () => {
-    const apiClient = fakeApiClient({
-      logOut: vi.fn(async () => {
-        throw new ApiError(
-          0,
-          "NETWORK_ERROR",
-          "Can't reach the server. Check your connection and try again.",
-        );
-      }),
-      me: vi.fn(async () => testSession),
-    });
-    renderWithSession(<HomeView />, apiClient);
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByRole("button", { name: "Log out" }));
-
-    await waitFor(() =>
-      expect(formAlert()).toHaveTextContent("Can't reach the server"),
-    );
-    expect(
-      screen.getByRole("heading", { name: "Welcome, Ada" }),
-    ).toBeInTheDocument();
-    expect(replace).not.toHaveBeenCalled();
   });
 
   it("offers a retry when the session cannot be loaded", async () => {
