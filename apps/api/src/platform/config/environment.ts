@@ -40,6 +40,13 @@ const trustProxy = z
 const environmentSchema = z
   .object({
     API_HOST: z.string().min(1).default("0.0.0.0"),
+    /** Register/login attempts per client per minute; raise only for browser test runs. */
+    AUTH_RATE_LIMIT_PER_MINUTE: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(10_000)
+      .default(5),
     API_PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
     COOKIE_DOMAIN: z
       .string()

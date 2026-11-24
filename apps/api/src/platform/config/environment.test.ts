@@ -99,4 +99,15 @@ describe("environment validation", () => {
       }),
     ).toThrow();
   });
+
+  it("US-A01 AC-A01.5 defaults the auth rate limit to 5 per minute", () => {
+    expect(parseEnvironment(base).AUTH_RATE_LIMIT_PER_MINUTE).toBe(5);
+    expect(
+      parseEnvironment({ ...base, AUTH_RATE_LIMIT_PER_MINUTE: "500" })
+        .AUTH_RATE_LIMIT_PER_MINUTE,
+    ).toBe(500);
+    expect(() =>
+      parseEnvironment({ ...base, AUTH_RATE_LIMIT_PER_MINUTE: "0" }),
+    ).toThrow();
+  });
 });
