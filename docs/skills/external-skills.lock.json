@@ -8,6 +8,14 @@
   },
   "skills": [
     {
+      "name": "vercel-plugin-skills",
+      "repository": "claude-plugins-official/vercel",
+      "version": "0.56.0",
+      "path": "skills/{nextjs,react-best-practices,shadcn,deployments-cicd,env-vars,vercel-cli,verification}",
+      "scan": null,
+      "disposition": "pending-scan-not-approved"
+    },
+    {
       "name": "owasp-security-guidance",
       "repository": "OWASP/secure-agent-playbook",
       "commit": "65d4efd2cd0b081d52101e9708792b944e4ddebb",

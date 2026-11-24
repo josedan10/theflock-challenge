@@ -51,6 +51,8 @@ These skills were evaluated for project work. **Status comes only from [`securit
 | `ecc:docker-patterns` | Create hardened development/production containers and Compose workflows | Blocked |
 | `ecc:security-review` | Threat-model and review authentication, authorization, input, secrets | Blocked |
 | `archify` | Produce validated workflow and architecture diagrams | Blocked for future use |
+| `owasp-security-guidance` | Official OWASP agent playbook (superseded by `social-app-security`) | Blocked |
+| `vercel:*` (nextjs, react-best-practices, shadcn, deployments-cicd, env-vars, vercel-cli, verification) | Next.js/React guidance and web deployment on Vercel | Pending scan |
 
 When a status changes, update the inventory first, then this table and the `AGENTS.md` routing table in the same commit.
 

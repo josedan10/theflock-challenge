@@ -29,6 +29,7 @@ Raw JSON reports were generated for every row and reviewed to produce this inven
 | frontend-patterns | 0 / LOW | 0 | 0% partial | Incomplete—manual review required |
 | docker-patterns | 34 / MEDIUM | 5 high, 1 medium | 100% | Blocked pending finding review |
 | security-review | 16 / LOW | 1 high | 100% | Blocked pending finding review |
+| Vercel plugin skills 0.56.0 (`vercel:nextjs`, `react-best-practices`, `shadcn`, `deployments-cicd`, `env-vars`, `vercel-cli`, `verification`) | not scanned | — | — | Pending scan; installed via plugin but not approved |
 | archify | 100 / CRITICAL | 32 high, 7 medium, 9 low | 40.6% partial | Blocked for future use pending finding review |
 
 ## Interpretation
