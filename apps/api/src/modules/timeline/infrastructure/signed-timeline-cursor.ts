@@ -17,7 +17,28 @@ const envelope = z.tuple([
 
 const position = z.tuple([z.iso.datetime({ precision: 6 }), z.uuid()]);
 
-/** Domain-separated MAC covers the version, viewer and exact encoded boundary. */
+/**
+ * Signs the keyset boundary so the client can ask for the next page without
+ * choosing where that page starts.
+ *
+ * A token is `v1.<payload>.<mac>`. The payload is the UTC timestamp, kept at
+ * six fractional digits, and the tweet id. The viewer id is not stored in
+ * it. The MAC is HMAC-SHA256 over the version, the viewer, and that payload.
+ * Its key is itself an HMAC of the session secret under a timeline-only
+ * label, so a CSRF token or a cursor from another feature cannot be reused
+ * here. A cursor minted for one member fails for every other member.
+ * Rotating the session secret invalidates outstanding cursors.
+ *
+ * Decode rejects the token before any timeline read. Length and shape are
+ * checked first. The signature comparison is timing-safe and only runs once
+ * both sides are the 43-character SHA-256 encoding, so the lengths match.
+ * A valid signature is still not trusted: the timestamp must be a real
+ * six-digit UTC instant and the id must be a UUID. Every failure is the
+ * same invalid-cursor error, and the anchor tweet is never looked up.
+ *
+ * @throws {InvalidTimelineCursorError} When the token has the wrong length,
+ * shape, viewer, key, or boundary.
+ */
 export function createTimelineCursor(sessionSecret: string): TimelineCursor {
   const key = createHmac("sha256", sessionSecret)
     .update("home-timeline/cursor-key")
