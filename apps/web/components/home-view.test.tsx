@@ -5,7 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../lib/api-client";
 
 import { HomeView } from "./home-view";
-import { fakeApiClient, renderWithSession, testSession } from "./test-utils";
+import {
+  fakeApiClient,
+  formAlert,
+  renderWithSession,
+  testSession,
+} from "./test-utils";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
@@ -80,9 +85,7 @@ describe("HomeView", () => {
     await user.click(await screen.findByRole("button", { name: "Log out" }));
 
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "Can't reach the server",
-      ),
+      expect(formAlert()).toHaveTextContent("Can't reach the server"),
     );
     expect(
       screen.getByRole("heading", { name: "Welcome, Ada" }),

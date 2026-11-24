@@ -5,7 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../lib/api-client";
 
 import { RegisterForm } from "./register-form";
-import { fakeApiClient, renderWithSession, testSession } from "./test-utils";
+import {
+  fakeApiClient,
+  formAlert,
+  renderWithSession,
+  testSession,
+} from "./test-utils";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
@@ -59,9 +64,7 @@ describe("RegisterForm", () => {
 
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Fix the highlighted fields.",
-    );
+    expect(formAlert()).toHaveTextContent("Fix the highlighted fields.");
     expect(screen.getByLabelText("Email")).toHaveAttribute(
       "aria-invalid",
       "true",
@@ -91,9 +94,7 @@ describe("RegisterForm", () => {
         expect.stringContaining("Is already in use."),
       ),
     );
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Some fields are already in use.",
-    );
+    expect(formAlert()).toHaveTextContent("Some fields are already in use.");
     expect(replace).not.toHaveBeenCalled();
   });
 

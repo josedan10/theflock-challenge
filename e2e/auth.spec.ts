@@ -27,9 +27,12 @@ async function register(
   await page.getByRole("button", { name: "Create account" }).click();
 }
 
-/** The form's own alert; Next.js also renders a route announcer with role=alert. */
+/**
+ * The form-level alert. Next.js renders a route announcer with role=alert,
+ * and field errors are alerts too, so both are excluded.
+ */
 function formAlert(page: Page) {
-  return page.locator("form").getByRole("alert");
+  return page.locator('form [role="alert"]:not([data-slot="field-error"])');
 }
 
 async function expectNoSeriousA11yViolations(page: Page) {
