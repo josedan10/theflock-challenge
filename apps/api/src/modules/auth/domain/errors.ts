@@ -12,3 +12,15 @@ export class IdentityConflictError extends Error {
     super(`The ${field} is already in use.`);
   }
 }
+
+/**
+ * Raised for any failed login, whether the email is unknown or the password is
+ * wrong. Callers must not distinguish the two (AC-A02.2).
+ */
+export class InvalidCredentialsError extends Error {
+  override readonly name = "InvalidCredentialsError";
+
+  constructor() {
+    super("Invalid email or password.");
+  }
+}
