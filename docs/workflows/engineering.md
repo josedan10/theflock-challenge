@@ -3,10 +3,11 @@
 ## Branch and pull request
 
 1. Branch from green `main`: `feat/FND-02-api-foundation`, `fix/AUTH-03-session-rotation`.
-2. Keep one coherent, reviewable change per PR; include requirement/AC IDs.
+2. Use one branch and PR per user story (for example `feat/AUTH-02-registration` for US-A01); include requirement/AC IDs.
 3. Commit messages use Conventional Commits.
 4. PR description includes behavior, risks, screenshots for UI, migration/rollback notes, and verification commands.
-5. Required checks and one approval precede merge. Prefer squash merge; delete the branch.
+5. Build the story as many small commits, one concern each (contract, migration, adapter, use case, route, docs). A single commit containing the whole story is not accepted.
+6. Required checks and one approval precede merge. Merge with a merge commit; **never squash**, so every commit stays visible in history. Delete the branch after merging.
 
 ## Test-driven delivery loop
 
