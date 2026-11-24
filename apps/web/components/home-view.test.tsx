@@ -93,10 +93,12 @@ describe("HomeView tweets", () => {
       await screen.findByRole("textbox", { name: "What's happening?" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Your new posts" }),
+      screen.getByRole("heading", { name: "Home timeline" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Nothing posted yet. Share your first tweet above."),
+      await screen.findByText(
+        "Your timeline is empty. Post a tweet above, or search for people and follow them to see their posts here.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -117,7 +119,7 @@ describe("HomeView tweets", () => {
     await post("two");
 
     const items = within(
-      screen.getByRole("list", { name: "Your new posts" }),
+      screen.getByRole("list", { name: "Home timeline" }),
     ).getAllByRole("article");
     expect(
       items.map(
@@ -182,9 +184,71 @@ describe("HomeView tweets", () => {
     await waitFor(() => expect(apiClient.deleteTweet).toHaveBeenCalled());
     expect(
       await screen.findByText(
-        "Nothing posted yet. Share your first tweet above.",
+        "Your timeline is empty. Post a tweet above, or search for people and follow them to see their posts here.",
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("AC-B03.5 holds a new post behind a banner after older pages are loaded", async () => {
+    const loaded = {
+      ...testTweet,
+      content: "loaded",
+      createdAt: "2026-11-24T12:00:00.000Z",
+      id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f62",
+    };
+    const older = {
+      ...testTweet,
+      content: "older",
+      createdAt: "2026-11-24T11:00:00.000Z",
+      id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
+    };
+    const fresh = {
+      ...testTweet,
+      content: "fresh",
+      createdAt: "2026-11-24T14:00:00.000Z",
+      id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f64",
+    };
+    const apiClient = fakeApiClient({
+      createTweet: vi.fn(async () => ({ tweet: fresh })),
+      getTimeline: vi
+        .fn()
+        .mockResolvedValueOnce({ items: [loaded], nextCursor: "cursor-2" })
+        .mockResolvedValueOnce({ items: [older], nextCursor: null }),
+      me: vi.fn(async () => testSession),
+    });
+    renderWithSession(<HomeView />, apiClient);
+    const user = userEvent.setup();
+
+    expect(
+      await screen.findByText("loaded", { selector: "article p" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+    expect(
+      await screen.findByText("older", { selector: "article p" }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "What's happening?" }),
+      { target: { value: "fresh" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Post" }));
+
+    const banner = await screen.findByRole("button", {
+      name: "Show 1 new post",
+    });
+    expect(
+      screen.queryByText("fresh", { selector: "article p" }),
+    ).not.toBeInTheDocument();
+    await user.click(banner);
+
+    const items = within(
+      screen.getByRole("list", { name: "Home timeline" }),
+    ).getAllByRole("article");
+    expect(
+      items.map(
+        (item) => item.querySelector("p.whitespace-pre-wrap")?.textContent,
+      ),
+    ).toEqual(["fresh", "loaded", "older"]);
   });
 });
