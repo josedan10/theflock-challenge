@@ -6,6 +6,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 export interface BuildAppOptions {
   corsOrigin: string;
   logger?: boolean;
+  readinessCheck?: () => Promise<boolean>;
 }
 
 /** Creates an injectable API instance with the platform security baseline. */
@@ -29,7 +30,15 @@ export async function buildApp(
   });
 
   app.get("/health/live", async () => ({ status: "ok" }));
-  app.get("/health/ready", async () => ({ status: "ready" }));
+  app.get("/health/ready", async (_request, reply) => {
+    const ready = (await options.readinessCheck?.()) ?? true;
+
+    if (!ready) {
+      return reply.code(503).send({ status: "unavailable" });
+    }
+
+    return { status: "ready" };
+  });
 
   return app;
 }

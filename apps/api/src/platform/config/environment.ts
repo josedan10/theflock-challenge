@@ -4,6 +4,7 @@ const environmentSchema = z.object({
   API_HOST: z.string().min(1).default("0.0.0.0"),
   API_PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
   CORS_ORIGIN: z.string().url(),
+  DATABASE_URL: z.string().url().startsWith("postgresql://"),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

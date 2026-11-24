@@ -30,6 +30,19 @@ describe("platform health", () => {
     expect(response.json()).toEqual({ status: "ready" });
   });
 
+  it("FND-02 AC-1 fails readiness when a dependency is unavailable", async () => {
+    const app = await buildApp({
+      corsOrigin: "http://localhost:3000",
+      readinessCheck: async () => false,
+    });
+    openApps.push(app);
+
+    const response = await app.inject({ method: "GET", url: "/health/ready" });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({ status: "unavailable" });
+  });
+
   it("FND-02 AC-2 allows only the configured browser origin", async () => {
     const app = await buildApp({ corsOrigin: "http://localhost:3000" });
     openApps.push(app);
