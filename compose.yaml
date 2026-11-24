@@ -77,7 +77,11 @@ services:
     volumes:
       - .:/workspace
       - workspace-node-modules:/workspace/node_modules
+      # The container's Next.js cache stays out of the host's apps/web/.next;
+      # two `next dev` processes sharing one Turbopack cache corrupt it.
+      - web-next:/workspace/apps/web/.next
 
 volumes:
   postgres-data:
+  web-next:
   workspace-node-modules:
