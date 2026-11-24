@@ -155,5 +155,6 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install bats-core
 
+      # Bats only; this job does not install Node or pnpm.
       - name: Run setup script tests
-        run: pnpm test:scripts
+        run: bats tests/bats
