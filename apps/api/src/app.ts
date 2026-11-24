@@ -7,15 +7,23 @@ import Fastify, { type FastifyInstance } from "fastify";
 
 import {
   type AuthModuleOptions,
-  authModule,
+  createAuthRuntime,
 } from "./modules/auth/auth-module.js";
+import { usersModule } from "./modules/users/users-module.js";
 import { registerErrorHandling } from "./platform/http/errors.js";
+
+import type { ProfileRateLimit } from "./modules/users/http/rate-limit.js";
 
 export interface BuildAppOptions {
   /** Mounts the auth routes under `/v1`; omitted only by platform-level tests. */
   auth?: AuthModuleOptions;
   corsOrigin: string;
   logger?: boolean;
+  /** Overrides for profile read and update budgets. Defaults are the API starting points. */
+  profileRateLimit?: {
+    read?: ProfileRateLimit;
+    write?: ProfileRateLimit;
+  };
   readinessCheck?: () => Promise<boolean>;
   /** Proxies allowed to set `X-Forwarded-For`; see `TRUST_PROXY`. */
   trustProxy?: string[];
@@ -47,7 +55,25 @@ export async function buildApp(
   // Opt-in per route: only routes that declare `config.rateLimit` are limited.
   await app.register(rateLimit, { global: false });
   if (options.auth !== undefined) {
-    await app.register(authModule(options.auth), { prefix: "/v1" });
+    const auth = createAuthRuntime(options.auth);
+    await app.register(auth.plugin, { prefix: "/v1" });
+    await app.register(
+      usersModule({
+        db: options.auth.db,
+        requireCsrf: auth.requireCsrf,
+        requireSession: auth.requireSession,
+        ...(options.auth.clock === undefined
+          ? {}
+          : { clock: options.auth.clock }),
+        ...(options.profileRateLimit?.read === undefined
+          ? {}
+          : { readRateLimit: options.profileRateLimit.read }),
+        ...(options.profileRateLimit?.write === undefined
+          ? {}
+          : { writeRateLimit: options.profileRateLimit.write }),
+      }),
+      { prefix: "/v1" },
+    );
   }
 
   app.get("/health/live", async () => ({ status: "ok" }));
