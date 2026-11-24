@@ -14,6 +14,7 @@ const app = await buildApp({
       secure: environment.COOKIE_SECURE,
       ttlSeconds: environment.SESSION_TTL_SECONDS,
     },
+    sessionSecret: environment.SESSION_SECRET,
   },
   corsOrigin: environment.CORS_ORIGIN,
   logger: environment.NODE_ENV !== "test",

@@ -14,6 +14,7 @@ import { IdentityConflictError } from "../domain/errors.js";
 import { registerRoute } from "./register-route.js";
 
 import type { RegisteredMember } from "../application/register-member.js";
+import type { SessionCookieSettings } from "./session-cookie.js";
 
 const CREATED_AT = new Date("2026-11-24T12:00:00.000Z");
 
@@ -56,7 +57,11 @@ async function buildTestApp(
   behavior: (input: RegisterRequest) => Promise<RegisteredMember> = async (
     input,
   ) => registered(input),
-  sessionCookie = { domain: undefined, secure: true, ttlSeconds: 3_600 },
+  sessionCookie: SessionCookieSettings = {
+    domain: undefined,
+    secure: true,
+    ttlSeconds: 3_600,
+  },
 ): Promise<FastifyInstance> {
   calls = [];
   app = Fastify({ logger: false });

@@ -1,4 +1,5 @@
 import { normalizeEmail, normalizeUsername } from "@twitter-clone/contracts";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { buildNewUser, FIXED_NOW } from "../../../tests/auth-factories.js";
@@ -69,6 +70,21 @@ describe("user persistence", () => {
       repository.findByEmailNormalized("nobody@example.com"),
     ).resolves.toBeNull();
     await expect(repository.findByUsername("nobody")).resolves.toBeNull();
+  });
+
+  it("US-A02 AC-A02.4 hides soft-deleted members from lookups", async () => {
+    const created = await repository.create(buildNewUser());
+    await database.db
+      .update(users)
+      .set({ deletedAt: FIXED_NOW })
+      .where(eq(users.id, created.id));
+
+    await expect(
+      repository.findByEmailNormalized(created.emailNormalized),
+    ).resolves.toBeNull();
+    await expect(
+      repository.findByUsername(created.username),
+    ).resolves.toBeNull();
   });
 
   it("US-A01 AC-A01.2 rejects a duplicate email regardless of case", async () => {

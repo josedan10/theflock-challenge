@@ -6,42 +6,22 @@ import {
 import { AppError } from "../../../platform/http/errors.js";
 import { IdentityConflictError } from "../domain/errors.js";
 
+import { type AuthRateLimit, authRateLimitConfig } from "./rate-limit.js";
 import {
   SESSION_COOKIE_NAME,
   type SessionCookieSettings,
   sessionCookieOptions,
 } from "./session-cookie.js";
 import { toSessionUser } from "./session-user.js";
+import { parseBody } from "./validation.js";
 
 import type { RegisterMember } from "../application/register-member.js";
 import type { FastifyInstance } from "fastify";
-import type { z } from "zod";
-
-/** Per-client attempt budget for registration (API doc: 5/minute to start). */
-export interface RegistrationRateLimit {
-  max: number;
-  timeWindowMs: number;
-}
-
-export const DEFAULT_REGISTRATION_RATE_LIMIT: RegistrationRateLimit = {
-  max: 5,
-  timeWindowMs: 60_000,
-};
 
 export interface RegisterRouteDependencies {
   registerMember: RegisterMember;
   sessionCookie: SessionCookieSettings;
-  rateLimit?: RegistrationRateLimit;
-}
-
-/** Groups Zod issues by top-level field for the contract's `fields` map. */
-function fieldErrors(error: z.ZodError): Record<string, string[]> {
-  const fields: Record<string, string[]> = {};
-  for (const issue of error.issues) {
-    const field = issue.path.length === 0 ? "body" : String(issue.path[0]);
-    (fields[field] ??= []).push(issue.message);
-  }
-  return fields;
+  rateLimit?: AuthRateLimit;
 }
 
 /** `POST /auth/register` (US-A01). Mounted under the `/v1` prefix. */
@@ -49,35 +29,18 @@ export async function registerRoute(
   app: FastifyInstance,
   dependencies: RegisterRouteDependencies,
 ): Promise<void> {
-  const rateLimit = dependencies.rateLimit ?? DEFAULT_REGISTRATION_RATE_LIMIT;
-
-  // The limit runs in onRequest, before validation or any lookup, so every
-  // attempt costs the same whether or not an account exists (AC-A01.5).
-  // `request.ip` honours Fastify's `trustProxy`, never a raw forwarded header.
   app.post(
     "/auth/register",
     {
-      config: {
-        rateLimit: {
-          keyGenerator: (request) => request.ip,
-          max: rateLimit.max,
-          timeWindow: rateLimit.timeWindowMs,
-        },
-      },
+      // AC-A01.5: limited before validation, so 429s reveal nothing.
+      config: { rateLimit: authRateLimitConfig(dependencies.rateLimit) },
     },
     async (request, reply) => {
-      const parsed = registerRequestSchema.safeParse(request.body);
-      if (!parsed.success) {
-        throw new AppError(
-          "VALIDATION_ERROR",
-          "Some fields are invalid.",
-          fieldErrors(parsed.error),
-        );
-      }
+      const input = parseBody(registerRequestSchema, request.body);
 
       let registered;
       try {
-        registered = await dependencies.registerMember(parsed.data);
+        registered = await dependencies.registerMember(input);
       } catch (error: unknown) {
         if (error instanceof IdentityConflictError) {
           throw new AppError("CONFLICT", "Some fields are already in use.", {
