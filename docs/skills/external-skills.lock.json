@@ -8,10 +8,18 @@
   },
   "skills": [
     {
+      "name": "shadcn",
+      "repository": "shadcn-ui/ui",
+      "commit": "055aa6b7837b1808456a24beb4c97a677864aa82",
+      "path": "skills/shadcn",
+      "scan": { "score": 100, "severity": "CRITICAL", "high": 7, "medium": 127, "low": 1, "coveragePercent": 89.5 },
+      "disposition": "blocked-not-installed"
+    },
+    {
       "name": "vercel-plugin-skills",
       "repository": "claude-plugins-official/vercel",
       "version": "0.56.0",
-      "path": "skills/{nextjs,react-best-practices,shadcn,deployments-cicd,env-vars,vercel-cli,verification}",
+      "path": "skills/{nextjs,react-best-practices,deployments-cicd,env-vars,vercel-cli,verification}",
       "scan": null,
       "disposition": "pending-scan-not-approved"
     },
