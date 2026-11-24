@@ -78,3 +78,43 @@ export interface SessionRepository {
    */
   revoke(sessionId: string, now: Date): Promise<boolean>;
 }
+
+/** Repositories bound to one transaction. */
+export interface AuthRepositories {
+  users: UserRepository;
+  sessions: SessionRepository;
+}
+
+export interface AuthUnitOfWork {
+  /**
+   * Runs `work` in a single database transaction. It commits when `work`
+   * resolves and rolls back, rethrowing, when it rejects.
+   */
+  run<T>(work: (repositories: AuthRepositories) => Promise<T>): Promise<T>;
+}
+
+export interface PasswordHasher {
+  /** Returns a self-describing Argon2id encoding including salt and parameters. */
+  hash(password: string): Promise<string>;
+  /** Returns `false` for a wrong password or an unparseable hash; never throws for those. */
+  verify(passwordHash: string, password: string): Promise<boolean>;
+}
+
+/**
+ * Fresh secrets for one session. The raw values go to the client only; the
+ * hashes are what `sessions` stores.
+ */
+export interface SessionCredentials {
+  /** Opaque cookie value. */
+  token: string;
+  tokenHash: Buffer;
+  /** Sent back by the client in `X-CSRF-Token` on cookie-authenticated mutations. */
+  csrfToken: string;
+  csrfSecretHash: Buffer;
+}
+
+export interface SessionCredentialGenerator {
+  generate(): SessionCredentials;
+  /** Digest used to look up a presented cookie or CSRF token. */
+  hash(secret: string): Buffer;
+}

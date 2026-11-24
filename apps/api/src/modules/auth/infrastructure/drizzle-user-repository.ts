@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import {
-  type Database,
+  type DatabaseExecutor,
   uniqueViolationConstraint,
 } from "../../../platform/database/client.js";
 import { type IdentityField, IdentityConflictError } from "../domain/errors.js";
@@ -37,7 +37,9 @@ export const storedUserColumns = {
  * Relies on unique constraints rather than read-then-insert checks, so two
  * concurrent registrations for the same identifier cannot both succeed.
  */
-export function createDrizzleUserRepository(db: Database): UserRepository {
+export function createDrizzleUserRepository(
+  db: DatabaseExecutor,
+): UserRepository {
   return {
     async create(user: NewUser): Promise<StoredUser> {
       try {

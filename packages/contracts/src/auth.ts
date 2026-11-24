@@ -124,9 +124,16 @@ export const sessionUserSchema = z.object({
 /** Session-safe view of the current member. */
 export type SessionUser = z.infer<typeof sessionUserSchema>;
 
-/** Response body for successful register (`201`) and login (`200`). */
+/**
+ * Response body for successful register (`201`) and login (`200`).
+ *
+ * `csrfToken` must be sent as `X-CSRF-Token` on every cookie-authenticated
+ * mutation. It is returned in the body because only its hash is stored, and
+ * the session cookie itself is HTTP-only.
+ */
 export const authSessionResponseSchema = z.object({
   user: sessionUserSchema,
+  csrfToken: z.string().min(32),
 });
 
 /** Authenticated session response body. */

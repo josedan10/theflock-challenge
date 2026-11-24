@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  authSessionResponseSchema,
   loginRequestSchema,
   normalizeEmail,
   normalizeUsername,
@@ -198,6 +199,27 @@ describe("session user contract", () => {
     expect(
       sessionUserSchema.safeParse({ ...user, username: "Ada_Lovelace" })
         .success,
+    ).toBe(false);
+  });
+});
+
+describe("auth session response contract", () => {
+  const user = {
+    id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f60",
+    username: "ada_lovelace",
+    displayName: "Ada",
+    bio: "",
+    avatarUrl: null,
+    createdAt: "2026-11-24T10:00:00.000Z",
+  };
+
+  it("US-A02 AC-A02.5 returns the CSRF token the client must echo", () => {
+    const body = { user, csrfToken: "x".repeat(43) };
+
+    expect(authSessionResponseSchema.parse(body)).toEqual(body);
+    expect(authSessionResponseSchema.safeParse({ user }).success).toBe(false);
+    expect(
+      authSessionResponseSchema.safeParse({ user, csrfToken: "short" }).success,
     ).toBe(false);
   });
 });

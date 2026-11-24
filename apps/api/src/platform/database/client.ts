@@ -6,6 +6,15 @@ import type { Sql } from "postgres";
 
 export type Database = PostgresJsDatabase<typeof schema>;
 
+/** A transaction handle, as passed to `db.transaction` callbacks. */
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+/**
+ * Anything that can run queries. Repositories accept this so the same code
+ * runs on the pool or inside a caller-owned transaction.
+ */
+export type DatabaseExecutor = Database | Transaction;
+
 /** Wraps an existing postgres.js pool; the caller owns the pool's lifecycle. */
 export function createDatabase(sql: Sql): Database {
   return drizzle(sql, { schema });

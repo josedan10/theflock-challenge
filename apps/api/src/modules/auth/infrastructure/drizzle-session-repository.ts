@@ -3,7 +3,7 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 import { sessions, users } from "./auth.schema.js";
 import { storedUserColumns } from "./drizzle-user-repository.js";
 
-import type { Database } from "../../../platform/database/client.js";
+import type { DatabaseExecutor } from "../../../platform/database/client.js";
 import type { SessionRepository, StoredSession } from "../application/ports.js";
 
 const storedSessionColumns = {
@@ -17,7 +17,7 @@ const storedSessionColumns = {
 };
 
 export function createDrizzleSessionRepository(
-  db: Database,
+  db: DatabaseExecutor,
 ): SessionRepository {
   return {
     async create(session): Promise<StoredSession> {

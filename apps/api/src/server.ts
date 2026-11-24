@@ -2,12 +2,24 @@ import postgres from "postgres";
 
 import { buildApp } from "./app.js";
 import { parseEnvironment } from "./platform/config/environment.js";
+import { createDatabase } from "./platform/database/client.js";
 
 const environment = parseEnvironment(process.env);
 const sql = postgres(environment.DATABASE_URL, { max: 10 });
 const app = await buildApp({
+  auth: {
+    db: createDatabase(sql),
+    sessionCookie: {
+      domain: environment.COOKIE_DOMAIN,
+      secure: environment.COOKIE_SECURE,
+      ttlSeconds: environment.SESSION_TTL_SECONDS,
+    },
+  },
   corsOrigin: environment.CORS_ORIGIN,
   logger: environment.NODE_ENV !== "test",
+  ...(environment.TRUST_PROXY === undefined
+    ? {}
+    : { trustProxy: environment.TRUST_PROXY }),
   readinessCheck: async () => {
     try {
       await sql`select 1`;

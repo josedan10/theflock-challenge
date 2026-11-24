@@ -49,10 +49,35 @@ Status semantics: `400` malformed cursor/request, `401` unauthenticated, `403` a
 
 Follow and like responses return `{ state, count }`. Create tweet returns the complete card view model so the client does not invent timestamps/counts.
 
+## Registration (`POST /v1/auth/register`)
+
+Request (validated by `registerRequestSchema` in `@twitter-clone/contracts`):
+
+```json
+{
+  "email": "Ada@Example.com",
+  "username": "Ada_Lovelace",
+  "password": "correct horse battery",
+  "displayName": "Ada"
+}
+```
+
+`displayName` is optional and defaults to the username as entered. Email and username are trimmed; uniqueness compares lowercase forms, and the username is stored lowercase.
+
+| Status | Body                                                            | Notes                                                        |
+| ------ | --------------------------------------------------------------- | ------------------------------------------------------------ |
+| `201`  | `{ "user": SessionUser, "csrfToken": string }`                  | Sets the `sid` cookie; `Cache-Control: no-store`             |
+| `409`  | Error envelope, `CONFLICT`, `fields.email` or `fields.username` | One field per response: the first unique constraint violated |
+| `422`  | Error envelope, `VALIDATION_ERROR`, `fields` per invalid field  | Nothing is written                                           |
+| `400`  | Error envelope, `MALFORMED_REQUEST`                             | Unparseable JSON                                             |
+| `429`  | Error envelope, `RATE_LIMITED`, `Retry-After` header            | 5 attempts/minute per client address                         |
+
+`SessionUser` never contains the email, password hash, or session material. Session cookie: `sid`, `HttpOnly`, `SameSite=Lax`, `Path=/`, `Max-Age=SESSION_TTL_SECONDS`, `Secure` when `COOKIE_SECURE=true` (required in production), `Domain=COOKIE_DOMAIN` when set. The `csrfToken` is returned only here (its hash is stored) and must be sent as `X-CSRF-Token` on cookie-authenticated mutations.
+
 ## Rate-limit starting points
 
 - Login/register: 5/minute per privacy-safe composite key, with measured tuning.
 - Tweet creation: 20/minute/user; follows/likes: 60/minute/user.
 - Reads: 120/minute/user/IP. Health checks are separately limited/allowlisted.
 
-Return `Retry-After`. Limits are defense-in-depth, not business quotas, and must not rely solely on attacker-controlled IP headers.
+Return `Retry-After`. Limits are defense-in-depth, not business quotas, and must not rely solely on attacker-controlled IP headers. The client address honours `X-Forwarded-For` only from proxies listed in `TRUST_PROXY` (addresses, CIDRs, or `loopback`/`linklocal`/`uniquelocal`); production behind Caddy must set it, or every client shares the proxy's budget.
