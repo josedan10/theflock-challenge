@@ -17,13 +17,13 @@ const testFiles = [
 export default tseslint.config(
   {
     ignores: [
-      ".next/**",
-      ".turbo/**",
-      "coverage/**",
-      "dist/**",
-      "node_modules/**",
-      "playwright-report/**",
-      "test-results/**",
+      "**/.next/**",
+      "**/.turbo/**",
+      "**/coverage/**",
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/playwright-report/**",
+      "**/test-results/**",
     ],
   },
   {
