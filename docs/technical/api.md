@@ -116,6 +116,30 @@ Bio is plain text. The API stores it and returns it as a JSON string; it does no
 | `422`  | Error envelope, `VALIDATION_ERROR`            | Invalid field or unknown property             |
 | `429`  | Error envelope, `RATE_LIMITED`, `Retry-After` | 20 attempts/minute per client address         |
 
+## Tweets (`POST /v1/tweets`, `DELETE /v1/tweets/:id`)
+
+Both routes require a session and `X-CSRF-Token`. The author is always the session member; the body cannot name one.
+
+`POST /v1/tweets` takes `{ "content": string }` (validated by `createTweetRequestSchema`). Content is trimmed, must not be empty or whitespace-only, and is limited to 280 characters (code points, so each emoji counts once). Unknown keys are rejected.
+
+| Status | Body                                 | Notes                                                                                                                                                       |
+| ------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `201`  | `{ "tweet": Tweet }`                 | The complete card: `id`, `content`, `createdAt`, `author { id, username, displayName, avatarUrl }`, `likeCount`, `likedByViewer`; `Cache-Control: no-store` |
+| `422`  | `VALIDATION_ERROR`, `fields.content` | Nothing is stored                                                                                                                                           |
+| `401`  | `UNAUTHENTICATED`                    | No, expired, or revoked session                                                                                                                             |
+| `403`  | `FORBIDDEN`                          | Missing or wrong CSRF token                                                                                                                                 |
+
+`DELETE /v1/tweets/:id` deletes the session member's own tweet. The ownership check and the delete run in one transaction.
+
+| Status | Meaning                                                                                            |
+| ------ | -------------------------------------------------------------------------------------------------- |
+| `204`  | Deleted                                                                                            |
+| `403`  | Someone else's tweet (`FORBIDDEN`), or a missing or wrong CSRF token                               |
+| `404`  | Unknown, already deleted, or malformed id (`NOT_FOUND`); repeat deletes are not treated as success |
+| `401`  | No valid session                                                                                   |
+
+Tweet text is plain text that clients escape, and it is never logged: logs carry ids only. The basic write limit is 20 per minute per client for create and delete together. Profiles now count committed tweets in `tweetCount`.
+
 ## Sessions and CSRF
 
 - Protected routes use the `requireSession` pre-handler. Missing, unknown, expired, and revoked sessions all get the same `401`.
