@@ -1,11 +1,18 @@
+import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import sensible from "@fastify/sensible";
 import Fastify, { type FastifyInstance } from "fastify";
 
+import {
+  type AuthModuleOptions,
+  authModule,
+} from "./modules/auth/auth-module.js";
 import { registerErrorHandling } from "./platform/http/errors.js";
 
 export interface BuildAppOptions {
+  /** Mounts the auth routes under `/v1`; omitted only by platform-level tests. */
+  auth?: AuthModuleOptions;
   corsOrigin: string;
   logger?: boolean;
   readinessCheck?: () => Promise<boolean>;
@@ -31,6 +38,11 @@ export async function buildApp(
       callback(null, origin === undefined || origin === options.corsOrigin);
     },
   });
+
+  await app.register(cookie);
+  if (options.auth !== undefined) {
+    await app.register(authModule(options.auth), { prefix: "/v1" });
+  }
 
   app.get("/health/live", async () => ({ status: "ok" }));
   app.get("/health/ready", async (_request, reply) => {
