@@ -72,7 +72,19 @@ Request (validated by `registerRequestSchema` in `@twitter-clone/contracts`):
 | `400`  | Error envelope, `MALFORMED_REQUEST`                             | Unparseable JSON                                             |
 | `429`  | Error envelope, `RATE_LIMITED`, `Retry-After` header            | 5 attempts/minute per client address                         |
 
-`SessionUser` never contains the email, password hash, or session material. Session cookie: `sid`, `HttpOnly`, `SameSite=Lax`, `Path=/`, `Max-Age=SESSION_TTL_SECONDS`, `Secure` when `COOKIE_SECURE=true` (required in production), `Domain=COOKIE_DOMAIN` when set. The `csrfToken` is returned only here (its hash is stored) and must be sent as `X-CSRF-Token` on cookie-authenticated mutations.
+`SessionUser` never contains the email, password hash, or session material. Session cookie: `sid`, `HttpOnly`, `SameSite=Lax`, `Path=/`, `Max-Age=SESSION_TTL_SECONDS`, `Secure` when `COOKIE_SECURE=true` (required in production), `Domain=COOKIE_DOMAIN` when set. The `csrfToken` must be sent as `X-CSRF-Token` on cookie-authenticated mutations.
+
+## Login, logout, and current member
+
+- `POST /v1/auth/login` with `{ "email", "password" }`: `200` with the same body and `sid` cookie as registration. Any session cookie sent with the login is revoked, so login always rotates to a fresh session. A wrong password and an unknown email get the identical `401 UNAUTHENTICATED` ("Invalid email or password."), with no `fields` and no cookie. Shares the registration rate limit.
+- `POST /v1/auth/logout`: revokes the current session and clears the cookie, answering `204`. An active session requires `X-CSRF-Token` (`403 FORBIDDEN` otherwise). It is idempotent: with no active session it still answers `204` and clears the cookie.
+- `GET /v1/me`: `200` with `{ "user": SessionUser, "csrfToken": string }` for an active session, or `401 UNAUTHENTICATED`. Clients call it after a reload to recover the CSRF token.
+
+## Sessions and CSRF
+
+- Protected routes use the `requireSession` pre-handler. Missing, unknown, expired, and revoked sessions all get the same `401`.
+- Cookie-authenticated mutations also use `requireCsrf`, which returns `403 FORBIDDEN` for a missing or wrong `X-CSRF-Token`.
+- The CSRF token is `HMAC-SHA256(SESSION_SECRET, session token)` (signed double-submit). It is bound to one session, cannot be forged without the key, and is re-derivable, so `/me` returns the same token. Only its SHA-256 hash is stored. Rotating `SESSION_SECRET` invalidates outstanding CSRF tokens, but not sessions.
 
 ## Rate-limit starting points
 
