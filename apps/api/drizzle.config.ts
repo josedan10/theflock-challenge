@@ -21,6 +21,7 @@ if (databaseUrl === undefined || databaseUrl.length === 0) {
 export default defineConfig({
   dbCredentials: { url: databaseUrl },
   dialect: "postgresql",
+  migrations: { prefix: "timestamp" },
   out: "./drizzle",
   schema: "./src/platform/database/schema.ts",
   strict: true,
