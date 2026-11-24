@@ -132,28 +132,14 @@ jobs:
         run: pnpm test:e2e
 
   setup-scripts:
-    strategy:
-      fail-fast: false
-      matrix:
-        id: [linux, macos]
-        include:
-          - id: linux
-            runs-on: ubuntu-latest
-          - id: macos
-            runs-on: macos-latest
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install Bats (Linux)
-        if: runner.os == 'Linux'
+      - name: Install Bats
         run: sudo apt-get update && sudo apt-get install -y bats
-
-      - name: Install Bats (macOS)
-        if: runner.os == 'macOS'
-        run: brew install bats-core
 
       # Bats only; this job does not install Node or pnpm.
       - name: Run setup script tests

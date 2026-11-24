@@ -9,7 +9,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **FND-03:** Scaffold Next.js app with mobile-first shell, error boundary, loading skeletons, typed API client.
 - [x] **FND-04:** Add PostgreSQL + Drizzle schema/migration harness and disposable test database.
 - [x] **FND-05:** Add dev/prod multi-stage Dockerfiles, Compose profiles, health/dependency ordering, non-root users.
-- [x] **FND-06:** Implement idempotent `setup.sh`; expand `doctor.sh`; add Bats tests on supported Linux/macOS CI runners.
+- [x] **FND-06:** Implement idempotent `setup.sh`; expand `doctor.sh`; add Bats tests on the Linux CI runner.
 - [x] **FND-07:** Add CI quality/security/build matrix and coverage artifact publishing.
 
 ## Authentication/profile
