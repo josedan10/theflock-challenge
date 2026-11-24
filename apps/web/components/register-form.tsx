@@ -14,11 +14,12 @@ import {
 } from "../lib/form-errors";
 import { useRegister } from "../lib/session";
 
-import { buttonClass, formClass, headingClass } from "./styles";
+import { formClass, headingClass } from "./styles";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 function readForm(form: HTMLFormElement) {
   const data = new FormData(form);
@@ -111,14 +112,15 @@ export function RegisterForm() {
         required
         type="password"
       />
-      <button
+      <Button
         aria-busy={register.isPending}
-        className={buttonClass}
+        className="w-full"
         disabled={register.isPending}
+        size="lg"
         type="submit"
       >
         {register.isPending ? "Creating account…" : "Create account"}
-      </button>
+      </Button>
       <p>
         Already have an account? <Link href="/login">Log in</Link>
       </p>

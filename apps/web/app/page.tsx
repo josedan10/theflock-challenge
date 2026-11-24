@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { PageShell } from "../components/page-shell";
-import { buttonClass, headingClass } from "../components/styles";
+import { headingClass } from "../components/styles";
+
+import { buttonVariants } from "@/components/ui/button";
 
 export default function LandingPage() {
   return (
@@ -17,10 +19,16 @@ export default function LandingPage() {
         aria-label="Get started"
         className="mt-6 flex flex-wrap items-center gap-4"
       >
-        <Link className={buttonClass} href="/register">
+        {/* Navigation stays a real link; buttonVariants only borrows the look. */}
+        <Link className={buttonVariants({ size: "lg" })} href="/register">
           Create account
         </Link>
-        <Link href="/login">Log in</Link>
+        <Link
+          className={buttonVariants({ size: "lg", variant: "outline" })}
+          href="/login"
+        >
+          Log in
+        </Link>
       </nav>
     </PageShell>
   );

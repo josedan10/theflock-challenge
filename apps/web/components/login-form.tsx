@@ -14,11 +14,12 @@ import {
 } from "../lib/form-errors";
 import { useLogIn } from "../lib/session";
 
-import { buttonClass, formClass, headingClass } from "./styles";
+import { formClass, headingClass } from "./styles";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 /**
  * Login form (US-A02). Wrong credentials show the API's single generic
@@ -87,14 +88,15 @@ export function LoginForm() {
         required
         type="password"
       />
-      <button
+      <Button
         aria-busy={logIn.isPending}
-        className={buttonClass}
+        className="w-full"
         disabled={logIn.isPending}
+        size="lg"
         type="submit"
       >
         {logIn.isPending ? "Logging in…" : "Log in"}
-      </button>
+      </Button>
       <p>
         New here? <Link href="/register">Create an account</Link>
       </p>

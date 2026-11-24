@@ -7,9 +7,10 @@ import { useEffect, useState } from "react";
 import { apiFormErrors } from "../lib/form-errors";
 import { useLogOut, useSession } from "../lib/session";
 
-import { buttonClass, headingClass } from "./styles";
+import { headingClass } from "./styles";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 /**
  * Member home. Private content renders only after `GET /v1/me` confirms the
@@ -40,13 +41,13 @@ export function HomeView() {
           <CircleAlertIcon aria-hidden="true" />
           <AlertDescription>We couldn't load your account.</AlertDescription>
         </Alert>
-        <button
-          className={buttonClass}
+        <Button
           onClick={() => void session.refetch()}
           type="button"
+          variant="outline"
         >
           Try again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -67,9 +68,8 @@ export function HomeView() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <button
+      <Button
         aria-busy={logOut.isPending}
-        className={buttonClass}
         disabled={logOut.isPending}
         onClick={() =>
           logOut.mutate(undefined, {
@@ -78,9 +78,10 @@ export function HomeView() {
           })
         }
         type="button"
+        variant="outline"
       >
         {logOut.isPending ? "Logging out…" : "Log out"}
-      </button>
+      </Button>
     </div>
   );
 }
