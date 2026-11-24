@@ -157,4 +157,33 @@ describe("deleting a posted tweet", () => {
       expect(ids(result.current.posted.data)).toEqual(["t3", "t1"]),
     );
   });
+
+  it("US-B02 AC-B02.3 restores only the failed tweet when deletes overlap", async () => {
+    let failA: () => void = () => undefined;
+    const { result } = await withThreeTweets(
+      vi.fn((tweetId: string) =>
+        tweetId === "t1"
+          ? new Promise<void>((_resolve, reject) => {
+              failA = () =>
+                reject(
+                  new ApiError(0, "NETWORK_ERROR", "Can't reach the server."),
+                );
+            })
+          : Promise.resolve(),
+      ),
+    );
+
+    // t1 (oldest) is pending when t3 is deleted successfully; then t1 fails.
+    act(() => result.current.remove.mutate("t1"));
+    await waitFor(() =>
+      expect(ids(result.current.posted.data)).toEqual(["t3", "t2"]),
+    );
+    await act(() => result.current.remove.mutateAsync("t3"));
+    await act(async () => failA());
+
+    // t3 must stay deleted; t1 comes back in its original (last) position.
+    await waitFor(() =>
+      expect(ids(result.current.posted.data)).toEqual(["t2", "t1"]),
+    );
+  });
 });
