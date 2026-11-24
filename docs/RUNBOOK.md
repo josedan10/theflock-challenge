@@ -4,12 +4,12 @@ This is the target production runbook. Commands marked **M1/M6** must be impleme
 
 ## Service inventory
 
-| Service | Owner | Health | State |
-|---|---|---|---|
-| Vercel web | Product engineering | public page + synthetic journey | disposable build |
-| Droplet Caddy/API | Backend/on-call | `/health/live`, `/health/ready` | stateless |
-| PostgreSQL | Backend/on-call or managed provider | connection/query probe | durable, backed up |
-| Object storage (bonus) | Backend/on-call | provider metrics | durable |
+| Service                | Owner                               | Health                          | State              |
+| ---------------------- | ----------------------------------- | ------------------------------- | ------------------ |
+| Vercel web             | Product engineering                 | public page + synthetic journey | disposable build   |
+| Droplet Caddy/API      | Backend/on-call                     | `/health/live`, `/health/ready` | stateless          |
+| PostgreSQL             | Backend/on-call or managed provider | connection/query probe          | durable, backed up |
+| Object storage (bonus) | Backend/on-call                     | provider metrics                | durable            |
 
 Record production URLs, Droplet ID/IP, registry, database provider/project, backup bucket, dashboards, and escalation contacts in the private operator system—not in this public document.
 

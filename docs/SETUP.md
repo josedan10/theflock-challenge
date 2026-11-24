@@ -37,15 +37,15 @@ The doctor checks Git, Docker/daemon/Compose, Node 22+, Corepack, required varia
 
 Common fixes:
 
-| Message | Fix |
-|---|---|
-| `docker is missing` | Install Docker Desktop/Engine and the Compose v2 plugin |
-| `daemon is unavailable` | Start Docker Desktop or `docker` service; verify `docker info` |
-| `Node.js 22+ is required` | Install Node 22 LTS using your version manager, then reopen shell |
-| `corepack is missing` | Use a Node distribution that includes Corepack or install/enable it according to Node docs |
-| `.env is missing` | `cp .env.example .env` |
-| `SESSION_SECRET must be replaced` | Generate with `openssl rand -base64 48` and paste the output |
-| `application manifests are not present` | Expected during M0; implementation begins in M1 |
+| Message                                 | Fix                                                                                        |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `docker is missing`                     | Install Docker Desktop/Engine and the Compose v2 plugin                                    |
+| `daemon is unavailable`                 | Start Docker Desktop or `docker` service; verify `docker info`                             |
+| `Node.js 22+ is required`               | Install Node 22 LTS using your version manager, then reopen shell                          |
+| `corepack is missing`                   | Use a Node distribution that includes Corepack or install/enable it according to Node docs |
+| `.env is missing`                       | `cp .env.example .env`                                                                     |
+| `SESSION_SECRET must be replaced`       | Generate with `openssl rand -base64 48` and paste the output                               |
+| `application manifests are not present` | Expected during M0; implementation begins in M1                                            |
 
 ## 3. Current verification (planning phase)
 

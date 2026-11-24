@@ -24,14 +24,7 @@
       "label": "Object Storage and PostgreSQL"
     }
   ],
-  "mainPath": [
-    "select",
-    "intent",
-    "validate",
-    "upload",
-    "verify",
-    "attach"
-  ],
+  "mainPath": ["select", "intent", "validate", "upload", "verify", "attach"],
   "nodes": [
     {
       "id": "select",

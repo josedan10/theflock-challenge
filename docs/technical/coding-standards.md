@@ -33,7 +33,7 @@ Required where applicable:
 - `@remarks` for security, transaction, performance, or ordering guarantees.
 - `@deprecated` with replacement and removal plan.
 
-```ts
+````ts
 /**
  * Returns one stable page of tweets visible in the member's home timeline.
  *
@@ -49,10 +49,12 @@ Required where applicable:
  * const page = await timeline.list({ memberId, limit: 20 });
  * ```
  */
-export async function listTimeline(input: ListTimelineInput): Promise<TimelinePage> {
+export async function listTimeline(
+  input: ListTimelineInput,
+): Promise<TimelinePage> {
   // Implementation.
 }
-```
+````
 
 Rules:
 

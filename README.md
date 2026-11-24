@@ -20,24 +20,24 @@ See [the architecture decision](docs/technical/architecture.md) and [deployment 
 
 ## Documentation map
 
-| Document | Purpose |
-|---|---|
-| [Product requirements](docs/product/requirements.md) | Scope, constraints, non-functional requirements |
-| [User stories and acceptance criteria](docs/product/user-stories.md) | Testable behavior by feature |
-| [User flows](docs/product/flows.md) | End-to-end journeys and failure paths |
-| [Workflow diagrams](docs/diagrams/README.md) | Interactive Archify diagrams for every required and optional feature |
-| [Roadmap](docs/roadmaps/product-roadmap.md) | Milestones, dependencies, and definition of done |
-| [Engineering workflow](docs/workflows/engineering.md) | Branch, review, CI, migration, and release process |
-| [Team skills](docs/skills/required-skills.md) | Competencies and ownership expectations |
-| [Architecture](docs/technical/architecture.md) | System boundaries and technical decisions |
-| [Database proposal](docs/technical/database-model.md) | Tables, constraints, indexes, and queries |
-| [API contract](docs/technical/api.md) | Initial HTTP endpoints and conventions |
-| [Testing strategy](docs/technical/testing.md) | Test pyramid, coverage gates, and CI matrix |
-| [Coding standards](docs/technical/coding-standards.md) | Architecture/design patterns, legibility, errors, and JSDoc rules |
-| [Infrastructure](docs/technical/infrastructure.md) | Hosting decision, containers, environments |
-| [Setup guide](docs/SETUP.md) | Prerequisites, configuration, and troubleshooting |
-| [Runbook](docs/RUNBOOK.md) | Deploy, rollback, backup, restore, and incidents |
-| [Backlog](docs/tasks/backlog.md) | PR-sized implementation tasks |
+| Document                                                             | Purpose                                                              |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [Product requirements](docs/product/requirements.md)                 | Scope, constraints, non-functional requirements                      |
+| [User stories and acceptance criteria](docs/product/user-stories.md) | Testable behavior by feature                                         |
+| [User flows](docs/product/flows.md)                                  | End-to-end journeys and failure paths                                |
+| [Workflow diagrams](docs/diagrams/README.md)                         | Interactive Archify diagrams for every required and optional feature |
+| [Roadmap](docs/roadmaps/product-roadmap.md)                          | Milestones, dependencies, and definition of done                     |
+| [Engineering workflow](docs/workflows/engineering.md)                | Branch, review, CI, migration, and release process                   |
+| [Team skills](docs/skills/required-skills.md)                        | Competencies and ownership expectations                              |
+| [Architecture](docs/technical/architecture.md)                       | System boundaries and technical decisions                            |
+| [Database proposal](docs/technical/database-model.md)                | Tables, constraints, indexes, and queries                            |
+| [API contract](docs/technical/api.md)                                | Initial HTTP endpoints and conventions                               |
+| [Testing strategy](docs/technical/testing.md)                        | Test pyramid, coverage gates, and CI matrix                          |
+| [Coding standards](docs/technical/coding-standards.md)               | Architecture/design patterns, legibility, errors, and JSDoc rules    |
+| [Infrastructure](docs/technical/infrastructure.md)                   | Hosting decision, containers, environments                           |
+| [Setup guide](docs/SETUP.md)                                         | Prerequisites, configuration, and troubleshooting                    |
+| [Runbook](docs/RUNBOOK.md)                                           | Deploy, rollback, backup, restore, and incidents                     |
+| [Backlog](docs/tasks/backlog.md)                                     | PR-sized implementation tasks                                        |
 
 ## Setup contract (available now)
 

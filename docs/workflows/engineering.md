@@ -56,6 +56,6 @@ Failed/flaky tests block merge. Quarantine requires an owner, issue, reason, and
 
 ## Documentation workflow
 
-- Requirements describe *what*; ADRs and technical docs describe *why/how*; API schemas are executable truth.
+- Requirements describe _what_; ADRs and technical docs describe _why/how_; API schemas are executable truth.
 - Any behavior-changing PR updates the relevant document.
 - Setup/runbook commands are executed in CI or a scheduled clean-environment job to prevent documentation drift.

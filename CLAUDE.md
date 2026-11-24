@@ -16,4 +16,3 @@ Do not use external skills marked blocked or incomplete in `docs/skills/security
 - Preserve the modular-monolith dependency direction and the PostgreSQL/Drizzle decision.
 - Keep changes and commits small and specific.
 - Report verification evidence and unresolved risks truthfully.
-

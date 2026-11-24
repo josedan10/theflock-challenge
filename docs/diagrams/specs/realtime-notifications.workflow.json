@@ -23,14 +23,7 @@
       "label": "PostgreSQL"
     }
   ],
-  "mainPath": [
-    "action",
-    "transaction",
-    "outbox",
-    "worker",
-    "sse",
-    "refresh"
-  ],
+  "mainPath": ["action", "transaction", "outbox", "worker", "sse", "refresh"],
   "nodes": [
     {
       "id": "action",

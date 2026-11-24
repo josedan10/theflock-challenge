@@ -1,0 +1,7 @@
+# Generated dependency resolution; pnpm owns its formatting.
+pnpm-lock.yaml
+
+# Security-reviewed skill sources and their pinned integrity metadata must not be
+# rewritten by general-purpose formatters.
+.agents/skills/
+docs/skills/external-skills.lock.json

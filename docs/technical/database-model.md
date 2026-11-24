@@ -20,64 +20,64 @@ erDiagram
 
 ### `users`
 
-| Column | Type | Rules |
-|---|---|---|
-| `id` | uuid | PK |
-| `email` | text | original/canonical value, not publicly returned |
-| `email_normalized` | text | unique, lowercase normalization |
-| `username` | varchar(30) | unique normalized lowercase; check regex/length |
-| `display_name` | varchar(80) | required |
-| `bio` | varchar(160) | not null default empty |
-| `avatar_key` | text nullable | null means deterministic placeholder |
-| `password_hash` | text | Argon2id encoded hash |
-| `created_at`, `updated_at` | timestamptz | not null |
-| `deleted_at` | timestamptz nullable | reserved for defined deletion policy |
+| Column                     | Type                 | Rules                                           |
+| -------------------------- | -------------------- | ----------------------------------------------- |
+| `id`                       | uuid                 | PK                                              |
+| `email`                    | text                 | original/canonical value, not publicly returned |
+| `email_normalized`         | text                 | unique, lowercase normalization                 |
+| `username`                 | varchar(30)          | unique normalized lowercase; check regex/length |
+| `display_name`             | varchar(80)          | required                                        |
+| `bio`                      | varchar(160)         | not null default empty                          |
+| `avatar_key`               | text nullable        | null means deterministic placeholder            |
+| `password_hash`            | text                 | Argon2id encoded hash                           |
+| `created_at`, `updated_at` | timestamptz          | not null                                        |
+| `deleted_at`               | timestamptz nullable | reserved for defined deletion policy            |
 
 Indexes: unique `email_normalized`; unique `username`; search indexes described below.
 
 ### `sessions`
 
-| Column | Type | Rules |
-|---|---|---|
-| `id` | uuid | PK |
-| `user_id` | uuid | FK users, cascade |
-| `token_hash` | bytea | unique; raw token never stored |
-| `csrf_secret_hash` | bytea | session-bound CSRF material |
-| `created_at`, `last_seen_at`, `expires_at` | timestamptz | not null |
-| `revoked_at` | timestamptz nullable | invalid when set |
-| `user_agent_hash`, `ip_prefix` | text nullable | optional privacy-conscious diagnostics |
+| Column                                     | Type                 | Rules                                  |
+| ------------------------------------------ | -------------------- | -------------------------------------- |
+| `id`                                       | uuid                 | PK                                     |
+| `user_id`                                  | uuid                 | FK users, cascade                      |
+| `token_hash`                               | bytea                | unique; raw token never stored         |
+| `csrf_secret_hash`                         | bytea                | session-bound CSRF material            |
+| `created_at`, `last_seen_at`, `expires_at` | timestamptz          | not null                               |
+| `revoked_at`                               | timestamptz nullable | invalid when set                       |
+| `user_agent_hash`, `ip_prefix`             | text nullable        | optional privacy-conscious diagnostics |
 
 Indexes: unique `token_hash`; `(user_id, expires_at)`; partial cleanup index for active sessions.
 
 ### `tweets`
 
-| Column | Type | Rules |
-|---|---|---|
-| `id` | uuid | PK |
-| `author_id` | uuid | FK users, restrict account deletion until policy handles content |
-| `content` | varchar(280) | check non-empty after trim and max 280 |
-| `created_at` | timestamptz | immutable |
-| `updated_at` | timestamptz nullable | reserved; editing is not a v1 feature |
+| Column       | Type                 | Rules                                                            |
+| ------------ | -------------------- | ---------------------------------------------------------------- |
+| `id`         | uuid                 | PK                                                               |
+| `author_id`  | uuid                 | FK users, restrict account deletion until policy handles content |
+| `content`    | varchar(280)         | check non-empty after trim and max 280                           |
+| `created_at` | timestamptz          | immutable                                                        |
+| `updated_at` | timestamptz nullable | reserved; editing is not a v1 feature                            |
 
 Indexes: `(author_id, created_at DESC, id DESC)` and `(created_at DESC, id DESC)`.
 
 ### `follows`
 
-| Column | Type | Rules |
-|---|---|---|
-| `follower_id` | uuid | FK users, cascade |
-| `following_id` | uuid | FK users, cascade |
-| `created_at` | timestamptz | not null |
+| Column         | Type        | Rules             |
+| -------------- | ----------- | ----------------- |
+| `follower_id`  | uuid        | FK users, cascade |
+| `following_id` | uuid        | FK users, cascade |
+| `created_at`   | timestamptz | not null          |
 
 Composite PK `(follower_id, following_id)`; check `follower_id <> following_id`; reverse index `(following_id, created_at DESC, follower_id)` for follower lists; index `(follower_id, created_at DESC, following_id)` for following lists.
 
 ### `likes`
 
-| Column | Type | Rules |
-|---|---|---|
-| `user_id` | uuid | FK users, cascade |
-| `tweet_id` | uuid | FK tweets, cascade |
-| `created_at` | timestamptz | not null |
+| Column       | Type        | Rules              |
+| ------------ | ----------- | ------------------ |
+| `user_id`    | uuid        | FK users, cascade  |
+| `tweet_id`   | uuid        | FK tweets, cascade |
+| `created_at` | timestamptz | not null           |
 
 Composite PK `(user_id, tweet_id)`; index `(tweet_id, created_at DESC, user_id)` supports counts/lists.
 

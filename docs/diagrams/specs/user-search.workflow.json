@@ -24,14 +24,7 @@
       "label": "PostgreSQL"
     }
   ],
-  "mainPath": [
-    "input",
-    "debounce",
-    "normalize",
-    "escape",
-    "search",
-    "results"
-  ],
+  "mainPath": ["input", "debounce", "normalize", "escape", "search", "results"],
   "nodes": [
     {
       "id": "input",

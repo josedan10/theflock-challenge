@@ -15,22 +15,22 @@ SQLite is excellent for embedded/single-process software but this architecture s
 
 ## Backend hosting options
 
-| Option | Cost/ops | Strengths | Risks | Decision |
-|---|---|---|---|---|
-| Existing Droplet + Docker Compose | Existing spend; team operates it | No new platform cost, full control, simple API deployment | Single node; patching, backups, monitoring are ours | **Initial API** |
-| DigitalOcean App Platform | Managed and convenient | Deploy/health/log workflow | Paid service; less value while Droplet exists | Revisit when ops time dominates |
-| Serverless/function API | Can be cheap at idle | Auto-scale | Cold starts, session/SSE/runtime constraints, split deployment complexity | Not initial |
-| Free PaaS offers | Often $0 for demos | Fast start | Sleep/cold starts, changing limits, weak guarantees | Evaluation only |
+| Option                            | Cost/ops                         | Strengths                                                 | Risks                                                                     | Decision                        |
+| --------------------------------- | -------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------- |
+| Existing Droplet + Docker Compose | Existing spend; team operates it | No new platform cost, full control, simple API deployment | Single node; patching, backups, monitoring are ours                       | **Initial API**                 |
+| DigitalOcean App Platform         | Managed and convenient           | Deploy/health/log workflow                                | Paid service; less value while Droplet exists                             | Revisit when ops time dominates |
+| Serverless/function API           | Can be cheap at idle             | Auto-scale                                                | Cold starts, session/SSE/runtime constraints, split deployment complexity | Not initial                     |
+| Free PaaS offers                  | Often $0 for demos               | Fast start                                                | Sleep/cold starts, changing limits, weak guarantees                       | Evaluation only                 |
 
 ## Environment topology
 
-| Environment | Web | API | DB |
-|---|---|---|---|
-| Local | Next dev container | Fastify dev container | Compose Postgres |
-| Test | built app/Test runner | injectable/container API | disposable Postgres |
-| Preview | Vercel preview | isolated staging route or preview API | isolated branch/database |
-| Staging | Vercel protected alias | Droplet staging container | separate DB/schema/managed branch |
-| Production | Vercel production | Droplet production container | Neon managed or isolated Droplet Postgres |
+| Environment | Web                    | API                                   | DB                                        |
+| ----------- | ---------------------- | ------------------------------------- | ----------------------------------------- |
+| Local       | Next dev container     | Fastify dev container                 | Compose Postgres                          |
+| Test        | built app/Test runner  | injectable/container API              | disposable Postgres                       |
+| Preview     | Vercel preview         | isolated staging route or preview API | isolated branch/database                  |
+| Staging     | Vercel protected alias | Droplet staging container             | separate DB/schema/managed branch         |
+| Production  | Vercel production      | Droplet production container          | Neon managed or isolated Droplet Postgres |
 
 Never share credentials or writable databases between environments.
 

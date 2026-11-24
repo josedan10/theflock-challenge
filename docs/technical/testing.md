@@ -4,13 +4,13 @@
 
 ## Coverage policy
 
-| Scope | Minimum gate |
-|---|---:|
-| All product code | 90% statements, lines, functions; 85% branches |
-| Domain policies, authz, cursor, validation | 100% statements and branches |
+| Scope                                               |                                       Minimum gate |
+| --------------------------------------------------- | -------------------------------------------------: |
+| All product code                                    |     90% statements, lines, functions; 85% branches |
+| Domain policies, authz, cursor, validation          |                       100% statements and branches |
 | Generated files, type-only declarations, migrations | excluded from line percentage; tested by execution |
-| Changed lines | 95%, with no uncovered security/permission path |
-| Critical mutation score | 80% initially, raised as suite matures |
+| Changed lines                                       |    95%, with no uncovered security/permission path |
+| Critical mutation score                             |             80% initially, raised as suite matures |
 
 Targets are ratchets: CI may raise them but cannot lower them without an approved, documented exception. Tests themselves are reviewed for meaningful assertions.
 
