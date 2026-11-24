@@ -33,7 +33,7 @@ chmod +x scripts/doctor.sh   # only needed if executable bits were lost
 ./scripts/doctor.sh
 ```
 
-The doctor checks Git, Docker/daemon/Compose, Node 22+, Corepack, required variables, and insecure placeholder secrets. It exits non-zero on actionable errors and prints a warning—not a false failure—while application manifests are not yet implemented.
+The doctor checks Git, Docker/daemon/Compose, Node 22+, Corepack, required variables, and insecure placeholder secrets. It exits non-zero on actionable errors.
 
 Common fixes:
 
@@ -54,6 +54,7 @@ Common fixes:
 ```bash
 bash -n scripts/doctor.sh
 ./scripts/test-doctor.sh
+pnpm test:scripts
 ./scripts/doctor.sh
 corepack enable
 pnpm install --frozen-lockfile
@@ -66,16 +67,16 @@ The doctor test uses stubbed prerequisites to verify both success and missing-se
 
 These commands are the tested local setup contract:
 
-**Quick start:** `pnpm stack:up` (or `./scripts/up.sh`) runs the steps below in order. It creates `.env` with a generated `SESSION_SECRET` if the file is missing, runs the doctor, installs dependencies, starts PostgreSQL, applies migrations, then starts and health-checks the API and web app. It is safe to re-run.
+**Quick start:** `pnpm stack:up` (or `./scripts/setup.sh`) runs the steps below in order. It creates `.env` with a generated `SESSION_SECRET` if the file is missing, runs the doctor, installs dependencies, starts PostgreSQL, applies migrations, then starts and health-checks the API and web app. It is safe to re-run.
 
 Shortcuts: `pnpm compose:up`, `pnpm compose:down`, `pnpm compose:ps`, `pnpm compose:logs`, and `pnpm db:up` (PostgreSQL only).
 
 Manual steps:
 
 ```bash
-docker compose up -d postgres
+docker compose --profile dev up -d postgres
 pnpm db:migrate
-docker compose up --build
+docker compose --profile dev up --build
 curl --fail http://localhost:4000/health/ready
 ```
 
