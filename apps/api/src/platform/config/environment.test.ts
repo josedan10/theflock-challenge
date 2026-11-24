@@ -5,16 +5,12 @@ import { parseEnvironment } from "./environment.js";
 const base = {
   CORS_ORIGIN: "http://localhost:3000",
   DATABASE_URL: "postgresql://user:password@localhost:5433/app",
+  SESSION_SECRET: "test-secret-with-at-least-32-characters",
 };
 
 describe("environment validation", () => {
   it("FND-01 AC-1 applies safe local defaults", () => {
-    expect(
-      parseEnvironment({
-        CORS_ORIGIN: "http://localhost:3000",
-        DATABASE_URL: "postgresql://user:password@localhost:5433/app",
-      }),
-    ).toMatchObject({
+    expect(parseEnvironment(base)).toMatchObject({
       API_HOST: "0.0.0.0",
       API_PORT: 4000,
       NODE_ENV: "development",
@@ -22,12 +18,7 @@ describe("environment validation", () => {
   });
 
   it("FND-01 AC-2 rejects an invalid CORS origin", () => {
-    expect(() =>
-      parseEnvironment({
-        CORS_ORIGIN: "*",
-        DATABASE_URL: "postgresql://user:password@localhost:5433/app",
-      }),
-    ).toThrow();
+    expect(() => parseEnvironment({ ...base, CORS_ORIGIN: "*" })).toThrow();
   });
 
   it("US-A02 AC-A02.1 defaults to secure cookies and a 7-day session", () => {
@@ -93,4 +84,19 @@ describe("environment validation", () => {
       expect(() => parseEnvironment({ ...base, TRUST_PROXY: value })).toThrow();
     },
   );
+
+  it("US-A02 AC-A02.5 requires a non-placeholder session secret of 32+ characters", () => {
+    const { SESSION_SECRET: _omitted, ...withoutSecret } = base;
+
+    expect(() => parseEnvironment(withoutSecret)).toThrow();
+    expect(() =>
+      parseEnvironment({ ...base, SESSION_SECRET: "short" }),
+    ).toThrow();
+    expect(() =>
+      parseEnvironment({
+        ...base,
+        SESSION_SECRET: "replace_me_with_at_least_32_characters",
+      }),
+    ).toThrow();
+  });
 });
