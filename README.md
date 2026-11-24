@@ -77,14 +77,14 @@ Do not continue until the doctor reports `0 error(s)`.
 ### 3. Start PostgreSQL and migrate
 
 ```bash
-docker compose up -d postgres
+docker compose --profile dev up -d postgres
 pnpm db:migrate
 ```
 
 ### 4. Start the web and API containers
 
 ```bash
-docker compose up --build
+docker compose --profile dev up --build
 ```
 
 Once the services are healthy, open:
