@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { AppError } from "../../../platform/http/errors.js";
 
 import { SESSION_COOKIE_NAME } from "./session-cookie.js";
@@ -62,4 +64,29 @@ export function authContext(request: FastifyRequest): AuthContext {
     throw new Error("Route is missing the requireSession pre-handler");
   }
   return request.auth;
+}
+
+/** Header carrying the CSRF token on cookie-authenticated mutations. */
+export const CSRF_HEADER_NAME = "x-csrf-token";
+
+/**
+ * Creates the `requireCsrf` pre-handler for mutations; it must run after
+ * `requireSession`. The presented token's hash is compared with the session's
+ * stored hash in constant time. A missing or wrong token gets `403`.
+ */
+export function createRequireCsrf(
+  credentials: SessionCredentialGenerator,
+): AuthGuard {
+  return async (request) => {
+    const { session } = authContext(request);
+    const presented = request.headers[CSRF_HEADER_NAME];
+    const valid =
+      typeof presented === "string" &&
+      presented.length > 0 &&
+      timingSafeEqual(credentials.hash(presented), session.csrfSecretHash);
+
+    if (!valid) {
+      throw new AppError("FORBIDDEN", "A valid CSRF token is required.");
+    }
+  };
 }

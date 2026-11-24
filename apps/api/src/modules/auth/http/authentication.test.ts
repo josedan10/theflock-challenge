@@ -5,7 +5,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { registerErrorHandling } from "../../../platform/http/errors.js";
 import { createCryptoSessionCredentialGenerator } from "../infrastructure/crypto-session-credentials.js";
 
-import { authContext, createRequireSession } from "./authentication.js";
+import {
+  authContext,
+  createRequireCsrf,
+  createRequireSession,
+} from "./authentication.js";
 
 import type { ActiveSession, SessionRepository } from "../application/ports.js";
 
@@ -65,6 +69,11 @@ async function buildTestApp(): Promise<FastifyInstance> {
     username: authContext(request).user.username,
   }));
   app.get("/unguarded", async (request) => authContext(request));
+  app.post(
+    "/mutation",
+    { preHandler: [requireSession, createRequireCsrf(credentials)] },
+    async () => ({ ok: true }),
+  );
   await app.ready();
   return app;
 }
@@ -116,5 +125,49 @@ describe("requireSession", () => {
     const response = await app.inject({ method: "GET", url: "/unguarded" });
 
     expect(response.statusCode).toBe(500);
+  });
+});
+
+describe("requireCsrf", () => {
+  const mutate = (headers: Record<string, string>, sid = issued.token) =>
+    app.inject({ cookies: { sid }, headers, method: "POST", url: "/mutation" });
+
+  it("US-A02 AC-A02.5 accepts a mutation carrying the session's CSRF token", async () => {
+    await buildTestApp();
+
+    const response = await mutate({ "x-csrf-token": issued.csrfToken });
+
+    expect(response.statusCode).toBe(200);
+  });
+
+  it.each([
+    ["missing", {}],
+    ["empty", { "x-csrf-token": "" }],
+    ["wrong", { "x-csrf-token": "forged-token" }],
+    ["another session's", { "x-csrf-token": credentials.generate().csrfToken }],
+  ])(
+    "US-A02 AC-A02.5 rejects a mutation with a %s CSRF token",
+    async (_case, headers) => {
+      await buildTestApp();
+
+      const response = await mutate(headers);
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json().error).toMatchObject({
+        code: "FORBIDDEN",
+        message: "A valid CSRF token is required.",
+      });
+    },
+  );
+
+  it("US-A02 AC-A02.4 checks the session before the CSRF token", async () => {
+    await buildTestApp();
+
+    const response = await mutate(
+      { "x-csrf-token": issued.csrfToken },
+      "unknown",
+    );
+
+    expect(response.statusCode).toBe(401);
   });
 });
