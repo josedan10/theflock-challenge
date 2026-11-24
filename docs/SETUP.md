@@ -104,6 +104,7 @@ To stop without deleting data: `docker compose down`. To deliberately erase loca
 - Values inside containers use service DNS (`postgres`), not `localhost`.
 - Browser-visible API URL uses the host URL (`http://localhost:4000`).
 - `COOKIE_SECURE=false` is local-only; production must be `true` over HTTPS.
+- `AUTH_RATE_LIMIT_PER_MINUTE` (default 5) and `TWEET_RATE_LIMIT_PER_MINUTE` (default 20) are per-client budgets. Browser tests raise both; keep the defaults in real environments.
 - Production and preview secrets belong in Vercel/Droplet secret configuration, never repository `.env` files.
 
 ## Getting diagnostic help
