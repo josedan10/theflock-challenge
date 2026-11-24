@@ -1,10 +1,10 @@
 # Twitter Clone (working title)
 
-This yet-to-be-named product is a mobile-first social application for short posts, follows, likes, user search, and chronological timelines. This repository currently contains the product and engineering blueprint that will guide implementation.
+This yet-to-be-named product is a mobile-first social application for short posts, follows, likes, user search, and chronological timelines. **“The Flock” is the company proposing the challenge, not the application name.**
 
 ## Status
 
-**Planning / foundation.** Product scope, acceptance criteria, architecture, data model, delivery roadmap, runbook, and a testable setup contract are documented. Application packages will be introduced in Milestone 1.
+**Active development.** The containerized Next.js, Fastify, and PostgreSQL foundation is implemented. Authentication and its automated test coverage are currently under development.
 
 ## Chosen stack
 
@@ -40,19 +40,77 @@ See [the architecture decision](docs/technical/architecture.md) and [deployment 
 | [Runbook](docs/RUNBOOK.md)                                           | Deploy, rollback, backup, restore, and incidents                     |
 | [Backlog](docs/tasks/backlog.md)                                     | PR-sized implementation tasks                                        |
 
-## Setup contract (available now)
+## Run locally
 
-1. Install Docker Desktop/Engine with Compose v2, Git, Node.js 22, and Corepack.
-2. Copy the environment template:
-   ```bash
-   cp .env.example .env
-   ```
-3. Diagnose the workstation and configuration:
-   ```bash
-   ./scripts/doctor.sh
-   ```
+### Prerequisites
 
-The doctor prints every missing command or variable and a concrete remediation. Until application packages land, it will also state that the repository is in planning phase rather than failing mysteriously.
+- Docker Desktop or Docker Engine with Compose v2 running
+- Node.js **22 LTS** and Corepack
+- Git
+
+Node 23 is not supported by the integration-test tooling. Confirm the active version with `node --version` before installing dependencies.
+
+### 1. Install dependencies
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+```
+
+### 2. Configure the environment
+
+```bash
+cp .env.example .env
+openssl rand -base64 48
+```
+
+Copy the generated value into `SESSION_SECRET` in `.env`, replacing `replace_me_with_at_least_32_characters`. Never commit `.env`.
+
+Validate Docker, Node, Compose, and every required variable:
+
+```bash
+./scripts/doctor.sh
+```
+
+Do not continue until the doctor reports `0 error(s)`.
+
+### 3. Start PostgreSQL and migrate
+
+```bash
+docker compose up -d postgres
+pnpm db:migrate
+```
+
+### 4. Start the web and API containers
+
+```bash
+docker compose up --build
+```
+
+Once the services are healthy, open:
+
+- Web application: <http://localhost:3000>
+- API readiness: <http://localhost:4000/health/ready>
+- API liveness: <http://localhost:4000/health/live>
+
+Verify the running services from another terminal:
+
+```bash
+curl --fail http://localhost:4000/health/ready
+docker compose ps
+```
+
+If a default port is occupied, change `WEB_PORT`, `API_PORT`, or `POSTGRES_PORT` in `.env`. When changing the web or API port, also update the corresponding URLs and `CORS_ORIGIN`.
+
+### Stop the project
+
+```bash
+docker compose down
+```
+
+This preserves the PostgreSQL volume. To deliberately delete all local database data, run `docker compose down -v` instead.
+
+For troubleshooting, browser-test installation, and quality-gate commands, see the complete [setup guide](docs/SETUP.md).
 
 ## Guiding principles
 
