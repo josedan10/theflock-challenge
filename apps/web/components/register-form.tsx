@@ -1,6 +1,7 @@
 "use client";
 
 import { registerRequestSchema } from "@twitter-clone/contracts";
+import { CircleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
@@ -13,10 +14,11 @@ import {
 } from "../lib/form-errors";
 import { useRegister } from "../lib/session";
 
-import { FormAlert } from "./form-alert";
 import { buttonClass, formClass, headingClass } from "./styles";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function readForm(form: HTMLFormElement) {
   const data = new FormData(form);
@@ -71,7 +73,12 @@ export function RegisterForm() {
         Create your account
       </h1>
       <p className="text-muted-foreground">Accounts and posts are public.</p>
-      <FormAlert message={errors.form} />
+      {errors.form === null ? null : (
+        <Alert variant="destructive">
+          <CircleAlertIcon aria-hidden="true" />
+          <AlertDescription>{errors.form}</AlertDescription>
+        </Alert>
+      )}
       <TextField
         autoComplete="email"
         errors={errors.fields.email}

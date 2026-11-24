@@ -1,6 +1,7 @@
 "use client";
 
 import { loginRequestSchema } from "@twitter-clone/contracts";
+import { CircleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
@@ -13,10 +14,11 @@ import {
 } from "../lib/form-errors";
 import { useLogIn } from "../lib/session";
 
-import { FormAlert } from "./form-alert";
 import { buttonClass, formClass, headingClass } from "./styles";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 /**
  * Login form (US-A02). Wrong credentials show the API's single generic
@@ -63,7 +65,12 @@ export function LoginForm() {
       <h1 className={headingClass} id="login-heading">
         Log in
       </h1>
-      <FormAlert message={errors.form} />
+      {errors.form === null ? null : (
+        <Alert variant="destructive">
+          <CircleAlertIcon aria-hidden="true" />
+          <AlertDescription>{errors.form}</AlertDescription>
+        </Alert>
+      )}
       <TextField
         autoComplete="email"
         errors={errors.fields.email}

@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { FormAlert } from "./form-alert";
 import { TextField } from "./text-field";
 
 describe("TextField", () => {
@@ -30,15 +29,5 @@ describe("TextField", () => {
     const input = screen.getByLabelText("Email");
     expect(input).toHaveAttribute("aria-invalid", "false");
     expect(input).not.toHaveAttribute("aria-describedby");
-  });
-});
-
-describe("FormAlert", () => {
-  it("renders the message in an alert region", () => {
-    render(<FormAlert message="Invalid email or password." />);
-
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Invalid email or password.",
-    );
   });
 });

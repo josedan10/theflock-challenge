@@ -1,13 +1,15 @@
 "use client";
 
+import { CircleAlertIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { apiFormErrors } from "../lib/form-errors";
 import { useLogOut, useSession } from "../lib/session";
 
-import { FormAlert } from "./form-alert";
 import { buttonClass, headingClass } from "./styles";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 /**
  * Member home. Private content renders only after `GET /v1/me` confirms the
@@ -34,7 +36,10 @@ export function HomeView() {
   if (session.isError) {
     return (
       <div className="grid gap-4">
-        <FormAlert message="We couldn't load your account." />
+        <Alert variant="destructive">
+          <CircleAlertIcon aria-hidden="true" />
+          <AlertDescription>We couldn't load your account.</AlertDescription>
+        </Alert>
         <button
           className={buttonClass}
           onClick={() => void session.refetch()}
@@ -56,7 +61,12 @@ export function HomeView() {
       <h1 className={headingClass}>Welcome, {user.displayName}</h1>
       <p className="text-muted-foreground">@{user.username}</p>
       <p>Your timeline will appear here.</p>
-      <FormAlert message={error} />
+      {error === null ? null : (
+        <Alert variant="destructive">
+          <CircleAlertIcon aria-hidden="true" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <button
         aria-busy={logOut.isPending}
         className={buttonClass}
