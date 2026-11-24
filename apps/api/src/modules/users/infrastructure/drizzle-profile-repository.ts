@@ -12,12 +12,14 @@ const profileColumns = {
   followerCount: sql`0::integer`,
   followingCount: sql`0::integer`,
   id: users.id,
-  tweetCount: sql`0::integer`,
+  // Columns are qualified on purpose: inside the subquery an unqualified "id"
+  // would bind to tweets.id. Served by tweets_author_id_created_at_id_idx.
+  tweetCount: sql`(select count(*)::integer from "tweets" where "tweets"."author_id" = "users"."id")`,
   username: users.username,
 };
 
 /**
- * Tweet and follow tables do not exist yet. These literals are the committed
+ * The follow table does not exist yet. Its literals are the committed
  * counts (requirements rule 8) and the only place later slices should replace
  * them with aggregate subqueries. Email, password hash, and avatar key are
  * not selected.

@@ -5,6 +5,7 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { buildApp } from "../../app.js";
+import { fastPasswordHasher } from "../../tests/fast-password-hasher.js";
 import { startTestDatabase, type TestDatabase } from "../../tests/postgres.js";
 
 import type { FastifyInstance, LightMyRequestResponse } from "fastify";
@@ -22,6 +23,7 @@ beforeAll(async () => {
     auth: {
       clock: () => now,
       db: database.db,
+      passwordHasher: fastPasswordHasher,
       // Rate limiting has its own tests; this suite exercises the session lifecycle.
       rateLimit: { max: 1_000, timeWindowMs: 60_000 },
       sessionCookie: {

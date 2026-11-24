@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
+import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { users } from "../../../platform/database/schema.js";
+import { tweets, users } from "../../../platform/database/schema.js";
 import { buildNewUser, FIXED_NOW } from "../../../tests/auth-factories.js";
 import {
   startTestDatabase,
@@ -55,6 +56,27 @@ describe("profile persistence", () => {
     expect(profile).not.toHaveProperty("email");
     expect(profile).not.toHaveProperty("passwordHash");
     expect(profile).not.toHaveProperty("avatarKey");
+  });
+
+  it("US-A03 AC-A03.1 counts only the member's committed tweets", async () => {
+    const ada = await members.create(buildNewUser({ username: "ada" }));
+    const grace = await members.create(buildNewUser({ username: "grace" }));
+    const tweet = (authorId: string) => ({
+      authorId,
+      content: "hello",
+      createdAt: FIXED_NOW,
+      id: uuidv7(),
+    });
+    const [first] = await database.db
+      .insert(tweets)
+      .values([tweet(ada.id), tweet(ada.id), tweet(grace.id)])
+      .returning({ id: tweets.id });
+
+    expect((await profiles.findByUsername("ada"))?.tweetCount).toBe(2);
+    expect((await profiles.findByUsername("grace"))?.tweetCount).toBe(1);
+
+    await database.db.delete(tweets).where(eq(tweets.id, first?.id ?? ""));
+    expect((await profiles.findByUsername("ada"))?.tweetCount).toBe(1);
   });
 
   it("US-A03 AC-A03.2 returns null for an unknown, mismatched, or deleted member", async () => {
