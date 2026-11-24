@@ -8,6 +8,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { buildApp } from "../../app.js";
 import { users } from "../../platform/database/schema.js";
+import { fastPasswordHasher } from "../../tests/fast-password-hasher.js";
 import { startTestDatabase, type TestDatabase } from "../../tests/postgres.js";
 
 import type { FastifyInstance, LightMyRequestResponse } from "fastify";
@@ -27,6 +28,7 @@ beforeAll(async () => {
     auth: {
       clock: () => now,
       db: database.db,
+      passwordHasher: fastPasswordHasher,
       rateLimit: { max: 1_000, timeWindowMs: 60_000 },
       sessionCookie: {
         domain: undefined,
@@ -285,6 +287,7 @@ describe("profile API", () => {
     const realtime = await buildApp({
       auth: {
         db: database.db,
+        passwordHasher: fastPasswordHasher,
         rateLimit: { max: 1_000, timeWindowMs: 60_000 },
         sessionCookie: {
           domain: undefined,
