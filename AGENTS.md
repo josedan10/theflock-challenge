@@ -76,6 +76,7 @@ Read only the docs in the matching rows. Use specialists only if listed as appro
 ## Code and documentation
 
 - Use strict TypeScript, intention-revealing names, cohesive modules, explicit dependencies, and typed errors.
+- When the same user-facing or protocol string is owned by more than one module, define it once as a named const or enum beside the contract that owns it, and import that name at every use site, including tests. Leave a string inline when a single production module owns it.
 - Prefer composition and pure functions. Apply patterns only when they solve a demonstrated boundary or variability problem.
 - Web UI: before creating any component, check the shadcn/ui library (ui.shadcn.com/docs/components) and use its component when one exists. Hand-write a component only when shadcn has nothing suitable, and say so in the commit.
 - Add JSDoc/TSDoc-compatible `/** ... */` documentation to exported contracts when invariants, errors, side effects, units, security, or examples are not obvious from the type.

@@ -2,7 +2,10 @@ import { v7 as uuidv7 } from "uuid";
 
 import { createLogInMember } from "./application/log-in-member.js";
 import { createRegisterMember } from "./application/register-member.js";
-import { createRequireSession } from "./http/authentication.js";
+import {
+  createRequireCsrf,
+  createRequireSession,
+} from "./http/authentication.js";
 import { loginRoute } from "./http/login-route.js";
 import { logoutRoute } from "./http/logout-route.js";
 import { meRoute } from "./http/me-route.js";
@@ -14,6 +17,7 @@ import { createDrizzleSessionRepository } from "./infrastructure/drizzle-session
 
 import type { Database } from "../../platform/database/client.js";
 import type { PasswordHasher } from "./application/ports.js";
+import type { AuthGuard } from "./http/authentication.js";
 import type { AuthRateLimit } from "./http/rate-limit.js";
 import type { SessionCookieSettings } from "./http/session-cookie.js";
 import type { FastifyInstance } from "fastify";
@@ -31,8 +35,18 @@ export interface AuthModuleOptions {
   rateLimit?: AuthRateLimit;
 }
 
-/** Composition root for authentication: wires adapters into use cases and routes. */
-export function authModule(options: AuthModuleOptions) {
+/** Session guards shared with modules that protect their own routes. */
+export interface AuthRuntime {
+  plugin: (app: FastifyInstance) => Promise<void>;
+  requireSession: AuthGuard;
+  requireCsrf: AuthGuard;
+}
+
+/**
+ * Composition root for authentication: wires adapters into use cases, routes,
+ * and the guards other modules reuse. One runtime shares one session lookup.
+ */
+export function createAuthRuntime(options: AuthModuleOptions): AuthRuntime {
   const clock = options.clock ?? (() => new Date());
   const credentials = createCryptoSessionCredentialGenerator(
     options.sessionSecret,
@@ -49,25 +63,30 @@ export function authModule(options: AuthModuleOptions) {
   const rateLimit =
     options.rateLimit === undefined ? {} : { rateLimit: options.rateLimit };
   const requireSession = createRequireSession({ clock, credentials, sessions });
+  const requireCsrf = createRequireCsrf(credentials);
 
-  return async (app: FastifyInstance): Promise<void> => {
-    app.decorateRequest("auth", null);
-    await registerRoute(app, {
-      registerMember: createRegisterMember(useCaseDependencies),
-      sessionCookie: options.sessionCookie,
-      ...rateLimit,
-    });
-    await loginRoute(app, {
-      logInMember: createLogInMember(useCaseDependencies),
-      sessionCookie: options.sessionCookie,
-      ...rateLimit,
-    });
-    await logoutRoute(app, {
-      clock,
-      credentials,
-      sessionCookie: options.sessionCookie,
-      sessions,
-    });
-    await meRoute(app, { credentials, requireSession });
+  return {
+    requireCsrf,
+    requireSession,
+    plugin: async (app: FastifyInstance): Promise<void> => {
+      app.decorateRequest("auth", null);
+      await registerRoute(app, {
+        registerMember: createRegisterMember(useCaseDependencies),
+        sessionCookie: options.sessionCookie,
+        ...rateLimit,
+      });
+      await loginRoute(app, {
+        logInMember: createLogInMember(useCaseDependencies),
+        sessionCookie: options.sessionCookie,
+        ...rateLimit,
+      });
+      await logoutRoute(app, {
+        clock,
+        credentials,
+        sessionCookie: options.sessionCookie,
+        sessions,
+      });
+      await meRoute(app, { credentials, requireSession });
+    },
   };
 }

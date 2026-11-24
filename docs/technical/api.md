@@ -80,6 +80,42 @@ Request (validated by `registerRequestSchema` in `@twitter-clone/contracts`):
 - `POST /v1/auth/logout`: revokes the current session and clears the cookie, answering `204`. An active session requires `X-CSRF-Token` (`403 FORBIDDEN` otherwise). It is idempotent: with no active session it still answers `204` and clears the cookie.
 - `GET /v1/me`: `200` with `{ "user": SessionUser, "csrfToken": string }` for an active session, or `401 UNAUTHENTICATED`. Clients call it after a reload to recover the CSRF token.
 
+## Profile (`GET /v1/users/:username`, `PATCH /v1/me/profile`)
+
+v1 profiles are public (requirements rule 10, PROFILE-01, US-A03). A viewer does not need a session, and a stale session cookie does not block the read. The response is `Cache-Control: no-store`.
+
+```json
+{
+  "profile": {
+    "id": "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f60",
+    "username": "ada_lovelace",
+    "displayName": "Ada",
+    "bio": "",
+    "avatarUrl": null,
+    "tweetCount": 0,
+    "followerCount": 0,
+    "followingCount": 0,
+    "createdAt": "2026-11-24T12:00:00.000Z"
+  }
+}
+```
+
+`avatarUrl` is `null` until image upload exists; clients render a placeholder. The document never includes `avatarKey`, email, or password material. Username lookup is case-insensitive and uses the stored lowercase form. Unknown, malformed, and soft-deleted usernames all return `404 NOT_FOUND` with the message "That profile does not exist." and no profile body.
+
+`tweetCount`, `followerCount`, and `followingCount` are computed from committed rows. Tweet and follow tables arrive with their own slices, so these counts are `0` until then. The fields stay part of the contract.
+
+Bio is plain text. The API stores it and returns it as a JSON string; it does not interpret or strip markup. Clients must render it as text (AC-A03.3). Reads are limited to 120 attempts per minute per client address.
+
+`PATCH /v1/me/profile` edits the authenticated member only (PROFILE-02). There is no route that edits another member. Send `X-CSRF-Token`. At least one of `displayName` (1–80 code points) or `bio` (0–160 code points, empty allowed) is required; omitted fields stay as stored. Both are trimmed. A null character is rejected. Unknown properties (`email`, `username`, `userId`, `password`, `avatarKey`) are `422` and nothing is written. Avatar keys stay disabled until an upload can prove the caller owns the object.
+
+| Status | Body                                          | Notes                                         |
+| ------ | --------------------------------------------- | --------------------------------------------- |
+| `200`  | `{ "profile": PublicProfile }`                | `Cache-Control: no-store`                     |
+| `401`  | Error envelope, `UNAUTHENTICATED`             | Missing, unknown, expired, or revoked session |
+| `403`  | Error envelope, `FORBIDDEN`                   | Missing or wrong `X-CSRF-Token`               |
+| `422`  | Error envelope, `VALIDATION_ERROR`            | Invalid field or unknown property             |
+| `429`  | Error envelope, `RATE_LIMITED`, `Retry-After` | 20 attempts/minute per client address         |
+
 ## Sessions and CSRF
 
 - Protected routes use the `requireSession` pre-handler. Missing, unknown, expired, and revoked sessions all get the same `401`.
@@ -89,6 +125,7 @@ Request (validated by `registerRequestSchema` in `@twitter-clone/contracts`):
 ## Rate-limit starting points
 
 - Login/register: 5/minute per privacy-safe composite key, with measured tuning.
+- Profile updates: 20/minute per client address. Profile reads: 120/minute per client address.
 - Tweet creation: 20/minute/user; follows/likes: 60/minute/user.
 - Reads: 120/minute/user/IP. Health checks are separately limited/allowlisted.
 

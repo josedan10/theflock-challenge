@@ -35,6 +35,8 @@ erDiagram
 
 Indexes: unique `email_normalized`; unique `username`; search indexes described below.
 
+Profile reads load this row by `username` and do not store follower, following, or tweet counts. Those counts are aggregated from relation tables when the tables exist; until then the committed count is zero. The read does not return `email`, `password_hash`, or `avatar_key`.
+
 ### `sessions`
 
 | Column                                     | Type                 | Rules                                  |
