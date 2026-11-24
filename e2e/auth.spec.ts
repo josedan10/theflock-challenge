@@ -1,48 +1,13 @@
-import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-const password = "correct horse battery";
-
-/** Unique per test, project, and run, so parallel runs never collide. */
-function uniqueMember(testInfo: {
-  project: { name: string };
-  workerIndex: number;
-}) {
-  const suffix = `${Date.now().toString(36)}${testInfo.workerIndex}${Math.random().toString(36).slice(2, 6)}`;
-  const tag = testInfo.project.name.includes("mobile") ? "m" : "d";
-  return {
-    email: `e2e-${tag}${suffix}@example.com`,
-    username: `e2e_${tag}${suffix}`.slice(0, 30),
-  };
-}
-
-async function register(
-  page: Page,
-  member: { email: string; username: string },
-) {
-  await page.goto("/register");
-  await page.getByLabel("Email").fill(member.email);
-  await page.getByLabel("Username").fill(member.username);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create account" }).click();
-}
-
-/**
- * The form-level alert. Next.js renders a route announcer with role=alert,
- * and field errors are alerts too, so both are excluded.
- */
-function formAlert(page: Page) {
-  return page.locator('form [role="alert"]:not([data-slot="field-error"])');
-}
-
-async function expectNoSeriousA11yViolations(page: Page) {
-  const results = await new AxeBuilder({ page }).analyze();
-  const serious = results.violations.filter(
-    (violation) =>
-      violation.impact === "serious" || violation.impact === "critical",
-  );
-  expect(serious.map((violation) => violation.id)).toEqual([]);
-}
+import {
+  expectNoSeriousA11yViolations,
+  FIRST_VISIT_TIMEOUT_MS,
+  formAlert,
+  password,
+  register,
+  uniqueMember,
+} from "./support";
 
 test("US-A01 AC-A01.1 US-A02 AC-A02.3 registers, reaches home, and logs out", async ({
   page,
@@ -191,14 +156,22 @@ test("navigates between home and the member's profile from the header", async ({
   const primary = page.getByRole("navigation", { name: "Primary" });
 
   await primary.getByRole("link", { name: "Profile" }).click();
-  await expect(page).toHaveURL(new RegExp(`/u/${member.username}$`));
+  // `next dev` compiles a route on its first visit, which can exceed the
+  // default 5 s under parallel load. This is a time budget, not a retry.
+  await expect(page).toHaveURL(new RegExp(`/u/${member.username}$`), {
+    timeout: FIRST_VISIT_TIMEOUT_MS,
+  });
+  await expect(page).toHaveTitle("Profile · Twitter Clone");
   await expect(primary.getByRole("link", { name: "Profile" })).toHaveAttribute(
     "aria-current",
     "page",
   );
 
   await primary.getByRole("link", { name: "Home" }).click();
-  await expect(page).toHaveURL(/\/home$/);
+  await expect(page).toHaveURL(/\/home$/, { timeout: FIRST_VISIT_TIMEOUT_MS });
+  // Client navigation applies the new <title> slightly after the URL changes;
+  // scan only once the page has settled.
+  await expect(page).toHaveTitle("Home · Twitter Clone");
   await expect(primary.getByRole("link", { name: "Home" })).toHaveAttribute(
     "aria-current",
     "page",

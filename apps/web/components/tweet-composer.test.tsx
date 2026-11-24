@@ -1,0 +1,206 @@
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import { ApiError } from "../lib/api-client";
+import { useSession } from "../lib/session";
+
+import {
+  fakeApiClient,
+  formAlert,
+  renderWithSession,
+  testSession,
+  testTweet,
+} from "./test-utils";
+import { TweetComposer } from "./tweet-composer";
+
+import type { ApiClient } from "../lib/api-client";
+
+const member = { id: testSession.user.id, username: testSession.user.username };
+const signedIn = (overrides: Partial<ApiClient> = {}) =>
+  fakeApiClient({ me: vi.fn(async () => testSession), ...overrides });
+
+/** Like HomeView: the composer mounts once the session (and CSRF token) is loaded. */
+function SignedInComposer() {
+  const session = useSession();
+  return session.data ? <TweetComposer member={member} /> : null;
+}
+
+async function renderComposer(apiClient = signedIn()) {
+  const view = renderWithSession(<SignedInComposer />, apiClient);
+  await screen.findByRole("textbox", { name: "What's happening?" });
+  return view;
+}
+
+const textbox = () =>
+  screen.getByRole("textbox", { name: "What's happening?" });
+const submit = () => screen.getByRole("button", { name: /^Post/ });
+const counter = () => screen.getByTestId("tweet-counter");
+/** Paste-like input: user-event types emoji one key at a time, which is slow. */
+const enter = (text: string) =>
+  fireEvent.change(textbox(), { target: { value: text } });
+
+describe("TweetComposer counter", () => {
+  it("US-B01 AC-B01.4 shows the remaining characters", async () => {
+    await renderComposer();
+
+    await userEvent.type(textbox(), "hello");
+
+    expect(counter()).toHaveTextContent("275");
+  });
+
+  it("US-B01 AC-B01.1 counts emoji once and allows exactly 280", async () => {
+    await renderComposer();
+
+    enter("🐦".repeat(280));
+
+    expect(counter()).toHaveTextContent("0");
+    expect(submit()).toBeEnabled();
+  });
+
+  it("US-B01 AC-B01.2 marks 281 characters as over the limit and blocks posting", async () => {
+    await renderComposer();
+
+    enter("a".repeat(281));
+
+    expect(counter()).toHaveTextContent("-1");
+    expect(textbox()).toHaveAttribute("aria-invalid", "true");
+    expect(submit()).toBeDisabled();
+    expect(screen.getByTestId("tweet-limit-announcement")).toHaveTextContent(
+      "1 character over the limit.",
+    );
+  });
+
+  it("does not count surrounding whitespace", async () => {
+    await renderComposer();
+
+    enter("  hi  ");
+
+    expect(counter()).toHaveTextContent("278");
+  });
+
+  it("announces the count only when close to or over the limit", async () => {
+    await renderComposer();
+
+    enter("a".repeat(259));
+    expect(
+      screen.getByTestId("tweet-limit-announcement"),
+    ).toBeEmptyDOMElement();
+
+    enter("a".repeat(260));
+    expect(screen.getByTestId("tweet-limit-announcement")).toHaveTextContent(
+      "20 characters left.",
+    );
+  });
+});
+
+describe("TweetComposer submit", () => {
+  it("US-B01 AC-B01.2 keeps posting disabled for empty or whitespace-only text", async () => {
+    const apiClient = signedIn();
+    await renderComposer(apiClient);
+
+    expect(submit()).toBeDisabled();
+    enter("   ");
+    expect(submit()).toBeDisabled();
+    expect(apiClient.createTweet).not.toHaveBeenCalled();
+  });
+
+  it("US-B01 AC-B01.4 sends exactly one request when submitted twice while pending", async () => {
+    let finish: () => void = () => undefined;
+    const apiClient = signedIn({
+      createTweet: vi.fn(
+        () =>
+          new Promise<{ tweet: typeof testTweet }>((resolve) => {
+            finish = () => resolve({ tweet: testTweet });
+          }),
+      ),
+    });
+    await renderComposer(apiClient);
+    enter("hello");
+
+    const form = textbox().closest("form") as HTMLFormElement;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    expect(
+      await screen.findByRole("button", { name: "Posting…" }),
+    ).toBeDisabled();
+    expect(apiClient.createTweet).toHaveBeenCalledTimes(1);
+    await act(async () => finish());
+  });
+
+  it("US-B01 AC-B01.4 announces success, clears the text, and keeps focus in the composer", async () => {
+    const apiClient = signedIn();
+    await renderComposer(apiClient);
+    const user = userEvent.setup();
+
+    await user.type(textbox(), "  First post!  ");
+    await user.click(submit());
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Posted.");
+    expect(textbox()).toHaveValue("");
+    expect(textbox()).toHaveFocus();
+    expect(apiClient.createTweet).toHaveBeenCalledWith(
+      { content: "First post!" },
+      testSession.csrfToken,
+    );
+  });
+});
+
+describe("TweetComposer failures", () => {
+  async function failWith(error: ApiError) {
+    const apiClient = signedIn({
+      createTweet: vi.fn(async () => {
+        throw error;
+      }),
+    });
+    await renderComposer(apiClient);
+    const user = userEvent.setup();
+    await user.type(textbox(), "hello");
+    await user.click(submit());
+    return apiClient;
+  }
+
+  it("US-B01 AC-B01.4 shows the API's field message and keeps the text", async () => {
+    await failWith(
+      new ApiError(422, "VALIDATION_ERROR", "Some fields are invalid.", {
+        content: ["Write something to post."],
+      }),
+    );
+
+    await waitFor(() =>
+      expect(textbox()).toHaveAccessibleDescription(
+        expect.stringContaining("Write something to post."),
+      ),
+    );
+    expect(textbox()).toHaveValue("hello");
+    expect(submit()).toBeEnabled();
+  });
+
+  it("explains rate limiting with retry guidance", async () => {
+    await failWith(new ApiError(429, "RATE_LIMITED", "Too many requests."));
+
+    await waitFor(() =>
+      expect(formAlert()).toHaveTextContent(
+        "Too many attempts. Wait a minute and try again.",
+      ),
+    );
+    expect(textbox()).toHaveValue("hello");
+  });
+
+  it("explains a network failure and lets the member retry once", async () => {
+    const apiClient = await failWith(
+      new ApiError(
+        0,
+        "NETWORK_ERROR",
+        "Can't reach the server. Check your connection and try again.",
+      ),
+    );
+
+    await waitFor(() =>
+      expect(formAlert()).toHaveTextContent("Can't reach the server"),
+    );
+    await userEvent.click(submit());
+    await waitFor(() => expect(apiClient.createTweet).toHaveBeenCalledTimes(2));
+  });
+});

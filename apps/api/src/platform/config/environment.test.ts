@@ -110,4 +110,18 @@ describe("environment validation", () => {
       parseEnvironment({ ...base, AUTH_RATE_LIMIT_PER_MINUTE: "0" }),
     ).toThrow();
   });
+
+  it("TWT-02 defaults the tweet write limit to 20 per minute", () => {
+    expect(parseEnvironment(base).TWEET_RATE_LIMIT_PER_MINUTE).toBe(20);
+    expect(
+      parseEnvironment({ ...base, TWEET_RATE_LIMIT_PER_MINUTE: "1000" })
+        .TWEET_RATE_LIMIT_PER_MINUTE,
+    ).toBe(1000);
+  });
+
+  it("TWT-02 refuses an invalid tweet write limit", () => {
+    expect(() =>
+      parseEnvironment({ ...base, TWEET_RATE_LIMIT_PER_MINUTE: "0" }),
+    ).toThrow();
+  });
 });

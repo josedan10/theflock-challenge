@@ -138,7 +138,7 @@ Both routes require a session and `X-CSRF-Token`. The author is always the sessi
 | `404`  | Unknown, already deleted, or malformed id (`NOT_FOUND`); repeat deletes are not treated as success |
 | `401`  | No valid session                                                                                   |
 
-Tweet text is plain text that clients escape, and it is never logged: logs carry ids only. The basic write limit is 20 per minute per client for create and delete together. Profiles now count committed tweets in `tweetCount`.
+Tweet text is plain text that clients escape, and it is never logged: logs carry ids only. The basic write limit is 20 per minute per client, applied to create and to delete separately (set by `TWEET_RATE_LIMIT_PER_MINUTE`). Profiles now count committed tweets in `tweetCount`.
 
 ## Sessions and CSRF
 

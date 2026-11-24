@@ -48,6 +48,13 @@ const environmentSchema = z
       .max(10_000)
       .default(5),
     API_PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
+    /** Tweet create/delete attempts per client per minute; raise only for browser test runs. */
+    TWEET_RATE_LIMIT_PER_MINUTE: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(10_000)
+      .default(20),
     COOKIE_DOMAIN: z
       .string()
       .trim()

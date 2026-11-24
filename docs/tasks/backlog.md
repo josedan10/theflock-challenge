@@ -24,7 +24,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 ## Tweets/timeline
 
 - [x] **TWT-01:** Tweet migration, validation, create/delete service and authorization tests.
-- [ ] **TWT-02:** Composer/card components and optimistic/error behavior.
+- [x] **TWT-02:** Composer/card components and optimistic/error behavior.
 - [ ] **FEED-01:** Keyset timeline SQL, indexes, cursor signing/validation, integration and explain-plan tests.
 - [ ] **FEED-02:** Infinite feed with deduplication, retry/end/empty states and Playwright tests.
 
