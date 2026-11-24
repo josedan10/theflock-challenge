@@ -1,6 +1,6 @@
 # Twitter Clone (working title)
 
-This yet-to-be-named product is a mobile-first social application for short posts, follows, likes, user search, and chronological timelines. **“The Flock” is the company proposing the challenge, not the application name.**
+This yet-to-be-named product is a mobile-first social application for short posts, follows, likes, user search, and chronological timelines.
 
 ## Status
 
