@@ -125,8 +125,16 @@ describe("TweetComposer submit", () => {
     expect(
       await screen.findByRole("button", { name: "Posting…" }),
     ).toBeDisabled();
+    expect(
+      screen
+        .getByRole("button", { name: "Posting…" })
+        .querySelector("[data-slot=spinner]"),
+    ).toBeInTheDocument();
     expect(apiClient.createTweet).toHaveBeenCalledTimes(1);
     await act(async () => finish());
+    expect(
+      await screen.findByRole("button", { name: "Post" }, { timeout: 3_000 }),
+    ).toBeDisabled();
   });
 
   it("US-B01 AC-B01.4 announces success, clears the text, and keeps focus in the composer", async () => {
@@ -137,7 +145,9 @@ describe("TweetComposer submit", () => {
     await user.type(textbox(), "  First post!  ");
     await user.click(submit());
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Posted.");
+    expect(
+      await screen.findByText("Posted.", {}, { timeout: 3_000 }),
+    ).toBeInTheDocument();
     expect(textbox()).toHaveValue("");
     expect(textbox()).toHaveFocus();
     expect(apiClient.createTweet).toHaveBeenCalledWith(
@@ -168,10 +178,12 @@ describe("TweetComposer failures", () => {
       }),
     );
 
-    await waitFor(() =>
-      expect(textbox()).toHaveAccessibleDescription(
-        expect.stringContaining("Write something to post."),
-      ),
+    await waitFor(
+      () =>
+        expect(textbox()).toHaveAccessibleDescription(
+          expect.stringContaining("Write something to post."),
+        ),
+      { timeout: 3_000 },
     );
     expect(textbox()).toHaveValue("hello");
     expect(submit()).toBeEnabled();
@@ -180,10 +192,12 @@ describe("TweetComposer failures", () => {
   it("explains rate limiting with retry guidance", async () => {
     await failWith(new ApiError(429, "RATE_LIMITED", "Too many requests."));
 
-    await waitFor(() =>
-      expect(formAlert()).toHaveTextContent(
-        "Too many attempts. Wait a minute and try again.",
-      ),
+    await waitFor(
+      () =>
+        expect(formAlert()).toHaveTextContent(
+          "Too many attempts. Wait a minute and try again.",
+        ),
+      { timeout: 3_000 },
     );
     expect(textbox()).toHaveValue("hello");
   });
@@ -197,8 +211,9 @@ describe("TweetComposer failures", () => {
       ),
     );
 
-    await waitFor(() =>
-      expect(formAlert()).toHaveTextContent("Can't reach the server"),
+    await waitFor(
+      () => expect(formAlert()).toHaveTextContent("Can't reach the server"),
+      { timeout: 3_000 },
     );
     await userEvent.click(submit());
     await waitFor(() => expect(apiClient.createTweet).toHaveBeenCalledTimes(2));

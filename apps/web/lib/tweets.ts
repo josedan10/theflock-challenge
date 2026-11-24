@@ -1,11 +1,28 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { ApiError } from "./api-client";
 import { sessionCsrfToken, useApiClient } from "./session";
+import {
+  assembleTimeline,
+  dedupeTweets,
+  restoreTweet,
+  tweetSlot,
+  type TweetSlot,
+} from "./timeline-feed";
 
-import type { CreateTweetRequest, Tweet } from "@twitter-clone/contracts";
+import type { InfiniteData } from "@tanstack/react-query";
+import type {
+  CreateTweetRequest,
+  TimelinePage,
+  Tweet,
+} from "@twitter-clone/contracts";
 
 /** The signed-in member a tweet action acts for. */
 export interface TweetAuthorRef {
@@ -13,44 +30,102 @@ export interface TweetAuthorRef {
   username: string;
 }
 
+const homeTimelineKey = (memberId: string) =>
+  ["timeline", "home", memberId] as const;
+
 /**
- * Tweets the member posted in this browser session, newest first. Nothing
- * lists tweets until the timeline exists (FEED-01), so this list lives only
- * in the query cache and is dropped by the full-page logout.
+ * Tweets published in this visit, newest first. They stay out of web storage.
+ * The timeline pages remain the keyset; this list only fills what those pages
+ * do not show yet.
  */
-const postedKey = (memberId: string) => ["tweets", "posted", memberId] as const;
+const pendingKey = (memberId: string) =>
+  ["timeline", "pending", memberId] as const;
 
 const profileKey = (username: string) => ["profile", username.toLowerCase()];
 
-export function usePostedTweets(memberId: string) {
+/** How long a post keeps its spinner before the card may appear. */
+export const TWEET_POST_MINIMUM_MS = 700;
+
+/** Mutation key for a member's in-flight `POST /v1/tweets`. */
+export const tweetCreateMutationKey = (memberId: string) =>
+  ["tweet", "create", memberId] as const;
+
+/**
+ * Waits out the rest of {@link TWEET_POST_MINIMUM_MS}. A fast response still
+ * shows the spinner; a slow one is not held any longer.
+ */
+export function waitForPostMinimum(startedAt: number): Promise<void> {
+  const remaining = TWEET_POST_MINIMUM_MS - (Date.now() - startedAt);
+  if (remaining <= 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    setTimeout(resolve, remaining);
+  });
+}
+
+export function usePendingTweets(memberId: string) {
   return useQuery({
     initialData: [] as Tweet[],
     queryFn: () => [] as Tweet[],
-    queryKey: postedKey(memberId),
+    queryKey: pendingKey(memberId),
     staleTime: Number.POSITIVE_INFINITY,
   });
 }
 
+/** Home timeline pages. The cursor stays inside the query cache. */
+export function useHomeTimeline(memberId: string) {
+  const apiClient = useApiClient();
+  return useInfiniteQuery({
+    getNextPageParam: (page: TimelinePage) => page.nextCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => apiClient.getTimeline(pageParam),
+    queryKey: homeTimelineKey(memberId),
+  });
+}
+
+/** Tweets on screen, including this visit's posts that sort above page one. */
+export function useTimelineItems(memberId: string) {
+  const pending = usePendingTweets(memberId);
+  const timeline = useHomeTimeline(memberId);
+  return assembleTimeline(pending.data, timeline.data?.pages, true);
+}
+
 /**
- * Publishes a tweet. Not optimistic: the API returns the canonical card
- * (id, timestamp, counts), which is prepended once the request succeeds.
+ * Publishes a tweet. Not optimistic: the canonical card is added only after
+ * the request and a short minimum spinner time, so a fast post does not pop
+ * in before the loader is visible.
  */
 export function useCreateTweet(member: TweetAuthorRef) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateTweetRequest) =>
-      apiClient.createTweet(input, sessionCsrfToken(queryClient)),
+    mutationKey: tweetCreateMutationKey(member.id),
+    mutationFn: async (input: CreateTweetRequest) => {
+      const started = Date.now();
+      try {
+        return await apiClient.createTweet(
+          input,
+          sessionCsrfToken(queryClient),
+        );
+      } finally {
+        await waitForPostMinimum(started);
+      }
+    },
     onSuccess: ({ tweet }) => {
-      queryClient.setQueryData<Tweet[]>(postedKey(member.id), (posted = []) => [
-        tweet,
-        ...posted,
-      ]);
+      queryClient.setQueryData<Tweet[]>(pendingKey(member.id), (pending = []) =>
+        dedupeTweets([tweet, ...pending]),
+      );
       void queryClient.invalidateQueries({
         queryKey: profileKey(member.username),
       });
     },
   });
+}
+
+interface PageSlot {
+  index: number;
+  slot: TweetSlot;
 }
 
 /**
@@ -62,27 +137,52 @@ export function useCreateTweet(member: TweetAuthorRef) {
 export function useDeleteTweet(member: TweetAuthorRef) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
-  const key = postedKey(member.id);
+  const pending = pendingKey(member.id);
+  const timeline = homeTimelineKey(member.id);
   return useMutation({
     mutationFn: (tweetId: string) =>
       apiClient.deleteTweet(tweetId, sessionCsrfToken(queryClient)),
     onMutate: async (tweetId) => {
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<Tweet[]>(key) ?? [];
-      const index = previous.findIndex((tweet) => tweet.id === tweetId);
-      queryClient.setQueryData<Tweet[]>(
-        key,
-        previous.filter((tweet) => tweet.id !== tweetId),
-      );
-      return index < 0
-        ? undefined
-        : {
-            // Ids that were listed above it; anything not in `previous` was
-            // posted later, so it belongs above it as well.
-            above: new Set(previous.slice(0, index).map((tweet) => tweet.id)),
-            known: new Set(previous.map((tweet) => tweet.id)),
-            tweet: previous[index] as Tweet,
-          };
+      await queryClient.cancelQueries({ queryKey: pending });
+      await queryClient.cancelQueries({ queryKey: timeline });
+      const pendingTweets = queryClient.getQueryData<Tweet[]>(pending) ?? [];
+      const pages =
+        queryClient.getQueryData<InfiniteData<TimelinePage>>(timeline);
+      const pendingSlot = tweetSlot(pendingTweets, tweetId);
+      const pageIndex =
+        pages?.pages.findIndex((page) =>
+          page.items.some((tweet) => tweet.id === tweetId),
+        ) ?? -1;
+      const pageSlot: PageSlot | undefined =
+        pages === undefined || pageIndex < 0
+          ? undefined
+          : {
+              index: pageIndex,
+              slot: tweetSlot(
+                pages.pages[pageIndex]?.items ?? [],
+                tweetId,
+              ) as TweetSlot,
+            };
+
+      if (pendingSlot !== undefined) {
+        queryClient.setQueryData<Tweet[]>(
+          pending,
+          pendingTweets.filter((tweet) => tweet.id !== tweetId),
+        );
+      }
+      if (pages !== undefined && pageSlot !== undefined) {
+        queryClient.setQueryData<InfiniteData<TimelinePage>>(timeline, {
+          ...pages,
+          pages: pages.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((tweet) => tweet.id !== tweetId),
+          })),
+        });
+      }
+      if (pendingSlot === undefined && pageSlot === undefined) {
+        return undefined;
+      }
+      return { pageSlot, pendingSlot };
     },
     onError: (error, _tweetId, context) => {
       if (error instanceof ApiError && error.code === "NOT_FOUND") {
@@ -91,20 +191,30 @@ export function useDeleteTweet(member: TweetAuthorRef) {
       if (context === undefined) {
         return;
       }
-      // Re-insert only this tweet into the current list, so another delete
-      // that succeeded meanwhile is not undone by an old snapshot.
-      queryClient.setQueryData<Tweet[]>(key, (current = []) => {
-        if (current.some((tweet) => tweet.id === context.tweet.id)) {
-          return current;
-        }
-        let at = 0;
-        current.forEach((tweet, position) => {
-          if (context.above.has(tweet.id) || !context.known.has(tweet.id)) {
-            at = position + 1;
-          }
-        });
-        return [...current.slice(0, at), context.tweet, ...current.slice(at)];
-      });
+      if (context.pendingSlot !== undefined) {
+        queryClient.setQueryData<Tweet[]>(pending, (current = []) =>
+          restoreTweet(current, context.pendingSlot as TweetSlot),
+        );
+      }
+      if (context.pageSlot !== undefined) {
+        queryClient.setQueryData<InfiniteData<TimelinePage>>(
+          timeline,
+          (current) => {
+            if (current === undefined) {
+              return current;
+            }
+            const { index, slot } = context.pageSlot as PageSlot;
+            return {
+              ...current,
+              pages: current.pages.map((page, pageIndex) =>
+                pageIndex === index
+                  ? { ...page, items: restoreTweet(page.items, slot) }
+                  : page,
+              ),
+            };
+          },
+        );
+      }
     },
     onSettled: () => {
       void queryClient.invalidateQueries({

@@ -3,14 +3,11 @@
 import { CircleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-import { ApiError } from "../lib/api-client";
-import { apiFormErrors } from "../lib/form-errors";
 import { useSession } from "../lib/session";
-import { useDeleteTweet, usePostedTweets } from "../lib/tweets";
 
-import { TweetCard } from "./tweet-card";
+import { TimelineFeed } from "./timeline-feed";
 import { TweetComposer } from "./tweet-composer";
 
 import type { SessionUser } from "@twitter-clone/contracts";
@@ -71,39 +68,10 @@ export function HomeView() {
   return <MemberHome user={session.data.user} />;
 }
 
-/** Why a delete failed, shown on that tweet's card. */
-interface DeleteFailure {
-  tweetId: string;
-  message: string;
-}
-
 /**
- * The member's home: composer and the tweets posted in this visit. Nothing
- * lists tweets until the timeline exists (FEED-01), which the copy says.
+ * The member's home: composer and the home timeline (US-B03).
  */
 function MemberHome({ user }: Readonly<{ user: SessionUser }>) {
-  const member = { id: user.id, username: user.username };
-  const posted = usePostedTweets(user.id);
-  const deleteTweet = useDeleteTweet(member);
-  const [failure, setFailure] = useState<DeleteFailure | null>(null);
-
-  function onDelete(tweetId: string) {
-    setFailure(null);
-    deleteTweet.mutate(tweetId, {
-      onError: (error) => {
-        // A 404 means it is already gone; the list keeps it removed.
-        if (error instanceof ApiError && error.code === "NOT_FOUND") {
-          return;
-        }
-        setFailure({
-          message:
-            `We couldn't delete this tweet. ${apiFormErrors(error).form ?? ""}`.trim(),
-          tweetId,
-        });
-      },
-    });
-  }
-
   return (
     <div className="grid gap-6">
       <Card>
@@ -118,41 +86,10 @@ function MemberHome({ user }: Readonly<{ user: SessionUser }>) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TweetComposer member={member} />
+          <TweetComposer member={{ id: user.id, username: user.username }} />
         </CardContent>
       </Card>
-
-      <section aria-labelledby="new-posts-heading" className="grid gap-3">
-        <div className="grid gap-1">
-          <h2 className="text-lg font-semibold" id="new-posts-heading">
-            Your new posts
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Posts from this visit. Your timeline with people you follow is
-            coming soon.
-          </p>
-        </div>
-        {posted.data.length === 0 ? (
-          <p className="text-muted-foreground">
-            Nothing posted yet. Share your first tweet above.
-          </p>
-        ) : (
-          <ol aria-labelledby="new-posts-heading" className="grid gap-3">
-            {posted.data.map((tweet) => (
-              <li key={tweet.id}>
-                <TweetCard
-                  failure={
-                    failure?.tweetId === tweet.id ? failure.message : null
-                  }
-                  onDelete={onDelete}
-                  tweet={tweet}
-                  viewerId={user.id}
-                />
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+      <TimelineFeed user={user} />
     </div>
   );
 }

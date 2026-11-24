@@ -259,6 +259,47 @@ describe("API client", () => {
       );
     });
 
+    it("US-B03 AC-B03.3 reads the first page with credentials and no CSRF header", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { items: [tweet], nextCursor: null }),
+      );
+
+      await expect(client.getTimeline()).resolves.toEqual({
+        items: [tweet],
+        nextCursor: null,
+      });
+      expect(fetchImpl).toHaveBeenCalledWith("http://api.test/v1/timeline", {
+        credentials: "include",
+        headers: { accept: "application/json" },
+        method: "GET",
+      });
+    });
+
+    it("US-B03 AC-B03.3 sends the opaque cursor without storing it", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { items: [], nextCursor: null }),
+      );
+
+      await client.getTimeline("a+b/c=");
+
+      expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/timeline?cursor=a%2Bb%2Fc%3D",
+      );
+      expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+        credentials: "include",
+        headers: { accept: "application/json" },
+        method: "GET",
+      });
+    });
+
+    it("rejects a timeline body that breaks the contract", async () => {
+      const { client } = clientReturning(
+        jsonResponse(200, { items: [], nextCursor: 1 }),
+      );
+
+      await expect(client.getTimeline()).rejects.toThrow();
+    });
+
     it("US-B02 AC-B02.2 surfaces a forbidden delete as an ApiError", async () => {
       const { client } = clientReturning(
         jsonResponse(

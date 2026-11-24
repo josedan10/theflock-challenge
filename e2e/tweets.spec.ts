@@ -10,7 +10,7 @@ import {
 const composer = (page: Page) =>
   page.getByRole("textbox", { name: "What's happening?" });
 const newPosts = (page: Page) =>
-  page.getByRole("list", { name: "Your new posts" });
+  page.getByRole("list", { name: "Home timeline" });
 
 async function post(page: Page, content: string) {
   await composer(page).fill(content);
@@ -27,7 +27,9 @@ test("TWT-02 US-B01 posts tweets, shows them newest first, and counts them on th
   await register(page, member);
   await expect(page).toHaveURL(/\/home$/);
   await expect(
-    page.getByText("Nothing posted yet. Share your first tweet above."),
+    page.getByText(
+      "Your timeline is empty. Post a tweet above, or search for people and follow them to see their posts here.",
+    ),
   ).toBeVisible();
 
   // AC-B01.4: the counter blocks an over-limit post.
@@ -89,6 +91,8 @@ test("TWT-02 US-B02 AC-B02.3 cancels, then confirms, a delete", async ({
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await expect(card).toHaveCount(0);
   await expect(
-    page.getByText("Nothing posted yet. Share your first tweet above."),
+    page.getByText(
+      "Your timeline is empty. Post a tweet above, or search for people and follow them to see their posts here.",
+    ),
   ).toBeVisible();
 });

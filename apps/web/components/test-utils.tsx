@@ -48,6 +48,7 @@ export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
       },
     })),
     logIn: vi.fn(async () => testSession),
+    getTimeline: vi.fn(async () => ({ items: [], nextCursor: null })),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
     register: vi.fn(async () => testSession),

@@ -39,6 +39,7 @@ function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
         tweetCount: 0,
       },
     })),
+    getTimeline: vi.fn(async () => ({ items: [], nextCursor: null })),
     logIn: vi.fn(async () => session),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
