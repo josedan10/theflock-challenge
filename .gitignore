@@ -11,6 +11,8 @@ test-results/
 *.tsbuildinfo
 *.log
 .DS_Store
+.idea/
+.pnpm-store/
 backups/*.dump
 
 # Archify outputs are reproducible from versioned JSON specifications.
