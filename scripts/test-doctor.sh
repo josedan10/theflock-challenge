@@ -7,6 +7,7 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/project/scripts" "$TMP/bin"
 cp "$ROOT/scripts/doctor.sh" "$TMP/project/scripts/doctor.sh"
 cp "$ROOT/.env.example" "$TMP/project/.env"
+touch "$TMP/project/package.json" "$TMP/project/pnpm-lock.yaml" "$TMP/project/compose.yaml"
 sed -i.bak 's|replace_me_with_at_least_32_characters|0123456789012345678901234567890123456789|' "$TMP/project/.env"
 rm -f "$TMP/project/.env.bak"
 
@@ -34,7 +35,7 @@ EOF
 chmod +x "$TMP/bin/"*
 
 OUTPUT="$(PATH="$TMP/bin:/bin:/usr/bin" "$TMP/project/scripts/doctor.sh")"
-grep -q 'Result: 0 error(s), 1 warning(s).' <<<"$OUTPUT"
+grep -q 'Result: 0 error(s), 0 warning(s).' <<<"$OUTPUT"
 
 sed -i.bak '/^SESSION_SECRET=/d' "$TMP/project/.env"
 rm -f "$TMP/project/.env.bak"

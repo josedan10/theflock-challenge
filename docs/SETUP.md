@@ -1,13 +1,13 @@
 # Setup guide
 
-This guide distinguishes the **current planning repository** from the **future application workspace** so commands never fail without explanation.
+This guide sets up the implemented application workspace and explains failures with actionable diagnostics.
 
 ## Supported development environment
 
 - macOS or Linux (Windows through WSL2)
 - Git
 - Docker Desktop or Docker Engine with Compose v2
-- Node.js 22 LTS and Corepack (application milestone)
+- Node.js 22 LTS and Corepack
 - At least 4 GB free RAM and 5 GB free disk for images/dependencies
 
 ## 1. Clone and inspect
@@ -37,40 +37,54 @@ The doctor checks Git, Docker/daemon/Compose, Node 22+, Corepack, required varia
 
 Common fixes:
 
-| Message                                 | Fix                                                                                        |
-| --------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `docker is missing`                     | Install Docker Desktop/Engine and the Compose v2 plugin                                    |
-| `daemon is unavailable`                 | Start Docker Desktop or `docker` service; verify `docker info`                             |
-| `Node.js 22+ is required`               | Install Node 22 LTS using your version manager, then reopen shell                          |
-| `corepack is missing`                   | Use a Node distribution that includes Corepack or install/enable it according to Node docs |
-| `.env is missing`                       | `cp .env.example .env`                                                                     |
-| `SESSION_SECRET must be replaced`       | Generate with `openssl rand -base64 48` and paste the output                               |
-| `application manifests are not present` | Expected during M0; implementation begins in M1                                            |
+| Message                                     | Fix                                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `docker is missing`                         | Install Docker Desktop/Engine and the Compose v2 plugin                                     |
+| `daemon is unavailable`                     | Start Docker Desktop or `docker` service; verify `docker info`                              |
+| `Node.js 22+ is required`                   | Install Node 22 LTS using your version manager, then reopen shell                           |
+| `corepack is missing`                       | Use a Node distribution that includes Corepack or install/enable it according to Node docs  |
+| `.env is missing`                           | `cp .env.example .env`                                                                      |
+| `SESSION_SECRET must be replaced`           | Generate with `openssl rand -base64 48` and paste the output                                |
+| `package.json or pnpm-lock.yaml is missing` | Restore the tracked workspace manifests before continuing                                   |
+| `compose.yaml is missing`                   | Restore the tracked Compose manifest before continuing                                      |
+| `port ... already in use`                   | Set an unused `WEB_PORT`, `API_PORT`, or `POSTGRES_PORT` in `.env` and update matching URLs |
 
-## 3. Current verification (planning phase)
+## 3. Install and verify tooling
 
 ```bash
 bash -n scripts/doctor.sh
 ./scripts/test-doctor.sh
 ./scripts/doctor.sh
-```
-
-The test uses stubbed prerequisites to verify both success and missing-secret diagnostics. The final command should finish with zero errors after real prerequisites/configuration are correct. A planning-phase warning is expected.
-
-## 4. Application workflow (available after M1)
-
-These commands are the setup contract; M1 must implement and CI-test them before removing this notice:
-
-```bash
 corepack enable
 pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+```
+
+The doctor test uses stubbed prerequisites to verify both success and missing-secret diagnostics. The real doctor command must finish with zero errors before continuing.
+
+## 4. Start the application
+
+These commands are the tested local setup contract:
+
+```bash
 docker compose up -d postgres
 pnpm db:migrate
 docker compose up --build
 curl --fail http://localhost:4000/health/ready
 ```
 
-Expected local services: web `http://localhost:3000`, API `http://localhost:4000`, Postgres private to Compose (optional host port only in development).
+Default local services are web `http://localhost:3000`, API `http://localhost:4000`, and PostgreSQL on `localhost:5433`. The host ports are configurable in `.env`; URLs and `CORS_ORIGIN` must match any changed web/API ports.
+
+Run the quality gates after startup:
+
+```bash
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test:coverage
+pnpm test:e2e
+pnpm build
+```
 
 To stop without deleting data: `docker compose down`. To deliberately erase local DB data: `docker compose down -v` (destructive; never run for production).
 
