@@ -4,7 +4,10 @@
  */
 export function FormAlert({ message }: Readonly<{ message: string | null }>) {
   return (
-    <div className="form-alert" role="alert">
+    <div
+      className="rounded-lg border-2 border-danger p-3 text-danger empty:hidden"
+      role="alert"
+    >
       {message}
     </div>
   );

@@ -29,10 +29,12 @@ export function TextField({
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
+    <div className="grid gap-1">
+      <label className="font-semibold" htmlFor={id}>
+        {label}
+      </label>
       {hint === undefined ? null : (
-        <p className="field-hint" id={hintId}>
+        <p className="m-0 text-sm text-muted" id={hintId}>
           {hint}
         </p>
       )}
@@ -40,11 +42,12 @@ export function TextField({
         {...input}
         aria-describedby={describedBy}
         aria-invalid={errors.length > 0}
+        className="min-h-11 rounded-lg border border-border px-3 py-2 aria-invalid:border-2 aria-invalid:border-danger"
         id={id}
         name={name}
       />
       {errorId === undefined ? null : (
-        <ul className="field-error" id={errorId}>
+        <ul className="m-0 list-none p-0 text-sm text-danger" id={errorId}>
           {errors.map((message) => (
             <li key={message}>{message}</li>
           ))}

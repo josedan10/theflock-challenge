@@ -14,6 +14,7 @@ import {
 import { useLogIn } from "../lib/session";
 
 import { FormAlert } from "./form-alert";
+import { buttonClass, formClass, headingClass } from "./styles";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
 
@@ -52,11 +53,14 @@ export function LoginForm() {
   return (
     <form
       aria-labelledby="login-heading"
+      className={formClass}
       noValidate
       onSubmit={onSubmit}
       ref={formRef}
     >
-      <h1 id="login-heading">Log in</h1>
+      <h1 className={headingClass} id="login-heading">
+        Log in
+      </h1>
       <FormAlert message={errors.form} />
       <TextField
         autoComplete="email"
@@ -76,6 +80,7 @@ export function LoginForm() {
       />
       <button
         aria-busy={logIn.isPending}
+        className={buttonClass}
         disabled={logIn.isPending}
         type="submit"
       >

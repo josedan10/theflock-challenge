@@ -14,6 +14,7 @@ import {
 import { useRegister } from "../lib/session";
 
 import { FormAlert } from "./form-alert";
+import { buttonClass, formClass, headingClass } from "./styles";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
 
@@ -59,12 +60,15 @@ export function RegisterForm() {
   return (
     <form
       aria-labelledby="register-heading"
+      className={formClass}
       noValidate
       onSubmit={onSubmit}
       ref={formRef}
     >
-      <h1 id="register-heading">Create your account</h1>
-      <p className="notice">Accounts and posts are public.</p>
+      <h1 className={headingClass} id="register-heading">
+        Create your account
+      </h1>
+      <p className="text-muted">Accounts and posts are public.</p>
       <FormAlert message={errors.form} />
       <TextField
         autoComplete="email"
@@ -100,6 +104,7 @@ export function RegisterForm() {
       />
       <button
         aria-busy={register.isPending}
+        className={buttonClass}
         disabled={register.isPending}
         type="submit"
       >

@@ -7,6 +7,7 @@ import { apiFormErrors } from "../lib/form-errors";
 import { useLogOut, useSession } from "../lib/session";
 
 import { FormAlert } from "./form-alert";
+import { buttonClass, headingClass } from "./styles";
 
 /**
  * Member home. Private content renders only after `GET /v1/me` confirms the
@@ -30,9 +31,13 @@ export function HomeView() {
   }
   if (session.isError) {
     return (
-      <div>
+      <div className="grid gap-4">
         <FormAlert message="We couldn't load your account." />
-        <button onClick={() => void session.refetch()} type="button">
+        <button
+          className={buttonClass}
+          onClick={() => void session.refetch()}
+          type="button"
+        >
           Try again
         </button>
       </div>
@@ -45,13 +50,14 @@ export function HomeView() {
 
   const { user } = session.data;
   return (
-    <div>
-      <h1>Welcome, {user.displayName}</h1>
-      <p>@{user.username}</p>
+    <div className="grid gap-4">
+      <h1 className={headingClass}>Welcome, {user.displayName}</h1>
+      <p className="text-muted">@{user.username}</p>
       <p>Your timeline will appear here.</p>
       <FormAlert message={error} />
       <button
         aria-busy={logOut.isPending}
+        className={buttonClass}
         disabled={logOut.isPending}
         onClick={() =>
           logOut.mutate(undefined, {
