@@ -12,7 +12,7 @@ import { createDatabase, type Database } from "../platform/database/client.js";
 
 /** Same image as `compose.yaml` so tests exercise the production engine version. */
 const POSTGRES_IMAGE = "postgres:17.7-bookworm";
-const MIGRATIONS_FOLDER = fileURLToPath(
+export const MIGRATIONS_FOLDER = fileURLToPath(
   new URL("../../drizzle", import.meta.url),
 );
 
@@ -28,7 +28,9 @@ export interface TestDatabase {
  * Starts a disposable PostgreSQL container and applies the real migrations,
  * so integration tests run against the same SQL that ships to production.
  */
-export async function startTestDatabase(): Promise<TestDatabase> {
+export async function startTestDatabase(
+  migrationsFolder = MIGRATIONS_FOLDER,
+): Promise<TestDatabase> {
   const container: StartedTestContainer = await new GenericContainer(
     POSTGRES_IMAGE,
   )
@@ -54,7 +56,7 @@ export async function startTestDatabase(): Promise<TestDatabase> {
     username: "test",
   });
   const db = createDatabase(sql);
-  await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+  await migrate(db, { migrationsFolder });
 
   return {
     db,
