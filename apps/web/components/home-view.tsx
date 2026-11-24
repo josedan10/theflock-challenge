@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 
 /**
  * Member home. Private content renders only after `GET /v1/me` confirms the
@@ -38,7 +39,7 @@ export function HomeView() {
   }, [router, signedOut]);
 
   if (session.isPending) {
-    return <p role="status">Loading your account…</p>;
+    return <LoadingStatus />;
   }
   if (session.isError) {
     return (
@@ -59,7 +60,7 @@ export function HomeView() {
   }
   if (session.data === null) {
     // Signed out: the effect above is already redirecting to /login.
-    return <p role="status">Loading your account…</p>;
+    return <LoadingStatus />;
   }
 
   const { user } = session.data;
@@ -99,5 +100,20 @@ export function HomeView() {
         </Button>
       </CardFooter>
     </Card>
+  );
+}
+
+/** One live status region; the shadcn Spinner inside it is decorative only. */
+function LoadingStatus() {
+  return (
+    <p className="flex items-center gap-2 text-muted-foreground" role="status">
+      <Spinner
+        aria-hidden="true"
+        aria-label={undefined}
+        className="motion-reduce:animate-none"
+        role="presentation"
+      />
+      Loading your account…
+    </p>
   );
 }
