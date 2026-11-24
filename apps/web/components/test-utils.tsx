@@ -1,5 +1,5 @@
-import { render } from "@testing-library/react";
-import { vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { expect, vi } from "vitest";
 
 import { SessionProvider } from "../lib/session";
 
@@ -37,4 +37,13 @@ export function renderWithSession(
     apiClient,
     ...render(<SessionProvider apiClient={apiClient}>{ui}</SessionProvider>),
   };
+}
+
+/** The single form-level alert; field errors are alerts too and are skipped. */
+export function formAlert(): HTMLElement {
+  const alerts = screen
+    .getAllByRole("alert")
+    .filter((alert) => alert.getAttribute("data-slot") !== "field-error");
+  expect(alerts).toHaveLength(1);
+  return alerts[0] as HTMLElement;
 }

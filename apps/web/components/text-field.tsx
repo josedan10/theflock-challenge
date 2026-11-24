@@ -1,7 +1,15 @@
-import type { InputHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
+
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 type InputProps = Omit<
-  InputHTMLAttributes<HTMLInputElement>,
+  ComponentProps<typeof Input>,
   "aria-describedby" | "aria-invalid" | "id" | "name"
 >;
 
@@ -13,8 +21,9 @@ export interface TextFieldProps extends InputProps {
 }
 
 /**
- * Labelled input whose hint and errors are linked with `aria-describedby`,
- * so screen readers announce them with the field.
+ * A labelled text input composed from shadcn's Field parts. The hint and the
+ * errors are linked to the input with `aria-describedby`, so screen readers
+ * announce them with the field.
  */
 export function TextField({
   errors = [],
@@ -29,30 +38,22 @@ export function TextField({
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div className="grid gap-1">
-      <label className="font-semibold" htmlFor={id}>
-        {label}
-      </label>
-      {hint === undefined ? null : (
-        <p className="m-0 text-sm text-muted" id={hintId}>
-          {hint}
-        </p>
-      )}
-      <input
+    <Field data-invalid={errors.length > 0}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
         {...input}
         aria-describedby={describedBy}
         aria-invalid={errors.length > 0}
-        className="min-h-11 rounded-lg border border-border px-3 py-2 aria-invalid:border-2 aria-invalid:border-danger"
         id={id}
         name={name}
       />
-      {errorId === undefined ? null : (
-        <ul className="m-0 list-none p-0 text-sm text-danger" id={errorId}>
-          {errors.map((message) => (
-            <li key={message}>{message}</li>
-          ))}
-        </ul>
+      {hint === undefined ? null : (
+        <FieldDescription id={hintId}>{hint}</FieldDescription>
       )}
-    </div>
+      <FieldError
+        errors={errors.map((message) => ({ message }))}
+        id={errorId}
+      />
+    </Field>
   );
 }

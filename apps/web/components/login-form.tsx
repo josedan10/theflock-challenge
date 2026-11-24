@@ -1,6 +1,7 @@
 "use client";
 
 import { loginRequestSchema } from "@twitter-clone/contracts";
+import { CircleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
@@ -13,10 +14,19 @@ import {
 } from "../lib/form-errors";
 import { useLogIn } from "../lib/session";
 
-import { FormAlert } from "./form-alert";
-import { buttonClass, formClass, headingClass } from "./styles";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { FieldGroup } from "@/components/ui/field";
 
 /**
  * Login form (US-A02). Wrong credentials show the API's single generic
@@ -53,44 +63,64 @@ export function LoginForm() {
   return (
     <form
       aria-labelledby="login-heading"
-      className={formClass}
       // POST, so a submit before hydration never puts credentials in the URL.
       method="post"
       noValidate
       onSubmit={onSubmit}
       ref={formRef}
     >
-      <h1 className={headingClass} id="login-heading">
-        Log in
-      </h1>
-      <FormAlert message={errors.form} />
-      <TextField
-        autoComplete="email"
-        errors={errors.fields.email}
-        label="Email"
-        name="email"
-        required
-        type="email"
-      />
-      <TextField
-        autoComplete="current-password"
-        errors={errors.fields.password}
-        label="Password"
-        name="password"
-        required
-        type="password"
-      />
-      <button
-        aria-busy={logIn.isPending}
-        className={buttonClass}
-        disabled={logIn.isPending}
-        type="submit"
-      >
-        {logIn.isPending ? "Logging in…" : "Log in"}
-      </button>
-      <p>
-        New here? <Link href="/register">Create an account</Link>
-      </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h1
+              className="text-2xl leading-tight font-semibold"
+              id="login-heading"
+            >
+              Log in
+            </h1>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup>
+            {errors.form === null ? null : (
+              <Alert variant="destructive">
+                <CircleAlertIcon aria-hidden="true" />
+                <AlertDescription>{errors.form}</AlertDescription>
+              </Alert>
+            )}
+            <TextField
+              autoComplete="email"
+              errors={errors.fields.email}
+              label="Email"
+              name="email"
+              required
+              type="email"
+            />
+            <TextField
+              autoComplete="current-password"
+              errors={errors.fields.password}
+              label="Password"
+              name="password"
+              required
+              type="password"
+            />
+          </FieldGroup>
+        </CardContent>
+        <CardFooter className="flex-col items-stretch gap-3">
+          <Button
+            aria-busy={logIn.isPending}
+            className="w-full"
+            disabled={logIn.isPending}
+            size="lg"
+            type="submit"
+          >
+            {logIn.isPending ? "Logging in…" : "Log in"}
+          </Button>
+          <p>
+            New here? <Link href="/register">Create an account</Link>
+          </p>
+        </CardFooter>
+      </Card>
     </form>
   );
 }

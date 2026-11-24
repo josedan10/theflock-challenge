@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../lib/api-client";
 
 import { LoginForm } from "./login-form";
-import { fakeApiClient, renderWithSession } from "./test-utils";
+import { fakeApiClient, formAlert, renderWithSession } from "./test-utils";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
@@ -53,9 +53,7 @@ describe("LoginForm", () => {
     await submit("ada@example.com", "wrong password");
 
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "Invalid email or password.",
-      ),
+      expect(formAlert()).toHaveTextContent("Invalid email or password."),
     );
     expect(screen.getByLabelText("Email")).toHaveAttribute(
       "aria-invalid",
@@ -73,9 +71,7 @@ describe("LoginForm", () => {
 
     await submit("", "");
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Enter your email and password.",
-    );
+    expect(formAlert()).toHaveTextContent("Enter your email and password.");
     await waitFor(() => expect(screen.getByLabelText("Email")).toHaveFocus());
     expect(apiClient.logIn).not.toHaveBeenCalled();
   });
@@ -95,9 +91,7 @@ describe("LoginForm", () => {
     await submit("ada@example.com", "correct horse battery");
 
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "Can't reach the server",
-      ),
+      expect(formAlert()).toHaveTextContent("Can't reach the server"),
     );
   });
 
