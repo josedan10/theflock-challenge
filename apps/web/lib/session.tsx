@@ -139,6 +139,11 @@ export function useLogIn() {
 }
 
 /** Logs out with the cached CSRF token and forgets the session locally. */
+/**
+ * Revokes the session with the cached CSRF token. The cache is left as is:
+ * callers leave with a full page navigation (`leaveTo`), which discards it,
+ * so no protected screen sees a cleared session and redirects first.
+ */
 export function useLogOut() {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
@@ -148,9 +153,6 @@ export function useLogOut() {
         SESSION_KEY,
       );
       return apiClient.logOut(session?.csrfToken ?? null);
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(SESSION_KEY, null);
     },
   });
 }

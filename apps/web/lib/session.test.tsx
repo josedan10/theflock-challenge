@@ -85,7 +85,7 @@ describe("session state", () => {
     await waitFor(() => expect(result.current.session.data).toEqual(session));
   });
 
-  it("US-A02 AC-A02.3 logs out with the cached CSRF token and clears the session", async () => {
+  it("US-A02 AC-A02.3 logs out with the cached CSRF token", async () => {
     const apiClient = fakeClient();
     const { result } = renderWithSession(
       () => ({ logIn: useLogIn(), logOut: useLogOut(), session: useSession() }),
@@ -102,7 +102,6 @@ describe("session state", () => {
     await act(() => result.current.logOut.mutateAsync());
 
     expect(apiClient.logOut).toHaveBeenCalledWith(session.csrfToken);
-    await waitFor(() => expect(result.current.session.data).toBeNull());
   });
 
   it("logs out without a token when no session is cached", async () => {
