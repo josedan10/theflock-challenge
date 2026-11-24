@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+  # BASH_SOURCE inside setup() is the Bats library, not this file.
+  ROOT="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
   export ROOT
 }
 
