@@ -7,10 +7,16 @@ import { useEffect, useState } from "react";
 import { apiFormErrors } from "../lib/form-errors";
 import { useLogOut, useSession } from "../lib/session";
 
-import { headingClass } from "./styles";
-
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 /**
  * Member home. Private content renders only after `GET /v1/me` confirms the
@@ -58,30 +64,40 @@ export function HomeView() {
 
   const { user } = session.data;
   return (
-    <div className="grid gap-4">
-      <h1 className={headingClass}>Welcome, {user.displayName}</h1>
-      <p className="text-muted-foreground">@{user.username}</p>
-      <p>Your timeline will appear here.</p>
-      {error === null ? null : (
-        <Alert variant="destructive">
-          <CircleAlertIcon aria-hidden="true" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      <Button
-        aria-busy={logOut.isPending}
-        disabled={logOut.isPending}
-        onClick={() =>
-          logOut.mutate(undefined, {
-            onError: (failure) => setError(apiFormErrors(failure).form),
-            onSuccess: () => router.replace("/"),
-          })
-        }
-        type="button"
-        variant="outline"
-      >
-        {logOut.isPending ? "Logging out…" : "Log out"}
-      </Button>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h1 className="text-2xl leading-tight font-semibold">
+            Welcome, {user.displayName}
+          </h1>
+        </CardTitle>
+        <CardDescription>@{user.username}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <p>Your timeline will appear here.</p>
+        {error === null ? null : (
+          <Alert variant="destructive">
+            <CircleAlertIcon aria-hidden="true" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+      <CardFooter>
+        <Button
+          aria-busy={logOut.isPending}
+          disabled={logOut.isPending}
+          onClick={() =>
+            logOut.mutate(undefined, {
+              onError: (failure) => setError(apiFormErrors(failure).form),
+              onSuccess: () => router.replace("/"),
+            })
+          }
+          type="button"
+          variant="outline"
+        >
+          {logOut.isPending ? "Logging out…" : "Log out"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

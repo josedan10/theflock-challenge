@@ -1,14 +1,16 @@
 import Link from "next/link";
 
 import { PageShell } from "../components/page-shell";
-import { headingClass } from "../components/styles";
 
 import { buttonVariants } from "@/components/ui/button";
 
 export default function LandingPage() {
   return (
     <PageShell labelledBy="landing-heading">
-      <h1 className={headingClass} id="landing-heading">
+      <h1
+        className="mb-3 text-3xl leading-tight font-bold"
+        id="landing-heading"
+      >
         Twitter Clone
       </h1>
       <p className="mb-2">

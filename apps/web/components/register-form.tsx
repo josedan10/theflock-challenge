@@ -14,12 +14,20 @@ import {
 } from "../lib/form-errors";
 import { useRegister } from "../lib/session";
 
-import { formClass, headingClass } from "./styles";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { FieldGroup } from "@/components/ui/field";
 
 function readForm(form: HTMLFormElement) {
   const data = new FormData(form);
@@ -63,67 +71,81 @@ export function RegisterForm() {
   return (
     <form
       aria-labelledby="register-heading"
-      className={formClass}
       // POST, so a submit before hydration never puts credentials in the URL.
       method="post"
       noValidate
       onSubmit={onSubmit}
       ref={formRef}
     >
-      <h1 className={headingClass} id="register-heading">
-        Create your account
-      </h1>
-      <p className="text-muted-foreground">Accounts and posts are public.</p>
-      {errors.form === null ? null : (
-        <Alert variant="destructive">
-          <CircleAlertIcon aria-hidden="true" />
-          <AlertDescription>{errors.form}</AlertDescription>
-        </Alert>
-      )}
-      <TextField
-        autoComplete="email"
-        errors={errors.fields.email}
-        label="Email"
-        name="email"
-        required
-        type="email"
-      />
-      <TextField
-        autoComplete="username"
-        errors={errors.fields.username}
-        hint="3–30 letters, digits, or underscores, starting with a letter."
-        label="Username"
-        name="username"
-        required
-      />
-      <TextField
-        autoComplete="name"
-        errors={errors.fields.displayName}
-        hint="Optional. Defaults to your username."
-        label="Display name"
-        name="displayName"
-      />
-      <TextField
-        autoComplete="new-password"
-        errors={errors.fields.password}
-        hint="10–128 characters."
-        label="Password"
-        name="password"
-        required
-        type="password"
-      />
-      <Button
-        aria-busy={register.isPending}
-        className="w-full"
-        disabled={register.isPending}
-        size="lg"
-        type="submit"
-      >
-        {register.isPending ? "Creating account…" : "Create account"}
-      </Button>
-      <p>
-        Already have an account? <Link href="/login">Log in</Link>
-      </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h1
+              className="text-2xl leading-tight font-semibold"
+              id="register-heading"
+            >
+              Create your account
+            </h1>
+          </CardTitle>
+          <CardDescription>Accounts and posts are public.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup>
+            {errors.form === null ? null : (
+              <Alert variant="destructive">
+                <CircleAlertIcon aria-hidden="true" />
+                <AlertDescription>{errors.form}</AlertDescription>
+              </Alert>
+            )}
+            <TextField
+              autoComplete="email"
+              errors={errors.fields.email}
+              label="Email"
+              name="email"
+              required
+              type="email"
+            />
+            <TextField
+              autoComplete="username"
+              errors={errors.fields.username}
+              hint="3–30 letters, digits, or underscores, starting with a letter."
+              label="Username"
+              name="username"
+              required
+            />
+            <TextField
+              autoComplete="name"
+              errors={errors.fields.displayName}
+              hint="Optional. Defaults to your username."
+              label="Display name"
+              name="displayName"
+            />
+            <TextField
+              autoComplete="new-password"
+              errors={errors.fields.password}
+              hint="10–128 characters."
+              label="Password"
+              name="password"
+              required
+              type="password"
+            />
+          </FieldGroup>
+        </CardContent>
+        <CardFooter className="flex-col items-stretch gap-3">
+          <Button
+            aria-busy={register.isPending}
+            className="w-full"
+            disabled={register.isPending}
+            size="lg"
+            type="submit"
+          >
+            {register.isPending ? "Creating account…" : "Create account"}
+          </Button>
+          <p>
+            Already have an account? <Link href="/login">Log in</Link>
+          </p>
+        </CardFooter>
+      </Card>
     </form>
   );
 }
