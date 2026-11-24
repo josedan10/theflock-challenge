@@ -3,6 +3,7 @@ import {
   type ErrorResponse,
   errorStatusByCode,
 } from "@twitter-clone/contracts";
+import { DrizzleQueryError } from "drizzle-orm";
 
 import type { FastifyError, FastifyInstance } from "fastify";
 
@@ -55,7 +56,7 @@ function isFastifyClientError(error: unknown): error is FastifyError {
  * Framework client errors (malformed JSON, oversized or unsupported bodies)
  * keep their HTTP status but are reported as `MALFORMED_REQUEST` with a fixed
  * message, so parser internals never reach the client. Server errors are
- * logged in full and returned as an opaque `INTERNAL_ERROR`.
+ * logged by category only and returned as an opaque `INTERNAL_ERROR`.
  */
 export function registerErrorHandling(app: FastifyInstance): void {
   app.setErrorHandler((error, request, reply) => {
@@ -88,7 +89,16 @@ export function registerErrorHandling(app: FastifyInstance): void {
         );
     }
 
-    request.log.error({ err: error }, "unhandled request error");
+    // Driver messages, stack traces and nested causes can contain SQL, bound
+    // parameters and credentials. The request-scoped logger already carries reqId.
+    request.log.error(
+      {
+        failureKind:
+          error instanceof DrizzleQueryError ? "database_query" : "unexpected",
+        route: request.routeOptions.url ?? "(unmatched)",
+      },
+      "unhandled request error",
+    );
     return reply
       .code(errorStatusByCode.INTERNAL_ERROR)
       .send(envelope("INTERNAL_ERROR", "Something went wrong.", request.id));

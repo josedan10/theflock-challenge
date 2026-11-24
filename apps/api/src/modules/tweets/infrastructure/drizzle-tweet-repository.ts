@@ -7,7 +7,7 @@ import { tweets } from "./tweets.schema.js";
 import type { Database } from "../../../platform/database/client.js";
 import type { TweetCard, TweetRepository } from "../application/ports.js";
 
-/** Tweets against PostgreSQL; likes arrive with SOC-02. */
+/** Tweets against PostgreSQL; deleting a tweet cascades its likes. */
 export function createDrizzleTweetRepository(db: Database): TweetRepository {
   return {
     async create(tweet): Promise<TweetCard> {

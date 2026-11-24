@@ -9,6 +9,7 @@ import {
   type AuthModuleOptions,
   createAuthRuntime,
 } from "./modules/auth/auth-module.js";
+import { timelineModule } from "./modules/timeline/timeline-module.js";
 import { tweetsModule } from "./modules/tweets/tweets-module.js";
 import { usersModule } from "./modules/users/users-module.js";
 import { registerErrorHandling } from "./platform/http/errors.js";
@@ -29,6 +30,8 @@ export interface BuildAppOptions {
   readinessCheck?: () => Promise<boolean>;
   /** Proxies allowed to set `X-Forwarded-For`; see `TRUST_PROXY`. */
   trustProxy?: string[];
+  /** Override for the home-timeline read budget. Default: 120/minute. */
+  timelineRateLimit?: AuthRateLimit;
   /** Override for the tweet create/delete budget. Default: 20/minute. */
   tweetWriteRateLimit?: AuthRateLimit;
 }
@@ -39,7 +42,19 @@ export async function buildApp(
 ): Promise<FastifyInstance> {
   const app = Fastify({
     bodyLimit: 1_048_576,
-    logger: options.logger ?? false,
+    logger: options.logger
+      ? {
+          serializers: {
+            // Log the route template only: query strings can contain signed cursors.
+            req(request) {
+              return {
+                method: request.method,
+                url: request.routeOptions.url ?? "(unmatched)",
+              };
+            },
+          },
+        }
+      : false,
     requestIdHeader: "x-request-id",
     trustProxy: options.trustProxy ?? false,
   });
@@ -61,6 +76,17 @@ export async function buildApp(
   if (options.auth !== undefined) {
     const auth = createAuthRuntime(options.auth);
     await app.register(auth.plugin, { prefix: "/v1" });
+    await app.register(
+      timelineModule({
+        db: options.auth.db,
+        requireSession: auth.requireSession,
+        sessionSecret: options.auth.sessionSecret,
+        ...(options.timelineRateLimit === undefined
+          ? {}
+          : { rateLimit: options.timelineRateLimit }),
+      }),
+      { prefix: "/v1" },
+    );
     await app.register(
       usersModule({
         db: options.auth.db,

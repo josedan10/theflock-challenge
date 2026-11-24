@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { tweets, users } from "../../../platform/database/schema.js";
+import { follows, tweets, users } from "../../../platform/database/schema.js";
 import { buildNewUser, FIXED_NOW } from "../../../tests/auth-factories.js";
 import {
   startTestDatabase,
@@ -56,6 +56,22 @@ describe("profile persistence", () => {
     expect(profile).not.toHaveProperty("email");
     expect(profile).not.toHaveProperty("passwordHash");
     expect(profile).not.toHaveProperty("avatarKey");
+  });
+
+  it("US-A03 AC-A03.1 counts committed follows in the correct direction", async () => {
+    const ada = await members.create(buildNewUser({ username: "ada" }));
+    const grace = await members.create(buildNewUser({ username: "grace" }));
+    await database.db
+      .insert(follows)
+      .values({ followerId: ada.id, followingId: grace.id });
+    expect(await profiles.findByUsername("ada")).toMatchObject({
+      followerCount: 0,
+      followingCount: 1,
+    });
+    expect(await profiles.findByUsername("grace")).toMatchObject({
+      followerCount: 1,
+      followingCount: 0,
+    });
   });
 
   it("US-A03 AC-A03.1 counts only the member's committed tweets", async () => {

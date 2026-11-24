@@ -35,7 +35,7 @@ erDiagram
 
 Indexes: unique `email_normalized`; unique `username`; search indexes described below.
 
-Profile reads load this row by `username` and do not store follower, following, or tweet counts. Those counts are aggregated from relation tables when the tables exist; until then the committed count is zero. The read does not return `email`, `password_hash`, or `avatar_key`.
+Profile reads load this row by `username` and do not store follower, following, or tweet counts. Counts are aggregated from committed follow and tweet rows. The read does not return `email`, `password_hash`, or `avatar_key`.
 
 ### `sessions`
 
@@ -91,24 +91,9 @@ Composite PK `(user_id, tweet_id)`; index `(tweet_id, created_at DESC, user_id)`
 
 ## Timeline query shape
 
-Conceptually:
+The home feed reads one PostgreSQL snapshot. It unions the viewer ID with their followed IDs (the unique/self-follow constraints make them disjoint), excludes deleted authors, then uses a lateral index seek on `tweets(author_id, created_at DESC, id DESC)` for each eligible author. Both the per-author and merged reads cap at `limit + 1`. A bounded final projection gathers like counts and viewer-liked state in that same query; there are no per-card database round trips.
 
-```sql
-SELECT t.*, u.username, u.display_name,
-       EXISTS (SELECT 1 FROM likes vl WHERE vl.tweet_id=t.id AND vl.user_id=$viewer) AS liked,
-       (SELECT count(*) FROM likes lc WHERE lc.tweet_id=t.id) AS like_count
-FROM tweets t
-JOIN users u ON u.id=t.author_id
-WHERE (t.author_id=$viewer OR EXISTS (
-  SELECT 1 FROM follows f
-  WHERE f.follower_id=$viewer AND f.following_id=t.author_id
-))
-AND ($cursor_time IS NULL OR (t.created_at,t.id) < ($cursor_time,$cursor_id))
-ORDER BY t.created_at DESC, t.id DESC
-LIMIT $limit_plus_one;
-```
-
-Validate with realistic data and `EXPLAIN (ANALYZE, BUFFERS)`. If scale makes the OR/EXISTS plan poor, rewrite as a union of own + followed author IDs while preserving deduplication/order. Do not denormalize prematurely.
+Continuation adds the strict tuple predicate `(created_at, id) < (cursor_time, cursor_id)`. The cursor signs a UTC timestamp with **six** fractional digits and the UUID; do not convert it to a JavaScript Date or look up the anchor tweet. A representative sparse-feed test runs `EXPLAIN (ANALYZE, BUFFERS)` on the production query.
 
 ## Search proposal
 
@@ -125,3 +110,5 @@ For this light product, use normalized columns plus `pg_trgm` indexes on `userna
 - Constraints are database-enforced even when validated in Zod.
 - Large backfills are batched; new required columns use expand/backfill/validate/contract.
 - Migration names are timestamped and immutable. CI runs from empty and previous release schemas.
+
+FEED-01 adds empty `follows` and `likes` tables; it does not rewrite existing users or tweets. Apply before the API rollout. To roll back the API, leave these additive tables in place and forward-fix with a new migration; do not drop social data. Social write endpoints remain in SOC-01/02.
