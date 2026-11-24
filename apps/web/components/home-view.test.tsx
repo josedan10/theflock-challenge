@@ -163,4 +163,28 @@ describe("HomeView tweets", () => {
       testSession.csrfToken,
     );
   });
+
+  it("US-B02 keeps a tweet removed, with no error, when it was already deleted elsewhere", async () => {
+    const apiClient = fakeApiClient({
+      deleteTweet: vi.fn(async () => {
+        throw new ApiError(404, "NOT_FOUND", "That tweet does not exist.");
+      }),
+      me: vi.fn(async () => testSession),
+    });
+    renderWithSession(<HomeView />, apiClient);
+    const user = userEvent.setup();
+    await post("gone elsewhere");
+
+    await user.click(screen.getByRole("button", { name: "Delete tweet" }));
+    await screen.findByRole("alertdialog");
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(apiClient.deleteTweet).toHaveBeenCalled());
+    expect(
+      await screen.findByText(
+        "Nothing posted yet. Share your first tweet above.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });
