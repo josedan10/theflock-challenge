@@ -69,7 +69,14 @@ let app: FastifyInstance;
 let created: CreateTweetInput[];
 let deleted: DeleteTweetInput[];
 
-async function buildTestApp(options: FastifyServerOptions = { logger: false }) {
+async function buildTestApp(
+  options: FastifyServerOptions = { logger: false },
+  // `default` omits the override, so the route's own default limit applies.
+  writeRateLimit: { max: number; timeWindowMs: number } | "default" = {
+    max: 100,
+    timeWindowMs: 60_000,
+  },
+) {
   created = [];
   deleted = [];
   app = Fastify(options);
@@ -107,7 +114,7 @@ async function buildTestApp(options: FastifyServerOptions = { logger: false }) {
         },
         requireCsrf,
         requireSession,
-        writeRateLimit: { max: 100, timeWindowMs: 60_000 },
+        ...(writeRateLimit === "default" ? {} : { writeRateLimit }),
       }),
     { prefix: "/v1" },
   );
@@ -282,5 +289,34 @@ describe("DELETE /v1/tweets/:id", () => {
       (await remove(TWEET_ID, { cookies: signedIn.cookies })).statusCode,
     ).toBe(403);
     expect(deleted).toHaveLength(0);
+  });
+});
+
+describe("tweet write rate limit", () => {
+  it("TWT-02 answers the 21st write in a minute from one client with 429 by default", async () => {
+    await buildTestApp({ logger: false }, "default");
+
+    const statuses: number[] = [];
+    for (let attempt = 0; attempt < 21; attempt += 1) {
+      statuses.push((await post({ content: `post ${attempt}` })).statusCode);
+    }
+
+    expect(statuses.slice(0, 20).every((status) => status === 201)).toBe(true);
+    expect(statuses[20]).toBe(429);
+    expect(created).toHaveLength(20);
+  });
+
+  it("TWT-02 limits deletes too, with their own budget of the same size", async () => {
+    await buildTestApp({ logger: false }, { max: 2, timeWindowMs: 60_000 });
+
+    expect((await post({ content: "one" })).statusCode).toBe(201);
+    expect((await remove(TWEET_ID)).statusCode).toBe(204);
+    expect((await remove(TWEET_ID)).statusCode).toBe(204);
+    const limited = await remove(TWEET_ID);
+
+    expect(limited.statusCode).toBe(429);
+    expect(errorResponseSchema.parse(limited.json()).error.code).toBe(
+      "RATE_LIMITED",
+    );
   });
 });

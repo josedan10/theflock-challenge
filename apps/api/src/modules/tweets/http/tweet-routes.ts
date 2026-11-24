@@ -19,7 +19,7 @@ import type { CreateTweet } from "../application/create-tweet.js";
 import type { DeleteTweet } from "../application/delete-tweet.js";
 import type { FastifyInstance } from "fastify";
 
-/** API starting points: tweet creation 20/minute; deletes share the write budget. */
+/** API starting point: 20/minute per client, applied to create and to delete separately. */
 export const DEFAULT_TWEET_WRITE_RATE_LIMIT: AuthRateLimit = {
   max: 20,
   timeWindowMs: 60_000,
