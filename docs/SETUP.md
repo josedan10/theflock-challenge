@@ -86,6 +86,10 @@ pnpm test:e2e
 pnpm build
 ```
 
+`pnpm test:e2e` starts its own API (port 4100) and web app (port 3100) against the database in `DATABASE_URL`: the Compose database locally, a service container in CI. It applies pending migrations first, and each run adds throwaway `e2e-…@example.com` accounts. Keep `docker compose up -d postgres` running before you start it.
+
+Run the test suites with Node 22. Testcontainers fails to load on Node 23.1 (`createZstdDecompress` is missing).
+
 To stop without deleting data: `docker compose down`. To deliberately erase local DB data: `docker compose down -v` (destructive; never run for production).
 
 ## Configuration rules

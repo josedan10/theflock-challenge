@@ -16,6 +16,21 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      # Browser journeys run the real API against this database.
+      postgres:
+        image: postgres:17.7-bookworm
+        env:
+          POSTGRES_DB: e2e
+          POSTGRES_PASSWORD: e2e
+          POSTGRES_USER: e2e
+        options: >-
+          --health-cmd "pg_isready -U e2e -d e2e"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+        ports:
+          - 5432:5432
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -47,4 +62,6 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run browser tests
+        env:
+          DATABASE_URL: postgresql://e2e:e2e@localhost:5432/e2e
         run: pnpm test:e2e

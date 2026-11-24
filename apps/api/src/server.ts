@@ -9,6 +9,10 @@ const sql = postgres(environment.DATABASE_URL, { max: 10 });
 const app = await buildApp({
   auth: {
     db: createDatabase(sql),
+    rateLimit: {
+      max: environment.AUTH_RATE_LIMIT_PER_MINUTE,
+      timeWindowMs: 60_000,
+    },
     sessionCookie: {
       domain: environment.COOKIE_DOMAIN,
       secure: environment.COOKIE_SECURE,

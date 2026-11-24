@@ -1,11 +1,27 @@
-export default function HomePage() {
+import Link from "next/link";
+
+import { PageShell } from "../components/page-shell";
+import { buttonClass, headingClass } from "../components/styles";
+
+export default function LandingPage() {
   return (
-    <main>
-      <section aria-labelledby="foundation-heading">
-        <p className="eyebrow">Development foundation</p>
-        <h1 id="foundation-heading">Twitter Clone</h1>
-        <p>The application workspace is ready for the first product feature.</p>
-      </section>
-    </main>
+    <PageShell labelledBy="landing-heading">
+      <h1 className={headingClass} id="landing-heading">
+        Twitter Clone
+      </h1>
+      <p className="mb-2">
+        Share short posts, follow people, and read a chronological timeline.
+      </p>
+      <p className="text-muted">Accounts and posts are public.</p>
+      <nav
+        aria-label="Get started"
+        className="mt-6 flex flex-wrap items-center gap-4"
+      >
+        <Link className={buttonClass} href="/register">
+          Create account
+        </Link>
+        <Link href="/login">Log in</Link>
+      </nav>
+    </PageShell>
   );
 }

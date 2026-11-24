@@ -17,7 +17,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **AUTH-01:** User/session migrations, repositories, factories, uniqueness/concurrency tests.
 - [x] **AUTH-02:** Registration service/route and contract tests (US-A01).
 - [x] **AUTH-03:** Login/logout/session middleware, CSRF and rate limits (US-A02).
-- [ ] **AUTH-04:** Registration/login UI and Playwright flows.
+- [x] **AUTH-04:** Registration/login UI and Playwright flows.
 - [ ] **PRO-01:** Profile read/update API and authorization tests (US-A03).
 - [ ] **PRO-02:** Responsive profile UI, placeholder avatar, counts, accessibility tests.
 
