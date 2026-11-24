@@ -78,3 +78,17 @@ export interface SessionRepository {
    */
   revoke(sessionId: string, now: Date): Promise<boolean>;
 }
+
+/** Repositories bound to one transaction. */
+export interface AuthRepositories {
+  users: UserRepository;
+  sessions: SessionRepository;
+}
+
+export interface AuthUnitOfWork {
+  /**
+   * Runs `work` in a single database transaction. It commits when `work`
+   * resolves and rolls back, rethrowing, when it rejects.
+   */
+  run<T>(work: (repositories: AuthRepositories) => Promise<T>): Promise<T>;
+}
