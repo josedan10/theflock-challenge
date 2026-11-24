@@ -9,7 +9,7 @@ export default function LandingPage() {
       <h1 className={headingClass} id="landing-heading">
         Twitter Clone
       </h1>
-      <p>
+      <p className="mb-2">
         Share short posts, follow people, and read a chronological timeline.
       </p>
       <p className="text-muted">Accounts and posts are public.</p>
