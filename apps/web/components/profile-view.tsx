@@ -156,9 +156,11 @@ function ProfileCount({
   value,
 }: Readonly<{ label: string; value: number }>) {
   return (
-    <div className="min-w-0">
-      <dd className="text-lg font-semibold tabular-nums">{value}</dd>
-      <dt className="truncate text-sm text-muted-foreground">{label}</dt>
+    <div className="flex min-w-0 flex-col">
+      <dt className="order-2 truncate text-sm text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="order-1 text-lg font-semibold tabular-nums">{value}</dd>
     </div>
   );
 }
@@ -254,7 +256,11 @@ function EditProfile({
         <Field data-invalid={bioErrors.length > 0}>
           <FieldLabel htmlFor="field-bio">Bio</FieldLabel>
           <textarea
-            aria-describedby="field-bio-hint field-bio-error"
+            aria-describedby={
+              bioErrors.length === 0
+                ? "field-bio-hint"
+                : "field-bio-hint field-bio-error"
+            }
             aria-invalid={bioErrors.length > 0}
             className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-28 w-full resize-y rounded-md border bg-transparent px-3 py-2 text-base outline-none focus-visible:ring-[3px]"
             defaultValue={profile.bio}
