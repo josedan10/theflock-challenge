@@ -99,3 +99,22 @@ export interface PasswordHasher {
   /** Returns `false` for a wrong password or an unparseable hash; never throws for those. */
   verify(passwordHash: string, password: string): Promise<boolean>;
 }
+
+/**
+ * Fresh secrets for one session. The raw values go to the client only; the
+ * hashes are what `sessions` stores.
+ */
+export interface SessionCredentials {
+  /** Opaque cookie value. */
+  token: string;
+  tokenHash: Buffer;
+  /** Sent back by the client in `X-CSRF-Token` on cookie-authenticated mutations. */
+  csrfToken: string;
+  csrfSecretHash: Buffer;
+}
+
+export interface SessionCredentialGenerator {
+  generate(): SessionCredentials;
+  /** Digest used to look up a presented cookie or CSRF token. */
+  hash(secret: string): Buffer;
+}
