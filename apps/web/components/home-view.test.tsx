@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -83,7 +89,12 @@ describe("HomeView tweets", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Post" }));
     // The textarea also contains the text; wait for the posted card itself.
-    await screen.findByText(content, { selector: "article p" });
+    // Posting holds a short spinner before the card is allowed to appear.
+    await screen.findByText(
+      content,
+      { selector: "article p" },
+      { timeout: 3_000 },
+    );
   };
 
   it("TWT-02 offers the composer and invites a first post", async () => {
@@ -234,9 +245,11 @@ describe("HomeView tweets", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Post" }));
 
-    const banner = await screen.findByRole("button", {
-      name: "Show 1 new post",
-    });
+    const banner = await screen.findByRole(
+      "button",
+      { name: "Show 1 new post" },
+      { timeout: 3_000 },
+    );
     expect(
       screen.queryByText("fresh", { selector: "article p" }),
     ).not.toBeInTheDocument();
@@ -250,5 +263,42 @@ describe("HomeView tweets", () => {
         (item) => item.querySelector("p.whitespace-pre-wrap")?.textContent,
       ),
     ).toEqual(["fresh", "loaded", "older"]);
+  });
+
+  it("AC-B01.4 holds a spinner in the feed, then animates the new tweet in", async () => {
+    let finish: () => void = () => undefined;
+    const apiClient = fakeApiClient({
+      createTweet: vi.fn(
+        () =>
+          new Promise<{ tweet: typeof testTweet }>((resolve) => {
+            finish = () =>
+              resolve({ tweet: { ...testTweet, content: "hello" } });
+          }),
+      ),
+      me: vi.fn(async () => testSession),
+    });
+    renderWithSession(<HomeView />, apiClient);
+
+    fireEvent.change(
+      await screen.findByRole("textbox", { name: "What's happening?" }),
+      { target: { value: "hello" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Post" }));
+
+    expect(await screen.findByText("Posting your tweet…")).toBeInTheDocument();
+    expect(
+      screen.queryByText("hello", { selector: "article p" }),
+    ).not.toBeInTheDocument();
+
+    await act(async () => finish());
+
+    await waitFor(
+      () => {
+        const card = screen.getByText("hello", { selector: "article p" });
+        expect(card.closest("li")).toHaveClass("tweet-appear");
+      },
+      { timeout: 3_000 },
+    );
+    expect(screen.queryByText("Posting your tweet…")).not.toBeInTheDocument();
   });
 });

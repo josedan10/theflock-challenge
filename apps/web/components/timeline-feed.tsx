@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutationState } from "@tanstack/react-query";
 import { CircleAlertIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -8,6 +9,7 @@ import { ApiError } from "../lib/api-client";
 import { apiFormErrors } from "../lib/form-errors";
 import { assembleTimeline, tweetsAheadOfPage } from "../lib/timeline-feed";
 import {
+  tweetCreateMutationKey,
   useDeleteTweet,
   useHomeTimeline,
   usePendingTweets,
@@ -55,6 +57,41 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
     timeline.data?.pages,
     !deferNewPosts,
   );
+  const itemIds = items.map((tweet) => tweet.id).join("\n");
+  const posting = useMutationState({
+    filters: {
+      mutationKey: tweetCreateMutationKey(user.id),
+      status: "pending",
+    },
+  });
+  // While older pages are open, the new post waits on the banner instead.
+  const isPosting = posting.length > 0 && !deferNewPosts;
+
+  const settled = timeline.isSuccess || timeline.isError;
+  const [trackedIds, setTrackedIds] = useState<{
+    appearing: ReadonlySet<string>;
+    itemIds: string;
+    settled: boolean;
+  }>({ appearing: new Set(), itemIds: "", settled: false });
+  if (trackedIds.itemIds !== itemIds || trackedIds.settled !== settled) {
+    const appearing = new Set<string>();
+    // The first settled list is the page the member opened. Only tweets
+    // prepended after that get the entrance animation.
+    if (trackedIds.settled && settled) {
+      const known = new Set(
+        trackedIds.itemIds === "" ? [] : trackedIds.itemIds.split("\n"),
+      );
+      const next = itemIds === "" ? [] : itemIds.split("\n");
+      for (const id of next) {
+        if (known.has(id)) {
+          break;
+        }
+        appearing.add(id);
+      }
+    }
+    setTrackedIds({ appearing, itemIds, settled });
+  }
+  const appearing = trackedIds.appearing;
 
   const loadOlder = useCallback(() => {
     const current = timelineRef.current;
@@ -176,17 +213,22 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         </div>
       ) : null}
 
-      {items.length === 0 && timeline.isSuccess ? (
+      {items.length === 0 && timeline.isSuccess && !isPosting ? (
         <p>
           Your timeline is empty. Post a tweet above, or search for people and
           follow them to see their posts here.
         </p>
       ) : null}
 
+      {isPosting ? <PostingTweet /> : null}
+
       {items.length > 0 ? (
         <ol aria-labelledby="home-timeline-heading" className="grid gap-3">
           {items.map((tweet) => (
-            <li key={tweet.id}>
+            <li
+              className={appearing.has(tweet.id) ? "tweet-appear" : undefined}
+              key={tweet.id}
+            >
               <TweetCard
                 failure={failure?.tweetId === tweet.id ? failure.message : null}
                 onDelete={onDelete}
@@ -233,6 +275,23 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         <p role="status">You've reached the end of your timeline.</p>
       ) : null}
     </section>
+  );
+}
+
+function PostingTweet() {
+  return (
+    <p
+      className="flex min-h-24 items-center gap-3 rounded-xl border bg-card p-4 text-card-foreground"
+      role="status"
+    >
+      <Spinner
+        aria-hidden="true"
+        aria-label={undefined}
+        className="size-5 motion-reduce:animate-none"
+        role="presentation"
+      />
+      Posting your tweet…
+    </p>
   );
 }
 

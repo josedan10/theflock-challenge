@@ -149,3 +149,25 @@
     }
   }
 }
+
+@keyframes tweet-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A new card eases into the list. Reduced motion drops the motion above. */
+.tweet-appear {
+  animation: tweet-appear 450ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tweet-appear {
+    animation: none;
+  }
+}

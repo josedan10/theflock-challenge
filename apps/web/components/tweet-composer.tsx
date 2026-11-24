@@ -19,6 +19,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 
 /** Below this many remaining characters the count is announced. */
@@ -145,7 +146,19 @@ export function TweetComposer({
             disabled={empty || over || createTweet.isPending}
             type="submit"
           >
-            {createTweet.isPending ? "Posting…" : "Post"}
+            {createTweet.isPending ? (
+              <>
+                <Spinner
+                  aria-hidden="true"
+                  aria-label={undefined}
+                  className="motion-reduce:animate-none"
+                  role="presentation"
+                />
+                Posting…
+              </>
+            ) : (
+              "Post"
+            )}
           </Button>
         </div>
       </div>
