@@ -22,7 +22,23 @@ const SESSION_KEY = ["session"] as const;
 
 const ApiClientContext = createContext<ApiClient | null>(null);
 
-function useApiClient(): ApiClient {
+/**
+ * CSRF token of the cached session, for cookie-authenticated mutations.
+ *
+ * @throws {Error} When no session is cached; callers only mount for members.
+ */
+export function sessionCsrfToken(queryClient: QueryClient): string {
+  const session = queryClient.getQueryData<AuthSessionResponse | null>(
+    SESSION_KEY,
+  );
+  if (session === undefined || session === null) {
+    throw new Error("This action requires an authenticated session.");
+  }
+  return session.csrfToken;
+}
+
+/** The API client from the nearest SessionProvider. */
+export function useApiClient(): ApiClient {
   const client = useContext(ApiClientContext);
   if (client === null) {
     throw new Error("useApiClient must be used inside <SessionProvider>");
@@ -80,15 +96,8 @@ export function useUpdateProfile(username: string) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: UpdateProfileRequest) => {
-      const session = queryClient.getQueryData<AuthSessionResponse | null>(
-        SESSION_KEY,
-      );
-      if (session === undefined || session === null) {
-        throw new Error("A profile update requires an authenticated session.");
-      }
-      return apiClient.updateProfile(input, session.csrfToken);
-    },
+    mutationFn: (input: UpdateProfileRequest) =>
+      apiClient.updateProfile(input, sessionCsrfToken(queryClient)),
     onSuccess: (response: PublicProfileResponse) => {
       queryClient.setQueryData(["profile", username.toLowerCase()], response);
       queryClient.setQueryData<AuthSessionResponse | null>(
