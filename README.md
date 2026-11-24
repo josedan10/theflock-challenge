@@ -9,7 +9,7 @@ This yet-to-be-named product is a mobile-first social application for short post
 ## Chosen stack
 
 - **Web:** Next.js + React + TypeScript, deployed to Vercel
-- **Styling:** Tailwind CSS v4 utilities over light/dark design tokens in `apps/web/app/styles.css`
+- **Styling:** shadcn/ui components (Base UI, pinned CLI) on Tailwind CSS v4, with design tokens in `apps/web/app/styles.css`
 - **API:** Fastify + TypeScript, packaged as an OCI/Docker image
 - **Database:** PostgreSQL + Drizzle ORM/migrations
 - **Validation:** Zod schemas shared through a workspace package
