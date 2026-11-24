@@ -92,3 +92,10 @@ export interface AuthUnitOfWork {
    */
   run<T>(work: (repositories: AuthRepositories) => Promise<T>): Promise<T>;
 }
+
+export interface PasswordHasher {
+  /** Returns a self-describing Argon2id encoding including salt and parameters. */
+  hash(password: string): Promise<string>;
+  /** Returns `false` for a wrong password or an unparseable hash; never throws for those. */
+  verify(passwordHash: string, password: string): Promise<boolean>;
+}

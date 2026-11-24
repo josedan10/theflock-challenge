@@ -4,7 +4,6 @@ import { createDrizzleUserRepository } from "./drizzle-user-repository.js";
 import type { Database } from "../../../platform/database/client.js";
 import type { AuthUnitOfWork } from "../application/ports.js";
 
-
 /** Binds every repository to the same transaction handle. */
 export function createDrizzleAuthUnitOfWork(db: Database): AuthUnitOfWork {
   return {
