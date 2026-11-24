@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
 
@@ -9,6 +9,21 @@ afterEach(async () => {
 });
 
 describe("platform health", () => {
+  it("US-B03 AC-B03.4 keeps cursor values out of automatic request logs", async () => {
+    const output = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    const app = await buildApp({
+      corsOrigin: "http://localhost:3000",
+      logger: true,
+    });
+    openApps.push(app);
+    await app.inject({ url: "/health/live?cursor=sensitive-test-cursor" });
+    const lines = output.mock.calls.map(([line]) => String(line)).join("");
+    expect(lines).toContain("/health/live");
+    expect(lines).not.toContain("sensitive-test-cursor");
+  });
+
   it("FND-02 AC-1 returns non-sensitive liveness state", async () => {
     const app = await buildApp({ corsOrigin: "http://localhost:3000" });
     openApps.push(app);
