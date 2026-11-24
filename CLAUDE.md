@@ -6,6 +6,7 @@ Read and follow [`AGENTS.md`](AGENTS.md) before making changes. It is the canoni
 
 - For implementation or behavior changes, load `.agents/skills/social-app-feature-delivery/SKILL.md`.
 - For reviews and release/security readiness, load `.agents/skills/social-app-review/SKILL.md`.
+- For security-sensitive implementation or review, also load `.agents/skills/social-app-security/SKILL.md`.
 
 Do not use external skills marked blocked or incomplete in `docs/skills/security-reports/README.md`. Do not treat a catalog badge as project approval.
 

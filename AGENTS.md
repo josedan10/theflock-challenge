@@ -37,6 +37,7 @@ Read only the docs in the matching rows. Use specialists only if listed as appro
 | Tests (unit, integration, E2E) | — | Testing doc | `docs/technical/testing.md` |
 | Consequential technical decision | `ecc:architecture-decision-records` | Add ADR section to architecture doc | `docs/technical/architecture.md` |
 | Auth, sessions, CSRF/CORS, secrets | — | Review skill priority 2 + negative authz tests | `docs/technical/architecture.md`, `docs/technical/api.md` |
+| Any trust boundary or security-sensitive backend/frontend change | `social-app-security` | Stop if the local skill is unavailable | `docs/technical/architecture.md`, `docs/technical/api.md`, `docs/technical/testing.md` |
 | Docker, Compose, CI | — | Infrastructure doc | `docs/technical/infrastructure.md`, `docs/workflows/engineering.md` |
 | Deployment, backup, restore, incident | — | Runbook; stop for explicit user approval | `docs/RUNBOOK.md`, `docs/technical/infrastructure.md` |
 | Workflow diagrams | — | Edit `docs/diagrams/specs/*.workflow.json` only; do not regenerate HTML | `docs/diagrams/README.md` |

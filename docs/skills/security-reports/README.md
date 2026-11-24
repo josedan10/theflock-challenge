@@ -10,6 +10,8 @@ Raw JSON reports were generated for every row and reviewed to produce this inven
 |---|---|---:|---:|---|
 | social-app-feature-delivery | 0 / LOW | 0 | 100% | Approved (project-local) |
 | social-app-review | 0 / LOW | 0 | 100% | Approved (project-local) |
+| social-app-security | 0 / LOW | 0 | 100% | Approved (project-local) |
+| OWASP security-guidance candidate | 79 / HIGH | 31 high, 3 low | 100% | Blocked; not installed |
 | web-design-guidelines | 0 / LOW | 0 | 100% | Approved and installed; pinned source |
 | fastify-best-practices candidate | 88 / CRITICAL | 15 high, 4 medium | 61.9% partial | Blocked; not installed |
 | postgres-drizzle candidate | 37 / MEDIUM | 1 high, 27 medium | 87.5% partial | Blocked; not installed |
@@ -36,6 +38,7 @@ Raw JSON reports were generated for every row and reviewed to produce this inven
 - A `LOW` aggregate score can still contain an individual `HIGH` match. Project policy blocks on individual high findings, not only the aggregate label.
 - Zero-percent partial results for `api-design` and `frontend-patterns` are not clean bills of health.
 - External candidate provenance and exact source commits are recorded in `docs/skills/external-skills.lock.json`.
+- The official OWASP bundle produced complete scan coverage but individual HIGH matches; it was not installed. The approved local security skill links to normative OWASP sources and contains only project-specific controls.
 
 ## Re-scan command
 

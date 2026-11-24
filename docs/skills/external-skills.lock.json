@@ -8,6 +8,14 @@
   },
   "skills": [
     {
+      "name": "owasp-security-guidance",
+      "repository": "OWASP/secure-agent-playbook",
+      "commit": "65d4efd2cd0b081d52101e9708792b944e4ddebb",
+      "path": "plugins/code-security-skills/skills/security-guidance plus data/asvs",
+      "scan": { "score": 79, "severity": "HIGH", "high": 31, "low": 3, "coveragePercent": 100.0 },
+      "disposition": "blocked-not-installed"
+    },
+    {
       "name": "web-design-guidelines",
       "repository": "vercel-labs/agent-skills",
       "commit": "5a37a6329fbad3666c3207392a6a7c0110e92efb",

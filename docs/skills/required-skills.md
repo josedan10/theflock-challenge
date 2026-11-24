@@ -36,6 +36,7 @@ These skills were evaluated for project work. **Status comes only from [`securit
 |---|---|---|
 | `social-app-feature-delivery` | Deliver vertical slices from acceptance criteria through tests, docs, and focused commits | Approved |
 | `social-app-review` | Review code, migrations, architecture, or release readiness against project invariants | Approved |
+| `social-app-security` | Apply OWASP ASVS-aligned backend/frontend controls and require verification evidence | Approved |
 | `web-design-guidelines` | Review responsive UI, accessibility, forms, focus, motion, and interface quality | Approved |
 | `ecc:architecture-decision-records` | Record consequential technical decisions and alternatives | Approved |
 | `ecc:backend-patterns` | Apply modular-monolith boundaries, repositories, services, and transactions | Approved |
