@@ -12,7 +12,7 @@ export default function LandingPage() {
       <p className="mb-2">
         Share short posts, follow people, and read a chronological timeline.
       </p>
-      <p className="text-muted">Accounts and posts are public.</p>
+      <p className="text-muted-foreground">Accounts and posts are public.</p>
       <nav
         aria-label="Get started"
         className="mt-6 flex flex-wrap items-center gap-4"

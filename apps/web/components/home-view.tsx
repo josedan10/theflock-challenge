@@ -54,7 +54,7 @@ export function HomeView() {
   return (
     <div className="grid gap-4">
       <h1 className={headingClass}>Welcome, {user.displayName}</h1>
-      <p className="text-muted">@{user.username}</p>
+      <p className="text-muted-foreground">@{user.username}</p>
       <p>Your timeline will appear here.</p>
       <FormAlert message={error} />
       <button

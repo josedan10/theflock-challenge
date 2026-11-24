@@ -5,7 +5,7 @@
 export function FormAlert({ message }: Readonly<{ message: string | null }>) {
   return (
     <div
-      className="rounded-lg border-2 border-danger p-3 text-danger empty:hidden"
+      className="rounded-lg border-2 border-destructive p-3 text-destructive empty:hidden"
       role="alert"
     >
       {message}

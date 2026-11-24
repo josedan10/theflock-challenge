@@ -70,7 +70,7 @@ export function RegisterForm() {
       <h1 className={headingClass} id="register-heading">
         Create your account
       </h1>
-      <p className="text-muted">Accounts and posts are public.</p>
+      <p className="text-muted-foreground">Accounts and posts are public.</p>
       <FormAlert message={errors.form} />
       <TextField
         autoComplete="email"
