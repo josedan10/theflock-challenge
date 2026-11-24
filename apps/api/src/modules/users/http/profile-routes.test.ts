@@ -6,7 +6,10 @@ import {
   errorResponseSchema,
   publicProfileResponseSchema,
 } from "@twitter-clone/contracts";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, {
+  type FastifyInstance,
+  type FastifyServerOptions,
+} from "fastify";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -86,7 +89,7 @@ async function buildTestApp(
     updateOwnProfile?: UpdateOwnProfile;
   } = {},
   limits: { read: number; write: number } = { read: 20, write: 20 },
-  options: ConstructorParameters<typeof Fastify>[0] = { logger: false },
+  options: FastifyServerOptions = { logger: false },
 ): Promise<FastifyInstance> {
   lookups = [];
   updates = [];
