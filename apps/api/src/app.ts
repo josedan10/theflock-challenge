@@ -3,6 +3,8 @@ import helmet from "@fastify/helmet";
 import sensible from "@fastify/sensible";
 import Fastify, { type FastifyInstance } from "fastify";
 
+import { registerErrorHandling } from "./platform/http/errors.js";
+
 export interface BuildAppOptions {
   corsOrigin: string;
   logger?: boolean;
@@ -19,6 +21,7 @@ export async function buildApp(
     requestIdHeader: "x-request-id",
   });
 
+  registerErrorHandling(app);
   await app.register(sensible);
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, {
