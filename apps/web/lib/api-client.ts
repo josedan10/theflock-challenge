@@ -10,6 +10,8 @@ import {
   type PublicProfileResponse,
   publicProfileResponseSchema,
   type RegisterRequest,
+  type TimelinePage,
+  timelinePageSchema,
   type UpdateProfileRequest,
 } from "@twitter-clone/contracts";
 
@@ -48,6 +50,11 @@ export interface ApiClient {
   ): Promise<CreateTweetResponse>;
   /** Deletes the signed-in member's own tweet. */
   deleteTweet(tweetId: string, csrfToken: string): Promise<void>;
+  /**
+   * One home-timeline page. `cursor` is the opaque value from the previous
+   * page, sent only to this API and never stored. Omit it for the first page.
+   */
+  getTimeline(cursor?: string): Promise<TimelinePage>;
 }
 
 interface RequestOptions {
@@ -129,6 +136,15 @@ export function createApiClient(
         method: "GET",
       });
       return publicProfileResponseSchema.parse(await response.json());
+    },
+    async getTimeline(cursor) {
+      const params = new URLSearchParams();
+      if (cursor !== undefined) {
+        params.set("cursor", cursor);
+      }
+      const query = params.size === 0 ? "" : `?${params.toString()}`;
+      const response = await request(`/timeline${query}`, { method: "GET" });
+      return timelinePageSchema.parse(await response.json());
     },
     async logIn(input) {
       return session("/auth/login", input);
