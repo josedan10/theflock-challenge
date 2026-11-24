@@ -50,7 +50,7 @@
 
 ## 7. Profile followers/following
 
-1. Any permitted viewer opens `/u/:username`.
+1. Any viewer, including a logged-out visitor, opens `/u/:username`. The API reads `GET /v1/users/:username`.
 2. Counts link to paginated followers/following routes.
 3. List entries show identity and viewer relationship controls.
 4. Follow changes reconcile both the row and profile counts.

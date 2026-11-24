@@ -104,5 +104,5 @@ Do not split into microservices. The workload and team do not justify distribute
 
 1. Final product/domain name and resulting cookie/CORS origins.
 2. Whether production DB starts on the Droplet or on a free managed provider (recommendation in infrastructure doc).
-3. Public visibility policy for logged-out profiles/tweets.
+3. Public visibility for logged-out tweets. Profiles are public in v1: `GET /v1/users/:username` allows an anonymous read and omits email, credentials, and storage keys (requirements rule 10).
 4. Account deletion/export behavior and retention.
