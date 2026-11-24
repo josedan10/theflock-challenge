@@ -132,3 +132,52 @@ test("US-A01 AC-A01.3 validates registration locally with accessible errors", as
   await expect(page.getByLabel("Email")).toBeFocused();
   await expectNoSeriousA11yViolations(page);
 });
+
+test("PRO-02 US-A03 AC-A03.1 AC-A03.3 shows and edits a responsive accessible profile", async ({
+  page,
+}, testInfo) => {
+  const member = uniqueMember(testInfo);
+  await register(page, member);
+  await expect(page).toHaveURL(/\/home$/);
+
+  await page.getByRole("link", { name: `@${member.username}` }).click();
+  await expect(page).toHaveURL(new RegExp(`/u/${member.username}$`));
+  await expect(
+    page.getByRole("heading", { name: member.username }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Profile statistics")).toContainText("Tweets");
+  await expect(
+    page.getByLabel(`${member.username}'s avatar placeholder`),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Edit profile" }).click();
+  await page.getByLabel("Display name").fill("Ada Browser");
+  await page.getByLabel("Bio").fill("Plain <strong>text</strong>");
+  await page.getByRole("button", { name: "Save profile" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Ada Browser" }),
+  ).toBeVisible();
+  await expect(page.getByText("Plain <strong>text</strong>")).toBeVisible();
+  await expect(page.locator("article strong")).toHaveCount(0);
+  await expectNoSeriousA11yViolations(page);
+
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(false);
+});
+
+test("PRO-02 US-A03 AC-A03.2 shows an unknown profile state", async ({
+  page,
+}) => {
+  await page.goto("/u/this_profile_does_not_exist");
+
+  await expect(
+    page.getByRole("heading", { name: "Profile not found" }),
+  ).toBeVisible();
+  await expect(page.getByText("That profile does not exist.")).toBeVisible();
+  await expectNoSeriousA11yViolations(page);
+});

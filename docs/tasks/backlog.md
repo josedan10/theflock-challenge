@@ -19,7 +19,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **AUTH-03:** Login/logout/session middleware, CSRF and rate limits (US-A02).
 - [x] **AUTH-04:** Registration/login UI and Playwright flows.
 - [x] **PRO-01:** Profile read/update API and authorization tests (US-A03).
-- [ ] **PRO-02:** Responsive profile UI, placeholder avatar, counts, accessibility tests.
+- [x] **PRO-02:** Responsive profile UI, placeholder avatar, counts, accessibility tests.
 
 ## Tweets/timeline
 

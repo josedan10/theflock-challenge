@@ -4,7 +4,10 @@ import {
   type ErrorCode,
   errorResponseSchema,
   type LoginRequest,
+  type PublicProfileResponse,
+  publicProfileResponseSchema,
   type RegisterRequest,
+  type UpdateProfileRequest,
 } from "@twitter-clone/contracts";
 
 /** `NETWORK_ERROR` means the API could not be reached at all. */
@@ -30,10 +33,15 @@ export interface ApiClient {
   logOut(csrfToken: string | null): Promise<void>;
   /** The current session, or `null` when not signed in. */
   me(): Promise<AuthSessionResponse | null>;
+  getProfile(username: string): Promise<PublicProfileResponse>;
+  updateProfile(
+    input: UpdateProfileRequest,
+    csrfToken: string,
+  ): Promise<PublicProfileResponse>;
 }
 
 interface RequestOptions {
-  method: "GET" | "POST";
+  method: "GET" | "PATCH" | "POST";
   body?: unknown;
   csrfToken?: string | null;
 }
@@ -92,6 +100,12 @@ export function createApiClient(
   }
 
   return {
+    async getProfile(username) {
+      const response = await request(`/users/${encodeURIComponent(username)}`, {
+        method: "GET",
+      });
+      return publicProfileResponseSchema.parse(await response.json());
+    },
     async logIn(input) {
       return session("/auth/login", input);
     },
@@ -111,6 +125,14 @@ export function createApiClient(
     },
     async register(input) {
       return session("/auth/register", input);
+    },
+    async updateProfile(input, csrfToken) {
+      const response = await request("/me/profile", {
+        body: input,
+        csrfToken,
+        method: "PATCH",
+      });
+      return publicProfileResponseSchema.parse(await response.json());
     },
   };
 }

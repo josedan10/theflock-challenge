@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleAlertIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -72,7 +73,9 @@ export function HomeView() {
             Welcome, {user.displayName}
           </h1>
         </CardTitle>
-        <CardDescription>@{user.username}</CardDescription>
+        <CardDescription>
+          <Link href={`/u/${user.username}`}>@{user.username}</Link>
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <p>Your timeline will appear here.</p>

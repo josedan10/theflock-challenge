@@ -14,6 +14,13 @@ const session = {
   },
 };
 
+const profile = {
+  ...session.user,
+  followerCount: 0,
+  followingCount: 0,
+  tweetCount: 0,
+};
+
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     headers: { "content-type": "application/json" },
@@ -45,6 +52,39 @@ const errorBody = (
 });
 
 describe("API client", () => {
+  it("US-A03 AC-A03.1 reads and validates an encoded public profile", async () => {
+    const { client, fetchImpl } = clientReturning(
+      jsonResponse(200, { profile }),
+    );
+
+    await expect(client.getProfile("ada/user")).resolves.toEqual({ profile });
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+      "http://api.test/v1/users/ada%2Fuser",
+    );
+    expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ method: "GET" });
+  });
+
+  it("PROFILE-02 updates the profile with the session CSRF token", async () => {
+    const { client, fetchImpl } = clientReturning(
+      jsonResponse(200, { profile }),
+    );
+    const input = { bio: "Analyst" };
+
+    await expect(client.updateProfile(input, "csrf-token")).resolves.toEqual({
+      profile,
+    });
+    expect(fetchImpl).toHaveBeenCalledWith("http://api.test/v1/me/profile", {
+      body: JSON.stringify(input),
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "x-csrf-token": "csrf-token",
+      },
+      method: "PATCH",
+    });
+  });
+
   it("US-A01 AC-A01.1 registers with credentials included and parses the session", async () => {
     const { client, fetchImpl } = clientReturning(jsonResponse(201, session));
     const input = {
