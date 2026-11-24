@@ -9,8 +9,8 @@ const profileColumns = {
   bio: users.bio,
   createdAt: users.createdAt,
   displayName: users.displayName,
-  followerCount: sql`0::integer`,
-  followingCount: sql`0::integer`,
+  followerCount: sql`(select count(*) from follows where following_id = "users"."id")`,
+  followingCount: sql`(select count(*) from follows where follower_id = "users"."id")`,
   id: users.id,
   // Columns are qualified on purpose: inside the subquery an unqualified "id"
   // would bind to tweets.id. Served by tweets_author_id_created_at_id_idx.
@@ -19,10 +19,7 @@ const profileColumns = {
 };
 
 /**
- * The follow table does not exist yet. Its literals are the committed
- * counts (requirements rule 8) and the only place later slices should replace
- * them with aggregate subqueries. Email, password hash, and avatar key are
- * not selected.
+ * Profile counts use committed relation rows. Email, password hash, and avatar key are not selected.
  */
 async function loadPublicProfile(
   db: DatabaseExecutor,
