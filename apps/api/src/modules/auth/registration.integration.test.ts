@@ -26,6 +26,8 @@ beforeAll(async () => {
     auth: {
       clock: () => NOW,
       db: database.db,
+      // Rate limiting has its own tests; this suite exercises persistence.
+      registrationRateLimit: { max: 1_000, timeWindowMs: 60_000 },
       sessionCookie: {
         domain: undefined,
         secure: true,

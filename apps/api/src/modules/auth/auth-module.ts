@@ -1,7 +1,10 @@
 import { v7 as uuidv7 } from "uuid";
 
 import { createRegisterMember } from "./application/register-member.js";
-import { registerRoute } from "./http/register-route.js";
+import {
+  type RegistrationRateLimit,
+  registerRoute,
+} from "./http/register-route.js";
 import { createArgon2PasswordHasher } from "./infrastructure/argon2-password-hasher.js";
 import { createCryptoSessionCredentialGenerator } from "./infrastructure/crypto-session-credentials.js";
 import { createDrizzleAuthUnitOfWork } from "./infrastructure/drizzle-auth-unit-of-work.js";
@@ -18,6 +21,8 @@ export interface AuthModuleOptions {
   clock?: () => Date;
   /** Injected to tune Argon2 cost; defaults to the OWASP minimum. */
   passwordHasher?: PasswordHasher;
+  /** Defaults to 5 attempts per minute per client. */
+  registrationRateLimit?: RegistrationRateLimit;
 }
 
 /** Composition root for authentication: wires adapters into use cases and routes. */
@@ -35,6 +40,9 @@ export function authModule(options: AuthModuleOptions) {
     await registerRoute(app, {
       registerMember,
       sessionCookie: options.sessionCookie,
+      ...(options.registrationRateLimit === undefined
+        ? {}
+        : { rateLimit: options.registrationRateLimit }),
     });
   };
 }

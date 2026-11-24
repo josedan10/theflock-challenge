@@ -1,6 +1,7 @@
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import Fastify, { type FastifyInstance } from "fastify";
 
@@ -40,6 +41,8 @@ export async function buildApp(
   });
 
   await app.register(cookie);
+  // Opt-in per route: only routes that declare `config.rateLimit` are limited.
+  await app.register(rateLimit, { global: false });
   if (options.auth !== undefined) {
     await app.register(authModule(options.auth), { prefix: "/v1" });
   }

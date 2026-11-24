@@ -1,4 +1,5 @@
 import cookie from "@fastify/cookie";
+import rateLimit from "@fastify/rate-limit";
 import {
   authSessionResponseSchema,
   errorResponseSchema,
@@ -61,6 +62,7 @@ async function buildTestApp(
   app = Fastify({ logger: false });
   registerErrorHandling(app);
   await app.register(cookie);
+  await app.register(rateLimit, { global: false });
   await app.register(
     (instance) =>
       registerRoute(instance, {
@@ -68,6 +70,7 @@ async function buildTestApp(
           calls.push(input);
           return behavior(input);
         },
+        rateLimit: { max: 3, timeWindowMs: 60_000 },
         sessionCookie,
       }),
     { prefix: "/v1" },
@@ -189,5 +192,55 @@ describe("POST /v1/auth/register", () => {
 
     expect(response.statusCode).toBe(500);
     expect(response.body).not.toContain("db down");
+  });
+
+  it("US-A01 AC-A01.5 rate limits repeated attempts with a RATE_LIMITED envelope", async () => {
+    await buildTestApp();
+
+    const statuses: number[] = [];
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      statuses.push((await register(validBody)).statusCode);
+    }
+    const limited = await register(validBody);
+
+    expect(statuses).toEqual([201, 201, 201]);
+    expect(limited.statusCode).toBe(429);
+    expect(errorResponseSchema.parse(limited.json()).error).toMatchObject({
+      code: "RATE_LIMITED",
+      message: "Too many requests. Try again later.",
+    });
+    expect(Number(limited.headers["retry-after"])).toBeGreaterThan(0);
+    expect(calls).toHaveLength(3);
+  });
+
+  it("US-A01 AC-A01.5 counts invalid and conflicting attempts the same as successes", async () => {
+    await buildTestApp(async () => {
+      throw new IdentityConflictError("email");
+    });
+
+    const statuses = [
+      (await register({ ...validBody, password: "short" })).statusCode,
+      (await register(validBody)).statusCode,
+      (await register(validBody)).statusCode,
+      (await register(validBody)).statusCode,
+    ];
+
+    expect(statuses).toEqual([422, 409, 409, 429]);
+  });
+
+  it("US-A01 AC-A01.5 keeps separate budgets per client address", async () => {
+    await buildTestApp();
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await register(validBody);
+    }
+    const otherClient = await app.inject({
+      method: "POST",
+      payload: validBody,
+      remoteAddress: "203.0.113.7",
+      url: "/v1/auth/register",
+    });
+
+    expect(otherClient.statusCode).toBe(201);
   });
 });
