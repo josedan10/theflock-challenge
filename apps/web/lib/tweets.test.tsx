@@ -9,7 +9,7 @@ import {
 
 import { ApiError } from "./api-client";
 import { SessionProvider, useSession } from "./session";
-import { useCreateTweet, useDeleteTweet, usePostedTweets } from "./tweets";
+import { useCreateTweet, useDeleteTweet, useTimelineItems } from "./tweets";
 
 import type { ApiClient } from "./api-client";
 import type { Tweet } from "@twitter-clone/contracts";
@@ -25,7 +25,7 @@ function renderTweets(apiClient: ApiClient) {
     () => ({
       create: useCreateTweet(member),
       remove: useDeleteTweet(member),
-      posted: usePostedTweets(member.id),
+      posted: useTimelineItems(member.id),
       session: useSession(),
     }),
     { wrapper },
@@ -52,7 +52,7 @@ describe("posted tweets", () => {
       fakeApiClient({ me: vi.fn(async () => testSession) }),
     );
 
-    expect(result.current.posted.data).toEqual([]);
+    expect(result.current.posted).toEqual([]);
   });
 
   it("US-B01 AC-B01.1 prepends the canonical card with the CSRF token", async () => {
@@ -69,7 +69,7 @@ describe("posted tweets", () => {
     await act(() => result.current.create.mutateAsync({ content: "two" }));
 
     await waitFor(() =>
-      expect(result.current.posted.data?.map((tweet) => tweet.id)).toEqual([
+      expect(result.current.posted.map((tweet) => tweet.id)).toEqual([
         "t2",
         "t1",
       ]),
@@ -97,9 +97,7 @@ describe("deleting a posted tweet", () => {
       await act(() => view.result.current.create.mutateAsync({ content }));
     }
     // Wait for React to flush: result.current can lag behind the cache.
-    await waitFor(() =>
-      expect(view.result.current.posted.data).toHaveLength(3),
-    );
+    await waitFor(() => expect(view.result.current.posted).toHaveLength(3));
     return { apiClient, ...view };
   }
 
@@ -114,7 +112,7 @@ describe("deleting a posted tweet", () => {
     act(() => result.current.remove.mutate("t2"));
 
     await waitFor(() =>
-      expect(ids(result.current.posted.data)).toEqual(["t3", "t1"]),
+      expect(ids(result.current.posted)).toEqual(["t3", "t1"]),
     );
     expect(apiClient.deleteTweet).toHaveBeenCalledWith(
       "t2",
@@ -122,7 +120,7 @@ describe("deleting a posted tweet", () => {
     );
     await act(async () => finish());
     await waitFor(() =>
-      expect(ids(result.current.posted.data)).toEqual(["t3", "t1"]),
+      expect(ids(result.current.posted)).toEqual(["t3", "t1"]),
     );
   });
 
@@ -138,7 +136,7 @@ describe("deleting a posted tweet", () => {
     );
 
     await waitFor(() =>
-      expect(ids(result.current.posted.data)).toEqual(["t3", "t2", "t1"]),
+      expect(ids(result.current.posted)).toEqual(["t3", "t2", "t1"]),
     );
   });
 
@@ -154,7 +152,7 @@ describe("deleting a posted tweet", () => {
     );
 
     await waitFor(() =>
-      expect(ids(result.current.posted.data)).toEqual(["t3", "t1"]),
+      expect(ids(result.current.posted)).toEqual(["t3", "t1"]),
     );
   });
 
@@ -176,14 +174,41 @@ describe("deleting a posted tweet", () => {
     // t1 (oldest) is pending when t3 is deleted successfully; then t1 fails.
     act(() => result.current.remove.mutate("t1"));
     await waitFor(() =>
-      expect(ids(result.current.posted.data)).toEqual(["t3", "t2"]),
+      expect(ids(result.current.posted)).toEqual(["t3", "t2"]),
     );
     await act(() => result.current.remove.mutateAsync("t3"));
     await act(async () => failA());
 
     // t3 must stay deleted; t1 comes back in its original (last) position.
     await waitFor(() =>
-      expect(ids(result.current.posted.data)).toEqual(["t2", "t1"]),
+      expect(ids(result.current.posted)).toEqual(["t2", "t1"]),
+    );
+  });
+
+  it("US-B02 AC-B02.3 restores a loaded timeline tweet in its page position", async () => {
+    const newer = tweetWith("t3", "three");
+    const middle = tweetWith("t2", "two");
+    const older = tweetWith("t1", "one");
+    const { result } = await signedIn(
+      fakeApiClient({
+        deleteTweet: vi.fn(async () => {
+          throw new ApiError(0, "NETWORK_ERROR", "Can't reach the server.");
+        }),
+        getTimeline: vi.fn(async () => ({
+          items: [newer, middle, older],
+          nextCursor: null,
+        })),
+        me: vi.fn(async () => testSession),
+      }),
+    );
+    await waitFor(() => expect(result.current.posted).toHaveLength(3));
+
+    await act(() =>
+      result.current.remove.mutateAsync("t2").catch(() => undefined),
+    );
+
+    await waitFor(() =>
+      expect(ids(result.current.posted)).toEqual(["t3", "t2", "t1"]),
     );
   });
 });
