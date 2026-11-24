@@ -130,4 +130,10 @@ describe("RegisterForm", () => {
       "/login",
     );
   });
+
+  it("posts natively so credentials never reach the URL before hydration", () => {
+    const { container } = renderWithSession(<RegisterForm />);
+
+    expect(container.querySelector("form")).toHaveAttribute("method", "post");
+  });
 });

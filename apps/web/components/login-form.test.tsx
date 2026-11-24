@@ -108,4 +108,10 @@ describe("LoginForm", () => {
       screen.getByRole("link", { name: "Create an account" }),
     ).toHaveAttribute("href", "/register");
   });
+
+  it("posts natively so credentials never reach the URL before hydration", () => {
+    const { container } = renderWithSession(<LoginForm />);
+
+    expect(container.querySelector("form")).toHaveAttribute("method", "post");
+  });
 });

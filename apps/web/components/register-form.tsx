@@ -61,6 +61,8 @@ export function RegisterForm() {
     <form
       aria-labelledby="register-heading"
       className={formClass}
+      // POST, so a submit before hydration never puts credentials in the URL.
+      method="post"
       noValidate
       onSubmit={onSubmit}
       ref={formRef}

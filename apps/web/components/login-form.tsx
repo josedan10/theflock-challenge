@@ -54,6 +54,8 @@ export function LoginForm() {
     <form
       aria-labelledby="login-heading"
       className={formClass}
+      // POST, so a submit before hydration never puts credentials in the URL.
+      method="post"
       noValidate
       onSubmit={onSubmit}
       ref={formRef}
