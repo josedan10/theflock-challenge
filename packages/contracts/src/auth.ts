@@ -10,6 +10,12 @@ export const USERNAME_MAX_LENGTH = 30;
  */
 export const USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]{2,29}$/;
 
+/**
+ * Stored username: {@link USERNAME_PATTERN} after trim and lowercase.
+ * Lookups and public responses use this form, never the caller's original casing.
+ */
+export const STORED_USERNAME_PATTERN = /^[a-z][a-z0-9_]{2,29}$/;
+
 /** Password length bounds in Unicode code points (requirements rule 3). */
 export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_MAX_LENGTH = 128;
@@ -24,7 +30,7 @@ export const BIO_MAX_LENGTH = 160;
 export const EMAIL_MAX_LENGTH = 254;
 
 /** Counts user-perceived code points rather than UTF-16 units so emoji count once. */
-function codePointLength(value: string): number {
+export function codePointLength(value: string): number {
   return [...value].length;
 }
 
@@ -114,7 +120,7 @@ export type LoginRequest = z.infer<typeof loginRequestSchema>;
  */
 export const sessionUserSchema = z.object({
   id: z.uuid(),
-  username: z.string().regex(/^[a-z][a-z0-9_]{2,29}$/),
+  username: z.string().regex(STORED_USERNAME_PATTERN),
   displayName: z.string().min(1),
   bio: z.string(),
   avatarUrl: z.url().nullable(),
