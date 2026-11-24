@@ -9,9 +9,11 @@ import {
   type AuthModuleOptions,
   createAuthRuntime,
 } from "./modules/auth/auth-module.js";
+import { tweetsModule } from "./modules/tweets/tweets-module.js";
 import { usersModule } from "./modules/users/users-module.js";
 import { registerErrorHandling } from "./platform/http/errors.js";
 
+import type { AuthRateLimit } from "./modules/auth/http/rate-limit.js";
 import type { ProfileRateLimit } from "./modules/users/http/rate-limit.js";
 
 export interface BuildAppOptions {
@@ -27,6 +29,8 @@ export interface BuildAppOptions {
   readinessCheck?: () => Promise<boolean>;
   /** Proxies allowed to set `X-Forwarded-For`; see `TRUST_PROXY`. */
   trustProxy?: string[];
+  /** Override for the tweet create/delete budget. Default: 20/minute. */
+  tweetWriteRateLimit?: AuthRateLimit;
 }
 
 /** Creates an injectable API instance with the platform security baseline. */
@@ -71,6 +75,20 @@ export async function buildApp(
         ...(options.profileRateLimit?.write === undefined
           ? {}
           : { writeRateLimit: options.profileRateLimit.write }),
+      }),
+      { prefix: "/v1" },
+    );
+    await app.register(
+      tweetsModule({
+        db: options.auth.db,
+        requireCsrf: auth.requireCsrf,
+        requireSession: auth.requireSession,
+        ...(options.auth.clock === undefined
+          ? {}
+          : { clock: options.auth.clock }),
+        ...(options.tweetWriteRateLimit === undefined
+          ? {}
+          : { writeRateLimit: options.tweetWriteRateLimit }),
       }),
       { prefix: "/v1" },
     );
