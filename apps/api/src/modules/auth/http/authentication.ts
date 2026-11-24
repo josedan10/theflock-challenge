@@ -78,15 +78,22 @@ export function createRequireCsrf(
   credentials: SessionCredentialGenerator,
 ): AuthGuard {
   return async (request) => {
-    const { session } = authContext(request);
-    const presented = request.headers[CSRF_HEADER_NAME];
-    const valid =
-      typeof presented === "string" &&
-      presented.length > 0 &&
-      timingSafeEqual(credentials.hash(presented), session.csrfSecretHash);
-
-    if (!valid) {
+    if (!hasValidCsrfToken(request, credentials, authContext(request))) {
       throw new AppError("FORBIDDEN", "A valid CSRF token is required.");
     }
   };
+}
+
+/** Constant-time check of `X-CSRF-Token` against the session's stored hash. */
+export function hasValidCsrfToken(
+  request: FastifyRequest,
+  credentials: SessionCredentialGenerator,
+  { session }: ActiveSession,
+): boolean {
+  const presented = request.headers[CSRF_HEADER_NAME];
+  return (
+    typeof presented === "string" &&
+    presented.length > 0 &&
+    timingSafeEqual(credentials.hash(presented), session.csrfSecretHash)
+  );
 }
