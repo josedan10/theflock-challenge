@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   type DatabaseExecutor,
@@ -74,11 +74,17 @@ export function createDrizzleUserRepository(
       }
     },
 
+    // Soft-deleted members are treated as absent so they cannot log in or be found.
     async findByEmailNormalized(emailNormalized) {
       const [user] = await db
         .select(storedUserColumns)
         .from(users)
-        .where(eq(users.emailNormalized, emailNormalized))
+        .where(
+          and(
+            eq(users.emailNormalized, emailNormalized),
+            isNull(users.deletedAt),
+          ),
+        )
         .limit(1);
       return user ?? null;
     },
@@ -87,7 +93,7 @@ export function createDrizzleUserRepository(
       const [user] = await db
         .select(storedUserColumns)
         .from(users)
-        .where(eq(users.username, username))
+        .where(and(eq(users.username, username), isNull(users.deletedAt)))
         .limit(1);
       return user ?? null;
     },
