@@ -21,6 +21,7 @@
     "format:check": "prettier --check .",
     "lint": "pnpm run lint:config && turbo run lint",
     "lint:config": "eslint eslint.config.mjs && bash scripts/test-eslint-config.sh",
+    "stack:up": "bash scripts/up.sh",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "test:e2e": "playwright test",
