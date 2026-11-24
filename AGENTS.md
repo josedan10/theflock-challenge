@@ -89,6 +89,6 @@ Read only the docs in the matching rows. Use specialists only if listed as appro
 
 ## Git discipline
 
-- Keep every commit small, focused, and independently understandable. Never mix scaffolding, feature behavior, refactoring, generated artifacts, and documentation unless they are inseparable.
+- Work on one branch per user story. Keep every commit small, focused, and independently understandable; never squash commits or squash-merge. Never mix scaffolding, feature behavior, refactoring, generated artifacts, and documentation unless they are inseparable.
 - Use Conventional Commits. Do not commit secrets, `.env`, generated Archify HTML, raw scanner output, coverage, or build artifacts.
 - Do not rewrite, reset, or discard user work. Inspect the working tree before editing and before committing.
