@@ -1,2 +1,4 @@
-export * from "./auth.js";
-export * from "./errors.js";
+// Extensionless so every consumer resolves the TypeScript source: Turbopack
+// (web) does not map `./auth.js` to `auth.ts`, while Vite and tsx accept both.
+export * from "./auth";
+export * from "./errors";
