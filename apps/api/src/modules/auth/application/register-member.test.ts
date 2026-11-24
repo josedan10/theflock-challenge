@@ -97,6 +97,7 @@ const fakeCredentials: SessionCredentialGenerator = {
       tokenHash: Buffer.alloc(32, 1),
     };
   },
+  csrfTokenFor: (token) => `csrf-for-${token}`,
   hash: () => Buffer.alloc(32),
 };
 

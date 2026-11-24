@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 
 import type {
   SessionCredentialGenerator,
@@ -8,23 +8,31 @@ import type {
 /** 256 bits from the CSPRNG; far beyond guessing or birthday-collision range. */
 const SECRET_BYTES = 32;
 
-function randomSecret(): string {
-  return randomBytes(SECRET_BYTES).toString("base64url");
-}
-
 function sha256(secret: string): Buffer {
   return createHash("sha256").update(secret, "utf8").digest();
 }
 
 /**
- * A plain SHA-256 (no salt or slow hash) is sufficient because the inputs are
- * high-entropy random values, not user-chosen passwords.
+ * Session tokens are random. CSRF tokens are HMAC-SHA256(key, session token)
+ * (OWASP "signed double-submit"): bound to one session, unforgeable without
+ * the server key, and re-derivable from the cookie on any request.
+ *
+ * A plain SHA-256 suffices for storage because the inputs are high-entropy
+ * random values, not user-chosen passwords.
  */
-export function createCryptoSessionCredentialGenerator(): SessionCredentialGenerator {
+export function createCryptoSessionCredentialGenerator(
+  csrfKey: string,
+): SessionCredentialGenerator {
+  const csrfTokenFor = (sessionToken: string): string =>
+    createHmac("sha256", csrfKey)
+      .update(sessionToken, "utf8")
+      .digest("base64url");
+
   return {
+    csrfTokenFor,
     generate(): SessionCredentials {
-      const token = randomSecret();
-      const csrfToken = randomSecret();
+      const token = randomBytes(SECRET_BYTES).toString("base64url");
+      const csrfToken = csrfTokenFor(token);
       return {
         csrfSecretHash: sha256(csrfToken),
         csrfToken,

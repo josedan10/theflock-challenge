@@ -17,6 +17,8 @@ import type { FastifyInstance } from "fastify";
 export interface AuthModuleOptions {
   db: Database;
   sessionCookie: SessionCookieSettings;
+  /** Server key for CSRF token derivation (`SESSION_SECRET`). */
+  sessionSecret: string;
   /** Injected for deterministic tests; defaults to the system clock. */
   clock?: () => Date;
   /** Injected to tune Argon2 cost; defaults to the OWASP minimum. */
@@ -29,7 +31,7 @@ export interface AuthModuleOptions {
 export function authModule(options: AuthModuleOptions) {
   const registerMember = createRegisterMember({
     clock: options.clock ?? (() => new Date()),
-    credentials: createCryptoSessionCredentialGenerator(),
+    credentials: createCryptoSessionCredentialGenerator(options.sessionSecret),
     generateId: uuidv7,
     passwordHasher: options.passwordHasher ?? createArgon2PasswordHasher(),
     sessionTtlSeconds: options.sessionCookie.ttlSeconds,

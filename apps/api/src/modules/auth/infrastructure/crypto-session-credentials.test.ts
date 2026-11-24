@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { createCryptoSessionCredentialGenerator } from "./crypto-session-credentials.js";
 
-const generator = createCryptoSessionCredentialGenerator();
+const KEY = "test-secret-with-at-least-32-characters";
+const generator = createCryptoSessionCredentialGenerator(KEY);
 
 describe("session credential generator", () => {
   it("US-A02 AC-A02.1 issues URL-safe 256-bit token and CSRF secrets", () => {
@@ -42,6 +43,26 @@ describe("session credential generator", () => {
   it("matches the SHA-256 test vector so stored hashes stay portable", () => {
     expect(generator.hash("abc").toString("hex")).toBe(
       "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+    );
+  });
+
+  it("US-A02 AC-A02.5 re-derives the same CSRF token from the session token", () => {
+    const credentials = generator.generate();
+
+    expect(generator.csrfTokenFor(credentials.token)).toBe(
+      credentials.csrfToken,
+    );
+    expect(generator.csrfTokenFor(generator.generate().token)).not.toBe(
+      credentials.csrfToken,
+    );
+  });
+
+  it("US-A02 AC-A02.5 cannot be forged without the server key", () => {
+    const credentials = generator.generate();
+    const otherKey = createCryptoSessionCredentialGenerator(`${KEY}-other`);
+
+    expect(otherKey.csrfTokenFor(credentials.token)).not.toBe(
+      credentials.csrfToken,
     );
   });
 });

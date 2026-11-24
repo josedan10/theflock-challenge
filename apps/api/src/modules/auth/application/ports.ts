@@ -117,4 +117,9 @@ export interface SessionCredentialGenerator {
   generate(): SessionCredentials;
   /** Digest used to look up a presented cookie or CSRF token. */
   hash(secret: string): Buffer;
+  /**
+   * Recomputes the CSRF token bound to a session token, so it can be returned
+   * again (for example after a page reload) without storing it.
+   */
+  csrfTokenFor(sessionToken: string): string;
 }
