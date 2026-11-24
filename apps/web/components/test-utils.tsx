@@ -21,10 +21,26 @@ export const testSession: AuthSessionResponse = {
 
 export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    getProfile: vi.fn(async () => ({
+      profile: {
+        ...testSession.user,
+        followerCount: 0,
+        followingCount: 0,
+        tweetCount: 0,
+      },
+    })),
     logIn: vi.fn(async () => testSession),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
     register: vi.fn(async () => testSession),
+    updateProfile: vi.fn(async () => ({
+      profile: {
+        ...testSession.user,
+        followerCount: 0,
+        followingCount: 0,
+        tweetCount: 0,
+      },
+    })),
     ...overrides,
   };
 }

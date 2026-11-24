@@ -13,7 +13,9 @@ import type { ApiClient } from "./api-client";
 import type {
   AuthSessionResponse,
   LoginRequest,
+  PublicProfileResponse,
   RegisterRequest,
+  UpdateProfileRequest,
 } from "@twitter-clone/contracts";
 
 const SESSION_KEY = ["session"] as const;
@@ -61,6 +63,50 @@ export function useSession() {
     queryFn: () => apiClient.me(),
     queryKey: SESSION_KEY,
     staleTime: Number.POSITIVE_INFINITY,
+  });
+}
+
+/** Public profile data keyed by its normalized route username. */
+export function usePublicProfile(username: string) {
+  const apiClient = useApiClient();
+  return useQuery({
+    queryFn: () => apiClient.getProfile(username),
+    queryKey: ["profile", username.toLowerCase()],
+  });
+}
+
+/** Updates the signed-in member's profile and reconciles profile/session caches. */
+export function useUpdateProfile(username: string) {
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateProfileRequest) => {
+      const session = queryClient.getQueryData<AuthSessionResponse | null>(
+        SESSION_KEY,
+      );
+      if (session === undefined || session === null) {
+        throw new Error("A profile update requires an authenticated session.");
+      }
+      return apiClient.updateProfile(input, session.csrfToken);
+    },
+    onSuccess: (response: PublicProfileResponse) => {
+      queryClient.setQueryData(["profile", username.toLowerCase()], response);
+      queryClient.setQueryData<AuthSessionResponse | null>(
+        SESSION_KEY,
+        (session) =>
+          session === undefined || session === null
+            ? session
+            : {
+                ...session,
+                user: {
+                  ...session.user,
+                  avatarUrl: response.profile.avatarUrl,
+                  bio: response.profile.bio,
+                  displayName: response.profile.displayName,
+                },
+              },
+      );
+    },
   });
 }
 

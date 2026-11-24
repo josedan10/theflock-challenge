@@ -6,6 +6,7 @@ import {
   useLogOut,
   useRegister,
   useSession,
+  useUpdateProfile,
   SessionProvider,
 } from "./session";
 
@@ -26,10 +27,26 @@ const session = {
 
 function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    getProfile: vi.fn(async () => ({
+      profile: {
+        ...session.user,
+        followerCount: 0,
+        followingCount: 0,
+        tweetCount: 0,
+      },
+    })),
     logIn: vi.fn(async () => session),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
     register: vi.fn(async () => session),
+    updateProfile: vi.fn(async () => ({
+      profile: {
+        ...session.user,
+        followerCount: 0,
+        followingCount: 0,
+        tweetCount: 0,
+      },
+    })),
     ...overrides,
   };
 }
@@ -95,6 +112,18 @@ describe("session state", () => {
     await act(() => result.current.mutateAsync());
 
     expect(apiClient.logOut).toHaveBeenCalledWith(null);
+  });
+
+  it("PROFILE-02 refuses an update without a cached session", async () => {
+    const { result } = renderWithSession(
+      () => ({ session: useSession(), update: useUpdateProfile("ada") }),
+      fakeClient(),
+    );
+    await waitFor(() => expect(result.current.session.isSuccess).toBe(true));
+
+    await expect(
+      act(() => result.current.update.mutateAsync({ bio: "Analyst" })),
+    ).rejects.toThrow("requires an authenticated session");
   });
 
   it("requires the provider", () => {
