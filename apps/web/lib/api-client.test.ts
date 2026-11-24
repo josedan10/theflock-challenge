@@ -206,4 +206,73 @@ describe("API client", () => {
       status: 0,
     });
   });
+
+  describe("tweets", () => {
+    const tweet = {
+      author: {
+        avatarUrl: null,
+        displayName: "Ada",
+        id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f60",
+        username: "ada",
+      },
+      content: "First post!",
+      createdAt: "2026-11-24T12:00:00.000Z",
+      id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
+      likeCount: 0,
+      likedByViewer: false,
+    };
+
+    it("US-B01 AC-B01.1 posts a tweet with the CSRF token and parses the card", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(201, { tweet }),
+      );
+
+      await expect(
+        client.createTweet({ content: "First post!" }, "csrf-token"),
+      ).resolves.toEqual({ tweet });
+      expect(fetchImpl).toHaveBeenCalledWith("http://api.test/v1/tweets", {
+        body: JSON.stringify({ content: "First post!" }),
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          "x-csrf-token": "csrf-token",
+        },
+        method: "POST",
+      });
+    });
+
+    it("US-B02 AC-B02.1 deletes a tweet by encoded id with the CSRF token", async () => {
+      const { client, fetchImpl } = clientReturning(
+        new Response(null, { status: 204 }),
+      );
+
+      await client.deleteTweet("id/with?chars", "csrf-token");
+
+      expect(fetchImpl).toHaveBeenCalledWith(
+        "http://api.test/v1/tweets/id%2Fwith%3Fchars",
+        {
+          credentials: "include",
+          headers: { accept: "application/json", "x-csrf-token": "csrf-token" },
+          method: "DELETE",
+        },
+      );
+    });
+
+    it("US-B02 AC-B02.2 surfaces a forbidden delete as an ApiError", async () => {
+      const { client } = clientReturning(
+        jsonResponse(
+          403,
+          errorBody("FORBIDDEN", "You can only delete your own tweets."),
+        ),
+      );
+
+      await expect(
+        client.deleteTweet(tweet.id, "csrf-token"),
+      ).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        status: 403,
+      });
+    });
+  });
 });

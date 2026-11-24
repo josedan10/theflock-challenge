@@ -27,6 +27,10 @@ const session = {
 
 function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    createTweet: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    deleteTweet: vi.fn(async () => undefined),
     getProfile: vi.fn(async () => ({
       profile: {
         ...session.user,

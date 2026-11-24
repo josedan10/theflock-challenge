@@ -4,7 +4,7 @@ import { expect, vi } from "vitest";
 import { SessionProvider } from "../lib/session";
 
 import type { ApiClient } from "../lib/api-client";
-import type { AuthSessionResponse } from "@twitter-clone/contracts";
+import type { AuthSessionResponse, Tweet } from "@twitter-clone/contracts";
 import type { ReactElement } from "react";
 
 export const testSession: AuthSessionResponse = {
@@ -19,8 +19,26 @@ export const testSession: AuthSessionResponse = {
   },
 };
 
+export const testTweet: Tweet = {
+  author: {
+    avatarUrl: null,
+    displayName: testSession.user.displayName,
+    id: testSession.user.id,
+    username: testSession.user.username,
+  },
+  content: "First post!",
+  createdAt: "2026-11-24T12:00:00.000Z",
+  id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
+  likeCount: 0,
+  likedByViewer: false,
+};
+
 export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    createTweet: vi.fn(async (input: { content: string }) => ({
+      tweet: { ...testTweet, content: input.content },
+    })),
+    deleteTweet: vi.fn(async () => undefined),
     getProfile: vi.fn(async () => ({
       profile: {
         ...testSession.user,

@@ -1,6 +1,9 @@
 import {
   type AuthSessionResponse,
   authSessionResponseSchema,
+  type CreateTweetRequest,
+  type CreateTweetResponse,
+  createTweetResponseSchema,
   type ErrorCode,
   errorResponseSchema,
   type LoginRequest,
@@ -38,10 +41,17 @@ export interface ApiClient {
     input: UpdateProfileRequest,
     csrfToken: string,
   ): Promise<PublicProfileResponse>;
+  /** Publishes a tweet; resolves with the canonical card from the API. */
+  createTweet(
+    input: CreateTweetRequest,
+    csrfToken: string,
+  ): Promise<CreateTweetResponse>;
+  /** Deletes the signed-in member's own tweet. */
+  deleteTweet(tweetId: string, csrfToken: string): Promise<void>;
 }
 
 interface RequestOptions {
-  method: "GET" | "PATCH" | "POST";
+  method: "DELETE" | "GET" | "PATCH" | "POST";
   body?: unknown;
   csrfToken?: string | null;
 }
@@ -100,6 +110,20 @@ export function createApiClient(
   }
 
   return {
+    async createTweet(input, csrfToken) {
+      const response = await request("/tweets", {
+        body: input,
+        csrfToken,
+        method: "POST",
+      });
+      return createTweetResponseSchema.parse(await response.json());
+    },
+    async deleteTweet(tweetId, csrfToken) {
+      await request(`/tweets/${encodeURIComponent(tweetId)}`, {
+        csrfToken,
+        method: "DELETE",
+      });
+    },
     async getProfile(username) {
       const response = await request(`/users/${encodeURIComponent(username)}`, {
         method: "GET",
