@@ -1,0 +1,27 @@
+# Production overlay — start with:
+#   COMPOSE_PROFILES=prod docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+#
+# See docs/RUNBOOK.md and docs/technical/infrastructure.md.
+
+services:
+  postgres:
+    ports: []
+
+  api:
+    profiles: ["prod"]
+    build:
+      target: production
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      NODE_ENV: production
+    volumes: []
+
+  web:
+    profiles: ["prod"]
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      target: production
+    environment:
+      NODE_ENV: production
+    volumes: []

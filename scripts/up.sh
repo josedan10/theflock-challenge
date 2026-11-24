@@ -45,14 +45,14 @@ fi
 
 # 4. Database first, then pending migrations.
 step "Starting PostgreSQL"
-docker compose up -d --wait postgres
+docker compose --profile dev up -d --wait postgres
 
 step "Applying database migrations"
 pnpm db:migrate
 
 # 5. Everything else. --wait returns once health checks pass.
 step "Building and starting the API and web app"
-docker compose up -d --build --wait
+docker compose --profile dev up -d --build --wait
 
 step "Verifying"
 curl --fail --silent --show-error "http://localhost:${API_PORT_VALUE}/health/ready" >/dev/null \

@@ -4,13 +4,13 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 
 ## Foundation
 
-- [ ] **FND-01:** Initialize pnpm/Turborepo workspace with strict shared TypeScript, ESLint, Prettier, commit checks.
-- [ ] **FND-02:** Scaffold Fastify API with configuration schema, request IDs, structured logging, error envelope, liveness/readiness.
-- [ ] **FND-03:** Scaffold Next.js app with mobile-first shell, error boundary, loading skeletons, typed API client.
-- [ ] **FND-04:** Add PostgreSQL + Drizzle schema/migration harness and disposable test database.
-- [ ] **FND-05:** Add dev/prod multi-stage Dockerfiles, Compose profiles, health/dependency ordering, non-root users.
-- [ ] **FND-06:** Implement idempotent `setup.sh`; expand `doctor.sh`; add Bats tests on supported Linux/macOS CI runners.
-- [ ] **FND-07:** Add CI quality/security/build matrix and coverage artifact publishing.
+- [x] **FND-01:** Initialize pnpm/Turborepo workspace with strict shared TypeScript, ESLint, Prettier, commit checks.
+- [x] **FND-02:** Scaffold Fastify API with configuration schema, request IDs, structured logging, error envelope, liveness/readiness.
+- [x] **FND-03:** Scaffold Next.js app with mobile-first shell, error boundary, loading skeletons, typed API client.
+- [x] **FND-04:** Add PostgreSQL + Drizzle schema/migration harness and disposable test database.
+- [x] **FND-05:** Add dev/prod multi-stage Dockerfiles, Compose profiles, health/dependency ordering, non-root users.
+- [x] **FND-06:** Implement idempotent `setup.sh`; expand `doctor.sh`; add Bats tests on the Linux CI runner.
+- [x] **FND-07:** Add CI quality/security/build matrix and coverage artifact publishing.
 
 ## Authentication/profile
 

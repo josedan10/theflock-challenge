@@ -9,23 +9,28 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "compose:down": "docker compose down",
-    "compose:logs": "docker compose logs -f",
-    "compose:ps": "docker compose ps",
-    "compose:up": "docker compose up -d --build --wait",
+    "compose:down": "docker compose --profile dev down",
+    "compose:logs": "docker compose --profile dev logs -f",
+    "compose:ps": "docker compose --profile dev ps",
+    "compose:up": "docker compose --profile dev up -d --build --wait",
     "db:generate": "pnpm --filter @twitter-clone/api db:generate",
     "db:migrate": "pnpm --filter @twitter-clone/api db:migrate",
-    "db:up": "docker compose up -d --wait postgres",
+    "db:up": "docker compose --profile dev up -d --wait postgres",
     "dev": "turbo run dev --parallel",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "pnpm run lint:config && turbo run lint",
     "lint:config": "eslint eslint.config.mjs && bash scripts/test-eslint-config.sh",
-    "stack:up": "bash scripts/up.sh",
+    "prepare": "simple-git-hooks",
+    "stack:up": "bash scripts/setup.sh",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "test:e2e": "playwright test",
+    "test:scripts": "bats tests/bats",
     "typecheck": "turbo run typecheck"
+  },
+  "lint-staged": {
+    "*.{cjs,css,json,md,mjs,ts,tsx,yaml,yml}": "prettier --check"
   },
   "pnpm": {
     "overrides": {
@@ -36,6 +41,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
     "@eslint/js": "9.39.5",
     "@playwright/test": "1.65.1",
     "@types/node": "26.6.6",
@@ -46,7 +53,9 @@
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.14.0",
+    "lint-staged": "16.1.6",
     "prettier": "3.10.1",
+    "simple-git-hooks": "2.13.1",
     "tsx": "4.23.15",
     "turbo": "2.11.13",
     "typescript": "catalog:",
