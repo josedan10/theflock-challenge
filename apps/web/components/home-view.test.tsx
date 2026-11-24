@@ -59,6 +59,8 @@ describe("HomeView", () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
     expect(apiClient.logOut).toHaveBeenCalledWith(testSession.csrfToken);
+    // Logging out must not look like an expired session (flows §2.4).
+    expect(replace).not.toHaveBeenCalledWith("/login");
   });
 
   it("keeps the member signed in and explains a failed logout", async () => {

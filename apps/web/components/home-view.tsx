@@ -18,7 +18,9 @@ export function HomeView() {
   const session = useSession();
   const logOut = useLogOut();
   const [error, setError] = useState<string | null>(null);
-  const signedOut = session.isSuccess && session.data === null;
+  // A logout clears the session too; only an unexpected sign-out goes to /login.
+  const loggingOut = logOut.isPending || logOut.isSuccess;
+  const signedOut = session.isSuccess && session.data === null && !loggingOut;
 
   useEffect(() => {
     if (signedOut) {
