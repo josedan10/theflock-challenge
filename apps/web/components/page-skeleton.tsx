@@ -1,6 +1,12 @@
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 
-/** Placeholder while a route segment is loading (FND-03). */
+const bone = "motion-reduce:animate-none";
+
+/**
+ * Placeholder while a route segment is loading (FND-03): the outline of a
+ * card with a title, two fields and a button, the shape of the sign-in and
+ * registration pages. Only the label is announced.
+ */
 export function PageSkeleton({ label = "Loading…" }: { label?: string }) {
   return (
     <div
@@ -9,14 +15,18 @@ export function PageSkeleton({ label = "Loading…" }: { label?: string }) {
       role="status"
     >
       <p className="sr-only">{label}</p>
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Spinner aria-hidden="true" className="motion-reduce:animate-none" />
-        <span aria-hidden="true">{label}</span>
-      </div>
-      <div aria-hidden="true" className="grid gap-2">
-        <div className="h-3 w-2/3 animate-pulse rounded-md bg-muted motion-reduce:animate-none" />
-        <div className="h-3 w-full animate-pulse rounded-md bg-muted motion-reduce:animate-none" />
-        <div className="h-3 w-5/6 animate-pulse rounded-md bg-muted motion-reduce:animate-none" />
+      <div aria-hidden="true" className="grid gap-5">
+        <div className="grid gap-2">
+          <Skeleton className={`h-7 w-1/2 ${bone}`} />
+          <Skeleton className={`h-3.5 w-3/4 ${bone}`} />
+        </div>
+        {Array.from({ length: 2 }, (_, index) => (
+          <div className="grid gap-2" key={index}>
+            <Skeleton className={`h-3.5 w-20 ${bone}`} />
+            <Skeleton className={`h-9 w-full ${bone}`} />
+          </div>
+        ))}
+        <Skeleton className={`h-9 w-full ${bone}`} />
       </div>
     </div>
   );
