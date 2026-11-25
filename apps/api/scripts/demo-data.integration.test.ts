@@ -35,8 +35,26 @@ it("SEED-01 AC-G01.2 populates linked demo content, grows additively and preserv
     replies: 15,
     likes: 15,
     follows: 15,
-    notifications: 15,
+    notifications: 30,
   });
+  const profiles = await db.sql<
+    { username: string; display_name: string }[]
+  >`select username, display_name from users where username in ('demo_1','demo_11') order by username`;
+  expect(profiles).toEqual([
+    { username: "demo_1", display_name: "Maya Chen" },
+    { username: "demo_11", display_name: "Maya Brooks" },
+  ]);
+  const copy = (
+    await db.sql<
+      { content: string }[]
+    >`select content from tweets t join users u on u.id = t.author_id where u.username like 'demo_%'`
+  ).map((row) => row.content);
+  expect(copy.join("\n")).not.toMatch(
+    /Local Explorer|Ask me about|Anyone interested|testing out threaded replies/,
+  );
+  expect(
+    copy.filter((content) => content.includes("south platform")),
+  ).toHaveLength(2);
   expect(
     (await db.sql`select password_hash from users where username='demo_1'`)[0]
       ?.password_hash,
