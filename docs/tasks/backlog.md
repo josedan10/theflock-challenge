@@ -38,7 +38,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 
 ## Product features
 
-- [ ] **THR-01:** Nested public replies with parent-tweet validation, bounded thread reads, author context, accessible thread UI, API/UI tests, and documented challenge-only subtree deletion behavior.
+- [x] **THR-01:** Nested public replies with parent-tweet validation, bounded thread reads, author context, accessible thread UI, API/UI tests, and documented challenge-only subtree deletion behavior.
 - [ ] **NOT-01:** In-app notifications for relevant social activity, with deduplication, read state, pagination, and accessible UI.
 - [ ] **LIVE-01:** Live timeline updates with reconnect/catch-up behavior and duplicate suppression.
 - [ ] **IMG-01:** Tweet image uploads with validation, ownership, safe storage lifecycle, and accessible rendering.
