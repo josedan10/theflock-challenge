@@ -219,3 +219,80 @@ describe("TweetComposer failures", () => {
     await waitFor(() => expect(apiClient.createTweet).toHaveBeenCalledTimes(2));
   });
 });
+
+describe("TweetComposer keyboard shortcut", () => {
+  it.each([
+    ["⌘+Enter", "{Meta>}{Enter}{/Meta}"],
+    ["Ctrl+Enter", "{Control>}{Enter}{/Control}"],
+  ])("US-B01 posts with %s", async (_name, keys) => {
+    const createTweet = vi.fn(async (input: { content: string }) => ({
+      tweet: { ...testTweet, content: input.content },
+    }));
+    await renderComposer(signedIn({ createTweet }));
+    const user = userEvent.setup();
+
+    await user.type(textbox(), "Sent from the keyboard");
+    await user.keyboard(keys);
+
+    await waitFor(() =>
+      expect(createTweet).toHaveBeenCalledWith(
+        { content: "Sent from the keyboard" },
+        testSession.csrfToken,
+      ),
+    );
+    await waitFor(() => expect(textbox()).toHaveValue(""));
+  });
+
+  it("US-B01 keeps plain Enter as a new line", async () => {
+    const createTweet = vi.fn();
+    await renderComposer(signedIn({ createTweet }));
+    const user = userEvent.setup();
+
+    await user.type(textbox(), "line one{Enter}line two");
+
+    expect(textbox()).toHaveValue("line one\nline two");
+    expect(createTweet).not.toHaveBeenCalled();
+  });
+
+  it("US-B01 AC-B01.4 applies the usual rules: nothing empty or over the limit is sent", async () => {
+    const createTweet = vi.fn();
+    await renderComposer(signedIn({ createTweet }));
+    const user = userEvent.setup();
+
+    textbox().focus();
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    enter("a".repeat(281));
+    textbox().focus();
+    await user.keyboard("{Meta>}{Enter}{/Meta}");
+
+    expect(createTweet).not.toHaveBeenCalled();
+  });
+
+  it("US-B01 AC-B01.4 sends once even when the shortcut is pressed twice", async () => {
+    let finish: () => void = () => undefined;
+    const createTweet = vi.fn(
+      () =>
+        new Promise<{ tweet: typeof testTweet }>((resolve) => {
+          finish = () => resolve({ tweet: testTweet });
+        }),
+    );
+    await renderComposer(signedIn({ createTweet }));
+    const user = userEvent.setup();
+
+    await user.type(textbox(), "once");
+    await user.keyboard("{Control>}{Enter}{Enter}{/Control}");
+    await act(async () => finish());
+
+    expect(createTweet).toHaveBeenCalledTimes(1);
+  });
+
+  it("US-B01 announces the shortcut in the hint and to assistive tech", async () => {
+    await renderComposer();
+
+    expect(textbox()).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Meta+Enter Control+Enter",
+    );
+    expect(textbox()).toHaveAccessibleDescription(/Enter.*to post/);
+  });
+});
