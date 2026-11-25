@@ -34,13 +34,21 @@ test("THR-01 US-B04 posts a nested reply and reads its branch signed out", async
   ).toBeVisible({ timeout: FIRST_VISIT_TIMEOUT_MS });
   await page.getByRole("textbox", { name: "Your reply" }).fill("First reply");
   await page.getByRole("button", { name: "Post reply" }).click();
-  await page
+  const replyLink = page
     .getByRole("article")
     .filter({ hasText: "First reply" })
-    .getByRole("link", { name: /Open thread/ })
-    .click();
+    .getByRole("link", { name: /Open thread/ });
+  const replyHref = await replyLink.getAttribute("href");
+  if (replyHref === null) {
+    throw new Error("Reply thread link has no destination.");
+  }
+  await replyLink.click();
+  // Wait for the reply's own page before typing. The root page lists the
+  // reply with a "View parent tweet by …" link, so that name alone also
+  // matches there, and typing early would land in the root page's box.
+  await expect(page).toHaveURL(new URL(replyHref, baseURL).href);
   await expect(
-    page.getByRole("link", { name: "View parent tweet" }),
+    page.getByRole("link", { exact: true, name: "View parent tweet" }),
   ).toBeVisible();
   await page.getByRole("textbox", { name: "Your reply" }).fill("Nested reply");
   await page.getByRole("button", { name: "Post reply" }).click();
