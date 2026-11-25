@@ -142,7 +142,7 @@ Optional features are off by default. Turn one on in `.env`, then apply it with 
 
 - **Tweet images:** set both flags. The first lets the API accept uploads and the second shows the picture button in the composer; with only one, posting a picture does not work. Images are stored in the Compose `media-data` volume.
 - **Activity simulator:** demo accounts post, reply and like on their own, and lean toward real accounts. Follow the accounts in [See it live](#see-it-live) to watch it on Home. Stop it with `pnpm activity:stop` and undo what it did with `pnpm activity:reset`. Turn on tweet images too if you want its posts to carry pictures. Details in [the setup guide](docs/SETUP.md#local-activity-simulator-dev-01).
-- **Always on:** the live Home timeline and notifications need no flag. `REALTIME_ENABLED`, `NOTIFICATIONS_ENABLED` and the `S3_*` keys in `.env.example` are placeholders that nothing reads yet.
+- **Always on:** the live Home timeline and notifications need no flag. `REALTIME_ENABLED` and `NOTIFICATIONS_ENABLED` in `.env.example` are placeholders that nothing reads yet.
 
 ### Stop the project
 
