@@ -43,6 +43,7 @@ export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
       relationship: { followerCount: 1, following: true },
     })),
     getFollowList: vi.fn(async () => ({ items: [], nextCursor: null })),
+    searchUsers: vi.fn(async () => ({ items: [] })),
     getProfile: vi.fn(async () => ({
       profile: {
         ...testSession.user,
