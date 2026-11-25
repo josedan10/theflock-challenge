@@ -22,3 +22,15 @@ export class SelfFollowError extends Error {
     super("You cannot follow yourself.");
   }
 }
+
+/**
+ * Raised when the tweet to like or unlike does not exist, cannot exist, or was
+ * deleted. The HTTP layer answers every case with the same `404` (US-C02).
+ */
+export class LikeTargetNotFoundError extends Error {
+  override readonly name = "LikeTargetNotFoundError";
+
+  constructor() {
+    super("That tweet does not exist.");
+  }
+}
