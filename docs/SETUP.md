@@ -7,7 +7,7 @@ This guide sets up the implemented application workspace and explains failures w
 - macOS or Linux (Windows through WSL2)
 - Git
 - Docker Desktop or Docker Engine with Compose v2
-- Node.js 22 LTS and Corepack
+- Node.js 26 LTS and Corepack
 - At least 4 GB free RAM and 5 GB free disk for images/dependencies
 
 ## 1. Clone and inspect
@@ -41,8 +41,8 @@ Common fixes:
 | ------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `docker is missing`                         | Install Docker Desktop/Engine and the Compose v2 plugin                                     |
 | `daemon is unavailable`                     | Start Docker Desktop or `docker` service; verify `docker info`                              |
-| `Node.js 22+ is required`                   | Install Node 22 LTS using your version manager, then reopen shell                           |
-| `corepack is missing`                       | Use a Node distribution that includes Corepack or install/enable it according to Node docs  |
+| `Node.js 22+ is required`                   | Install Node 26 LTS using your version manager, then reopen the shell                       |
+| `corepack is missing`                       | Node 26 does not ship Corepack; run `npm install -g corepack@0.36.0 && corepack enable`     |
 | `.env is missing`                           | `cp .env.example .env`                                                                      |
 | `SESSION_SECRET must be replaced`           | Generate with `openssl rand -base64 48` and paste the output                                |
 | `package.json or pnpm-lock.yaml is missing` | Restore the tracked workspace manifests before continuing                                   |
@@ -56,6 +56,7 @@ bash -n scripts/doctor.sh
 ./scripts/test-doctor.sh
 pnpm test:scripts
 ./scripts/doctor.sh
+npm install -g corepack@0.36.0
 corepack enable
 pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
@@ -95,7 +96,7 @@ pnpm build
 
 `pnpm test:e2e` starts its own API (port 4100) and web app (port 3100) against the database in `DATABASE_URL`: the Compose database locally, a service container in CI. It applies pending migrations first, and each run adds throwaway `e2e-…@example.com` accounts. Keep `docker compose up -d postgres` running before you start it.
 
-Use Node 22 LTS for local tests (CI uses Node 22). `undici@8.13.1` is patched so Testcontainers and jsdom still load on Node 23.0–23.7, which lack `zlib.createZstdDecompress`.
+Use Node 26 LTS for local tests (CI uses Node 26). `undici@8.13.1` is patched so Testcontainers and jsdom still load on Node 23.0–23.7, which lack `zlib.createZstdDecompress`.
 
 To stop without deleting data: `docker compose down`. To deliberately erase local DB data: `docker compose down -v` (destructive).
 

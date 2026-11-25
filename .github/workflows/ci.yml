@@ -20,13 +20,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js 22
+      - name: Use Node.js 26
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
 
       - name: Enable pinned pnpm
-        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+        run: npm install -g corepack@0.36.0 && corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -44,13 +44,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js 22
+      - name: Use Node.js 26
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
 
       - name: Enable pinned pnpm
-        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+        run: npm install -g corepack@0.36.0 && corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -76,13 +76,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js 22
+      - name: Use Node.js 26
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
 
       - name: Enable pinned pnpm
-        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+        run: npm install -g corepack@0.36.0 && corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -112,13 +112,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js 22
+      - name: Use Node.js 26
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
 
       - name: Enable pinned pnpm
-        run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+        run: npm install -g corepack@0.36.0 && corepack enable && corepack prepare pnpm@10.33.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

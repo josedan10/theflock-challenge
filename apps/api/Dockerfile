@@ -1,12 +1,15 @@
 # syntax=docker/dockerfile:1.7
-FROM node:22-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN npm install -g corepack@0.36.0 \
+  && corepack enable \
+  && corepack prepare pnpm@10.33.0 --activate
 WORKDIR /workspace
 
 FROM base AS dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY patches patches
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/config/package.json packages/config/package.json
@@ -24,7 +27,7 @@ COPY . .
 RUN pnpm --filter @twitter-clone/api build \
   && pnpm --filter @twitter-clone/api deploy --prod --legacy /opt/api
 
-FROM node:22-bookworm-slim AS production
+FROM node:26-bookworm-slim AS production
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build --chown=node:node /opt/api/node_modules ./node_modules
