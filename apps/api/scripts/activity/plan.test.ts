@@ -91,6 +91,30 @@ describe("DEV-01 activity plan", () => {
       });
     });
 
+    it("lends a corpus picture to a post whose line has none, half the time", () => {
+      // Mention lines have no picture of their own; the last draw decides.
+      expect(
+        planAction(withGrace, draws(0, 0.5, 0, 0, 0, 0, 0.2, 0.5)),
+      ).toMatchObject({ image: "scene-16.png", kind: "post" });
+      expect(
+        planAction(withGrace, draws(0, 0.5, 0, 0, 0, 0, 0.7)),
+      ).toMatchObject({ image: null, kind: "post" });
+    });
+
+    it("puts a picture on roughly half or more of all new posts", () => {
+      const random = seeded(7);
+      let posts = 0;
+      let pictured = 0;
+      for (let run = 0; run < 4000; run += 1) {
+        const action = planAction(withGrace, random);
+        if (action?.kind === "post") {
+          posts += 1;
+          pictured += action.image === null ? 0 : 1;
+        }
+      }
+      expect(pictured / posts).toBeGreaterThan(0.45);
+    });
+
     it("sometimes names another demo account, never the author", () => {
       // The 0.95 draw skips the real-member pool; demo_2 is the first other account.
       expect(planAction(withGrace, draws(0, 0.5, 0, 0, 0.95, 0))).toMatchObject(

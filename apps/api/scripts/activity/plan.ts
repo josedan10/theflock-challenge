@@ -56,9 +56,15 @@ export const MENTION_POST_SHARE = 0.8;
 export const REAL_MENTION_SHARE = 0.9;
 /** Share of actions that reply when no real member is around to engage. */
 export const REPLY_SHARE = 0.4;
+/** Chance a post whose line has no picture of its own borrows a corpus picture. */
+export const PICTURE_SHARE = 0.5;
 
 const posts = activityCorpus.filter((line) => line.kind === "post");
 const mentionPosts = posts.filter((line) => line.text.includes("{mention}"));
+/** The corpus pictures. They are simple scenes, so any post can carry one. */
+const pictures = posts.flatMap((line) =>
+  line.image === null ? [] : [line.image],
+);
 const replies = activityCorpus.filter((line) => line.kind === "reply");
 
 function pick<T>(items: readonly T[], random: Random): T {
@@ -161,10 +167,13 @@ export function planAction(world: World, random: Random): PlannedAction | null {
     realMembers.length > 0 && random() < MENTION_POST_SHARE
       ? pick(mentionPosts, random)
       : pick(posts, random);
+  const content = fillMention(line.text, author, realMembers, world, random);
   return {
     author,
-    content: fillMention(line.text, author, realMembers, world, random),
-    image: line.image,
+    content,
+    // A line keeps its own picture; any other post often borrows one.
+    image:
+      line.image ?? (random() < PICTURE_SHARE ? pick(pictures, random) : null),
     kind: "post",
   };
 }
