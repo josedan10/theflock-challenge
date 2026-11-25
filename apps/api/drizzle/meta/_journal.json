@@ -50,6 +50,13 @@
       "when": 1795618544539,
       "tag": "20261125145544_tweet_images",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795621004457,
+      "tag": "20261125153644_optional_image_alt",
+      "breakpoints": true
     }
   ]
 }

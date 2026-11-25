@@ -279,6 +279,33 @@ describe("IMG-01 tweet images", () => {
     expect(thread.selected.image?.alt).toBe("Red square");
   });
 
+  it("US-F02 AC-F02.4 stores an image with an empty description", async () => {
+    const bytes = await png();
+    const created = uploadIntentResponseSchema.parse(
+      (
+        await intent(ada, { byteSize: bytes.length, mimeType: "image/png" })
+      ).json(),
+    );
+    expect(
+      (await upload(ada, created.uploadId, created.uploadToken, bytes))
+        .statusCode,
+    ).toBe(204);
+    const posted = await app.inject({
+      cookies: { sid: ada.token },
+      headers: { "x-csrf-token": ada.csrfToken },
+      method: "POST",
+      payload: {
+        content: "No description",
+        image: { alt: "", uploadId: created.uploadId },
+      },
+      url: "/v1/tweets",
+    });
+    expect(posted.statusCode).toBe(201);
+    expect(
+      createTweetResponseSchema.parse(posted.json()).tweet.image?.alt,
+    ).toBe("");
+  });
+
   it("US-F02 AC-F02.5 deletes the object with the tweet and drops an expired upload", async () => {
     const bytes = await png();
     const created = uploadIntentResponseSchema.parse(

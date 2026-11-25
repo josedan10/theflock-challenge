@@ -99,7 +99,7 @@ Migration `notifications` adds `notifications(id, recipient_id, actor_id, type, 
 `tweet_media` and `media_uploads` are created by IMG-01 (migration `20261125145544_tweet_images`).
 
 - `media_uploads` is the short-lived grant: owner, server-generated `object_key`, SHA-256 of the upload token, declared type and size, verified dimensions once accepted, status `pending | verified | attached | rejected`, and expiry. `tweet_id` is set only when status is `attached`. Expired rows that are not attached are deleted when a new intent is created.
-- `tweet_media(tweet_id PK/FK, object_key UNIQUE, mime_type, byte_size, width, height, status, alt_text, created_at)` is the one image on a tweet. `status` is `attached`. `alt_text` is the text alternative, 1–200 characters. Deleting the tweet cascades this row and the upload row. The application then deletes the object file. That file delete is idempotent; a crash after the database commit can leave an unreferenced file, which is not served.
+- `tweet_media(tweet_id PK/FK, object_key UNIQUE, mime_type, byte_size, width, height, status, alt_text, created_at)` is the one image on a tweet. `status` is `attached`. `alt_text` is the optional text alternative, at most 200 characters, and may be empty. Deleting the tweet cascades this row and the upload row. The application then deletes the object file. That file delete is idempotent; a crash after the database commit can leave an unreferenced file, which is not served.
 
 `outbox_events` is not used. LIVE-01 publishes in-process after commit and recovers missed events from `tweets` on SSE reconnect.
 

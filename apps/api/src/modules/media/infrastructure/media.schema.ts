@@ -128,10 +128,9 @@ export const tweetMedia = pgTable(
       "tweet_media_dimensions_check",
       sql`${table.width} between 1 and 4096 and ${table.height} between 1 and 4096`,
     ),
-    // PostgreSQL text cannot store NUL, and chr(0) errors inside a check.
     check(
       "tweet_media_alt_check",
-      sql`char_length(${table.altText}) between 1 and 200 and ${table.altText} = btrim(${table.altText})`,
+      sql`char_length(${table.altText}) <= 200 and ${table.altText} = btrim(${table.altText})`,
     ),
   ],
 );
