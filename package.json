@@ -10,6 +10,7 @@
   "scripts": {
     "activity": "pnpm --filter @twitter-clone/api activity",
     "activity:reset": "pnpm --filter @twitter-clone/api activity --reset",
+    "activity:start": "docker compose --profile dev --profile activity up -d --build activity",
     "activity:stop": "docker compose --profile activity stop activity",
     "api:health": "curl --fail --silent --show-error http://localhost:${API_PORT:-4000}/health/ready",
     "build": "turbo run build",
