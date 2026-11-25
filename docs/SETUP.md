@@ -29,8 +29,7 @@ Do not commit `.env`. The checked-in `.env.example` contains names and safe deve
 ## 2. Run diagnostics
 
 ```bash
-chmod +x scripts/doctor.sh   # only needed if executable bits were lost
-./scripts/doctor.sh
+pnpm stack:doctor
 ```
 
 The doctor checks Git, Docker/daemon/Compose, Node 22+, Corepack, required variables, and insecure placeholder secrets. It exits non-zero on actionable errors.
@@ -52,15 +51,16 @@ Common fixes:
 ## 3. Install and verify tooling
 
 ```bash
-bash -n scripts/doctor.sh
-./scripts/test-doctor.sh
-pnpm test:scripts
-./scripts/doctor.sh
 npm install -g corepack@0.36.0
 corepack enable
 pnpm install --frozen-lockfile
+pnpm stack:doctor:test
+pnpm test:scripts
+pnpm stack:doctor
 pnpm exec playwright install chromium
 ```
+
+Corepack is what provides `pnpm`, so those two bootstrap lines are the only non-pnpm commands.
 
 The doctor test uses stubbed prerequisites to verify both success and missing-secret diagnostics. The real doctor command must finish with zero errors before continuing.
 
@@ -68,18 +68,18 @@ The doctor test uses stubbed prerequisites to verify both success and missing-se
 
 These commands are the tested local setup contract:
 
-**Quick start:** `pnpm stack:up` (or `./scripts/setup.sh`) runs the steps below in order. It creates `.env` with a generated `SESSION_SECRET` if the file is missing, runs the doctor, installs dependencies, starts PostgreSQL, applies migrations, seeds the local demo, then starts and health-checks the API and web app. It is safe to re-run.
+**Quick start:** `pnpm stack:up` runs the steps below in order. It creates `.env` with a generated `SESSION_SECRET` if the file is missing, runs the doctor, installs dependencies, starts PostgreSQL, applies migrations, seeds the local demo, then starts and health-checks the API and web app. It is safe to re-run.
 
 Shortcuts: `pnpm compose:up`, `pnpm compose:down`, `pnpm compose:ps`, `pnpm compose:logs`, and `pnpm db:up` (PostgreSQL only).
 
 Manual steps:
 
 ```bash
-docker compose --profile dev up -d postgres
+pnpm db:up
 pnpm db:migrate
-pnpm --filter @twitter-clone/api db:seed
-docker compose --profile dev up --build
-curl --fail http://localhost:4000/health/ready
+pnpm db:seed
+pnpm compose:up
+pnpm api:health
 ```
 
 Default local services are web `http://localhost:3000`, API `http://localhost:4000`, and PostgreSQL on `localhost:5433`. The host ports are configurable in `.env`; URLs and `CORS_ORIGIN` must match any changed web/API ports.
@@ -95,11 +95,11 @@ pnpm test:e2e
 pnpm build
 ```
 
-`pnpm test:e2e` starts its own API (port 4100) and web app (port 3100) against the database in `DATABASE_URL`: the Compose database locally, a service container in CI. It applies pending migrations first, and each run adds throwaway `e2e-…@example.com` accounts. Keep `docker compose up -d postgres` running before you start it.
+`pnpm test:e2e` starts its own API (port 4100) and web app (port 3100) against the database in `DATABASE_URL`: the Compose database locally, a service container in CI. It applies pending migrations first, and each run adds throwaway `e2e-…@example.com` accounts. Keep PostgreSQL running (`pnpm db:up`) before you start it.
 
 Use Node 26 LTS for local tests (CI uses Node 26). `undici@8.13.1` is patched so Testcontainers and jsdom still load on Node 23.0–23.7, which lack `zlib.createZstdDecompress`.
 
-To stop without deleting data: `docker compose down`. To deliberately erase local DB data: `docker compose down -v` (destructive).
+To stop without deleting data: `pnpm compose:down`. To deliberately erase local DB data: `pnpm compose:destroy-data` (destructive).
 
 ## Configuration rules
 
@@ -114,21 +114,20 @@ To stop without deleting data: `docker compose down`. To deliberately erase loca
 Capture these safe outputs (redact URLs/tokens/passwords):
 
 ```bash
-./scripts/doctor.sh
-docker compose config --services   # once Compose exists
-docker compose ps
-docker compose logs --tail=100 api postgres
+pnpm stack:doctor
+pnpm compose:ps
+pnpm compose:logs --tail=100 api postgres   # Ctrl+C stops following
 ```
 
 Never paste the contents of `.env`, cookies, authorization headers, or a full database URL into an issue.
 
 ### Local demo data (SEED-01)
 
-After migrations, `pnpm stack:up` seeds 10 synthetic accounts with profiles, posts, follows, likes, threaded replies and notifications. To request 25 total demo accounts run `./scripts/setup.sh --seed-users 25`. The flag takes precedence over `SEED_USER_COUNT` in the shell or root `.env`; supported range: 10–100. No external services are involved, and the activity simulator below stays off unless you turn it on.
+After migrations, `pnpm stack:up` seeds 10 synthetic accounts with profiles, posts, follows, likes, threaded replies and notifications. To request 25 total demo accounts run `pnpm stack:up --seed-users 25`. The flag takes precedence over `SEED_USER_COUNT` in the shell or root `.env`; supported range: 10–100. No external services are involved, and the activity simulator below stays off unless you turn it on.
 
 Log in as `demo_1@example.test` (through `demo_N@example.test`) with the shared **local demo password** in the repository-root `.env.seed-password`. Setup generates it once with owner-only permissions. Never publish it or reuse it elsewhere. Search for `demo_` to inspect the profiles or open Home and Notifications while signed in.
 
-With a migrated local database, run `pnpm --filter @twitter-clone/api db:seed` to reseed without restarting. Reruns restore missing fixtures and refresh seeded names, bios, posts, and replies. Passwords stay as they are, and requesting fewer users does not remove any. A conflicting real username or email aborts the seed rather than taking over the account. Keep the password file as long as you retain the database. If another worktree shares that database, use its original password file or a separate local database. For a **full reset**, only if all local data is disposable, stop the stack and explicitly remove the Compose volume as described above, then rerun setup. That reset also erases non-demo accounts.
+With a migrated local database, run `pnpm db:seed` to reseed without restarting. Reruns restore missing fixtures and refresh seeded names, bios, posts, and replies. Passwords stay as they are, and requesting fewer users does not remove any. A conflicting real username or email aborts the seed rather than taking over the account. Keep the password file as long as you retain the database. If another worktree shares that database, use its original password file or a separate local database. For a **full reset**, only if all local data is disposable, stop the stack and explicitly remove the Compose volume as described above, then rerun setup. That reset also erases non-demo accounts.
 
 ### Local activity simulator (DEV-01)
 
