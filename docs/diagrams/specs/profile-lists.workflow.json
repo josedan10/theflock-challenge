@@ -76,7 +76,7 @@
       "col": 3,
       "type": "backend",
       "label": "Query Profile or List",
-      "sublabel": "cursor pagination",
+      "sublabel": "profile, posts, or list",
       "width": 150
     },
     {
@@ -102,8 +102,8 @@
       "lane": "db",
       "col": 4,
       "type": "database",
-      "label": "Users + Follows",
-      "sublabel": "reverse indexes",
+      "label": "Users, Follows, Tweets",
+      "sublabel": "author keyset + follows",
       "width": 150
     }
   ],

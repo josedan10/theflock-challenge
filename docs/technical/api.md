@@ -112,6 +112,14 @@ v1 profiles are public (requirements rule 10, PROFILE-01, US-A03). A viewer does
 
 Bio is plain text. The API stores it and returns it as a JSON string; it does not interpret or strip markup. Clients must render it as text (AC-A03.3). Reads are limited to 120 attempts per minute per client address.
 
+## Profile posts (`GET /v1/users/:username/tweets`)
+
+Public read of one member's tweets and replies (PROFILE-03, US-A03, AC-A03.4). A session is optional: an active `sid` cookie sets `likedByViewer`, and a missing, expired, or revoked one is treated as signed out, never `401`. The username is matched case-insensitively. Unknown, malformed, and soft-deleted usernames return `404 NOT_FOUND` ("That profile does not exist."). The response is `Cache-Control: no-store`.
+
+`200` (`profilePostsPageSchema`): `{ "items": ProfilePost[], "nextCursor": string | null }`. Each item is a tweet card plus `replyingTo`, the parent author's username when this post is a reply and that member is still visible, otherwise `null`. A reply is listed on its author's profile, not on the parent author's. Deleted tweets and replies are absent. Order is `created_at DESC, id DESC`.
+
+`cursor` and `limit` follow the home-timeline rules: omit `cursor` on the first page, pass it back unchanged, and `null` means the end. `limit` defaults to 20 and is capped at 30. The cursor is signed under a profile-posts key and scoped to the member, not the viewer, because the list is public: a cursor from another member is `400 MALFORMED_REQUEST`, as is any invalid or repeated query parameter. Reads allow 120 per minute per client address. No migration: the read uses `tweets_author_id_created_at_id_idx`. Rotating `SESSION_SECRET` invalidates outstanding cursors.
+
 `PATCH /v1/me/profile` edits the authenticated member only (PROFILE-02). There is no route that edits another member. Send `X-CSRF-Token`. At least one of `displayName` (1–80 code points) or `bio` (0–160 code points, empty allowed) is required; omitted fields stay as stored. Both are trimmed. A null character is rejected. Unknown properties (`email`, `username`, `userId`, `password`, `avatarKey`) are `422` and nothing is written. Avatar keys stay disabled until an upload can prove the caller owns the object.
 
 | Status | Body                                          | Notes                                         |

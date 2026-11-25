@@ -145,8 +145,11 @@ export async function buildApp(
     await app.register(
       usersModule({
         db: options.auth.db,
+        mediaOrigin,
+        optionalSession: auth.optionalSession,
         requireCsrf: auth.requireCsrf,
         requireSession: auth.requireSession,
+        sessionSecret: options.auth.sessionSecret,
         ...(options.auth.clock === undefined
           ? {}
           : { clock: options.auth.clock }),

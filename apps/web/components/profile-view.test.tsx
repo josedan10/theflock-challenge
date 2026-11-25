@@ -5,7 +5,12 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "../lib/api-client";
 
 import { ProfileView } from "./profile-view";
-import { fakeApiClient, renderWithSession, testSession } from "./test-utils";
+import {
+  fakeApiClient,
+  renderWithSession,
+  testSession,
+  testTweet,
+} from "./test-utils";
 
 const profile = {
   ...testSession.user,
@@ -248,5 +253,110 @@ describe("profile view", () => {
     expect(await screen.findByText("Invalid profile.")).toBeVisible();
     expect(screen.getByText("Must be at most 160 characters.")).toBeVisible();
     expect(screen.getByRole("button", { name: "Save profile" })).toBeEnabled();
+  });
+
+  it("PROFILE-03 AC-A03.4 lists posts newest-first, including a reply, and loads the next page", async () => {
+    const older = {
+      ...testTweet,
+      content: "Older root",
+      id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f62",
+      replyingTo: null,
+    };
+    const reply = {
+      ...testTweet,
+      content: "A reply",
+      id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f63",
+      replyingTo: "grace",
+    };
+    const getProfilePosts = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [reply],
+        nextCursor: "older",
+      })
+      .mockResolvedValueOnce({ items: [older], nextCursor: null });
+    const user = userEvent.setup();
+    renderWithSession(
+      <ProfileView username="ada" />,
+      fakeApiClient({
+        getProfile: vi.fn(async () => ({ profile })),
+        getProfilePosts,
+        me: vi.fn(async () => null),
+      }),
+    );
+
+    const list = await screen.findByRole("list", { name: "Posts" });
+    expect(list).toHaveTextContent("A reply");
+    expect(screen.getByRole("link", { name: "@grace" })).toHaveAttribute(
+      "href",
+      "/u/grace",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Delete tweet" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+
+    expect(getProfilePosts).toHaveBeenLastCalledWith("ada", "older");
+    expect(list).toHaveTextContent("Older root");
+    expect(screen.getByText("That's everything.")).toBeVisible();
+  });
+
+  it("PROFILE-03 AC-A03.4 shows an empty list and retries a failed load", async () => {
+    const user = userEvent.setup();
+    const getProfilePosts = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError(500, "INTERNAL_ERROR", "Down."))
+      .mockResolvedValueOnce({ items: [], nextCursor: null });
+    renderWithSession(
+      <ProfileView username="ada" />,
+      fakeApiClient({
+        getProfile: vi.fn(async () => ({ profile })),
+        getProfilePosts,
+      }),
+    );
+
+    expect(
+      await screen.findByText("We couldn't load these posts."),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("No posts yet.")).toBeVisible();
+    expect(getProfilePosts).toHaveBeenCalledTimes(2);
+  });
+
+  it("US-B02 AC-B02.3 asks before deleting a post on the author's profile", async () => {
+    const user = userEvent.setup();
+    const deleteTweet = vi.fn(async () => undefined);
+    renderWithSession(
+      <ProfileView username="ada" />,
+      fakeApiClient({
+        deleteTweet,
+        getProfile: vi.fn(async () => ({ profile })),
+        getProfilePosts: vi.fn(async () => ({
+          items: [{ ...testTweet, replyingTo: null }],
+          nextCursor: null,
+        })),
+        me: vi.fn(async () => testSession),
+      }),
+    );
+
+    await user.click(
+      await screen.findByRole("button", { name: "Delete tweet" }),
+    );
+    const dialog = screen.getByRole("alertdialog", {
+      name: "Delete this tweet?",
+    });
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(dialog).not.toBeVisible();
+    expect(deleteTweet).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Delete tweet" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() =>
+      expect(deleteTweet).toHaveBeenCalledWith(
+        testTweet.id,
+        testSession.csrfToken,
+      ),
+    );
   });
 });
