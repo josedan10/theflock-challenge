@@ -10,7 +10,7 @@ Local setup includes 10 demo accounts and sample conversations. Use `pnpm stack:
 
 ### See it live
 
-With `ACTIVITY_SIMULATOR=true` in `.env`, the demo accounts keep posting, replying and liking while you use the app ([how to run, stop and reset it](docs/SETUP.md#local-activity-simulator-dev-01)). They interact mainly with real accounts: about 9 in 10 actions like or reply to your posts or mention you, so your Notifications fill up as well. A new action comes every 15 to 40 seconds.
+Set `ACTIVITY_SIMULATOR=true` in `.env` and start the simulator with `pnpm activity:start` once the app is running (see [step 5](#5-optional-start-the-activity-simulator)). The demo accounts then keep posting, replying and liking while you use the app ([how to stop and reset it](docs/SETUP.md#local-activity-simulator-dev-01)). They interact mainly with real accounts: about 9 in 10 actions like or reply to your posts or mention you, so your Notifications fill up as well. A new action comes every 15 to 40 seconds.
 
 Home only shows live posts from people you follow. Register your own account, then follow some or all of these accounts, at `http://localhost:3000/u/<username>` or through Search:
 
@@ -128,6 +128,17 @@ pnpm compose:logs
 ```
 
 If a default port is occupied, change `WEB_PORT`, `API_PORT`, or `POSTGRES_PORT` in `.env`. When changing the web or API port, also update the corresponding URLs and `CORS_ORIGIN`.
+
+### 5. (Optional) Start the activity simulator
+
+To see demo accounts interact with you, set `ACTIVITY_SIMULATOR=true` in `.env`, then:
+
+```bash
+pnpm activity:start
+pnpm compose:logs activity   # shows each action as it happens
+```
+
+`pnpm compose:up` does not start the simulator; `pnpm stack:up` does when the flag is on. Register your own account and follow the accounts in [See it live](#see-it-live). Stop it with `pnpm activity:stop`; undo what it did with `pnpm activity:reset`.
 
 ### Feature flags
 
