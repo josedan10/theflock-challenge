@@ -120,7 +120,7 @@ The scenarios use Given/When/Then language so they can become executable API or 
 **As a member, I want new eligible tweets to appear without refreshing so that I do not miss posts while I am on the home timeline.**
 
 - **AC-F01.1:** Given a member has a live home-timeline stream, when an eligible tweet commits (the member's own or a followed author's), then the server sends an SSE event named `timeline.tweet` whose data is that tweet's id only.
-- **AC-F01.2:** Given that event, the home UI loads authoritative cards and offers the tweet without moving keyboard focus. If the member has already asked for an older page, a banner is shown instead of prepending into the list they are reading.
+- **AC-F01.2:** Given that event, the home UI loads authoritative cards and offers the tweet without moving keyboard focus. At the top of the feed the tweet is prepended. If the top of the feed is off screen, or the member has already asked for an older page, a **Show N new posts** banner stays in view and the tweet waits there instead of being inserted into the part of the list they are reading.
 - **AC-F01.3:** Given the stream reconnects with `Last-Event-ID`, the server emits missed eligible tweet ids (at most 30) and the client does not render the same tweet twice.
 - **AC-F01.4:** An unauthenticated stream request is `401`. Tweets from authors the viewer does not follow (except the viewer) are not emitted. A tampered or other-viewer's `Last-Event-ID` does not leak another member's events.
 - **AC-F01.5:** Opening the stream is rate limited per client address.

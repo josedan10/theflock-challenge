@@ -5,6 +5,8 @@ import { testTweet } from "../components/test-utils";
 import {
   assembleTimeline,
   dedupeTweets,
+  holdLivePosts,
+  livePostIdsToHold,
   restoreTweet,
   tweetSlot,
   mergeLiveTweets,
@@ -96,6 +98,27 @@ describe("timeline feed assembly (AC-B03.3)", () => {
         (item) => item.content,
       ),
     ).toEqual(["higher id"]);
+  });
+
+  it("AC-F01.2 holds new posts when the reader has left the top or opened an older page", () => {
+    expect(holdLivePosts({ pinnedToTop: true, readingOlderPage: false })).toBe(
+      false,
+    );
+    expect(holdLivePosts({ pinnedToTop: false, readingOlderPage: false })).toBe(
+      true,
+    );
+    expect(holdLivePosts({ pinnedToTop: true, readingOlderPage: true })).toBe(
+      true,
+    );
+  });
+
+  it("AC-F01.2 keeps tweets already shown when the reader leaves the top", () => {
+    const shown = new Set(["already"]);
+
+    expect(livePostIdsToHold(["already", "fresh"], shown, true)).toEqual([
+      "fresh",
+    ]);
+    expect(livePostIdsToHold(["already", "fresh"], shown, false)).toEqual([]);
   });
 
   it("omits tweets posted while reading older pages until the banner is accepted", () => {

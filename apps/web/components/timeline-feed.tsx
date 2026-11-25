@@ -19,7 +19,12 @@ import {
   closeUndoWindow,
   useUndoWindows,
 } from "../lib/post-undo";
-import { assembleTimeline, tweetsAheadOfPage } from "../lib/timeline-feed";
+import {
+  assembleTimeline,
+  holdLivePosts,
+  livePostIdsToHold,
+  tweetsAheadOfPage,
+} from "../lib/timeline-feed";
 import {
   useDeleteTweet,
   useHomeTimeline,
@@ -59,9 +64,12 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
   const undoWindows = useUndoWindows(user.id);
   const [undoing, setUndoing] = useState<string | null>(null);
   const [deferNewPosts, setDeferNewPosts] = useState(false);
+  const [pinnedToTop, setPinnedToTop] = useState(true);
+  const [shownAheadKey, setShownAheadKey] = useState("");
   const [failure, setFailure] = useState<DeleteFailure | null>(null);
   const sentinel = useRef<HTMLDivElement>(null);
-  const heading = useRef<HTMLHeadingElement>(null);
+  const topSentinel = useRef<HTMLDivElement>(null);
+  const revealRequested = useRef(false);
   const requestLock = useRef(false);
   const timelineRef = useRef(timeline);
 
@@ -71,11 +79,27 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
 
   const firstPage = timeline.data?.pages[0]?.items ?? [];
   const ahead = tweetsAheadOfPage(pending.data, firstPage);
-  const items = assembleTimeline(
-    pending.data,
-    timeline.data?.pages,
-    !deferNewPosts,
+  const holdNewPosts = holdLivePosts({
+    pinnedToTop,
+    readingOlderPage: deferNewPosts,
+  });
+  const aheadKey = ahead.map((tweet) => tweet.id).join("\n");
+  if (!holdNewPosts && shownAheadKey !== aheadKey) {
+    setShownAheadKey(aheadKey);
+  }
+  const shownIds = new Set(
+    (holdNewPosts ? shownAheadKey : aheadKey)
+      .split("\n")
+      .filter((id) => id !== ""),
   );
+  const heldIds = livePostIdsToHold(
+    aheadKey === "" ? [] : aheadKey.split("\n"),
+    shownIds,
+    holdNewPosts,
+  );
+  const held = new Set(heldIds);
+  const visiblePending = pending.data.filter((tweet) => !held.has(tweet.id));
+  const items = assembleTimeline(visiblePending, timeline.data?.pages, true);
   const itemIds = items.map((tweet) => tweet.id).join("\n");
 
   const settled = timeline.isSuccess || timeline.isError;
@@ -129,6 +153,24 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       router.replace("/login");
     }
   }, [router, timeline.error]);
+
+  useEffect(() => {
+    const node = topSentinel.current;
+    if (node === null || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.some((entry) => entry.isIntersecting);
+      if (visible) {
+        revealRequested.current = false;
+      } else if (revealRequested.current) {
+        return;
+      }
+      setPinnedToTop(visible);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const pageCount = timeline.data?.pages.length ?? 0;
   useEffect(() => {
@@ -194,9 +236,11 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
   }
 
   function showNewPosts() {
+    revealRequested.current = true;
     setDeferNewPosts(false);
-    if (typeof heading.current?.scrollIntoView === "function") {
-      heading.current.scrollIntoView({ block: "start" });
+    setPinnedToTop(true);
+    if (typeof topSentinel.current?.scrollIntoView === "function") {
+      topSentinel.current.scrollIntoView({ block: "start" });
     }
   }
 
@@ -211,12 +255,9 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
 
   return (
     <section aria-labelledby="home-timeline-heading" className="grid gap-3">
+      <div aria-hidden="true" className="h-px w-full" ref={topSentinel} />
       <div className="grid gap-1">
-        <h2
-          className="text-lg font-semibold"
-          id="home-timeline-heading"
-          ref={heading}
-        >
+        <h2 className="text-lg font-semibold" id="home-timeline-heading">
           Home
         </h2>
         {liveAnnouncement === "" ? null : (
@@ -226,11 +267,14 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         )}
       </div>
 
-      {deferNewPosts && ahead.length > 0 ? (
-        <p role="status">
+      {heldIds.length > 0 ? (
+        <p
+          className="sticky top-0 z-20 border-b bg-background py-2"
+          role="status"
+        >
           <Button onClick={showNewPosts} type="button" variant="outline">
             <ArrowUpIcon aria-hidden="true" data-icon="inline-start" />
-            Show {ahead.length} new {ahead.length === 1 ? "post" : "posts"}
+            Show {heldIds.length} new {heldIds.length === 1 ? "post" : "posts"}
           </Button>
         </p>
       ) : null}
