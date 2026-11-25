@@ -11,7 +11,7 @@ async function post(page: Page, text: string) {
   await page.getByRole("textbox", { name: "What's happening?" }).fill(text);
   await page.getByRole("button", { name: "Post", exact: true }).click();
   const card = page
-    .getByRole("list", { name: "Home", exact: true })
+    .getByRole("list", { exact: true, name: "Home" })
     .getByRole("article")
     .filter({ hasText: text });
   await expect(card).toBeVisible({ timeout: FIRST_VISIT_TIMEOUT_MS });
@@ -32,7 +32,7 @@ test("TWT-03 AC-B01.5 AC-B01.6 undoes a new post at once, and later posts need t
   await expect(mistake).toHaveCount(0);
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Home", exact: true }),
+    page.getByRole("heading", { exact: true, name: "Home" }),
   ).toBeVisible();
   await expect(page.getByText("Oops, wrong account")).toHaveCount(0);
 
