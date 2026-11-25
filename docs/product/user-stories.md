@@ -65,6 +65,15 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-B04.5:** Thread navigation, reply composition, loading, empty, error, and pagination states are keyboard accessible and clearly announced.
 - **AC-B04.6:** Invalid content, missing parent, unauthenticated writes, and rate limits return safe errors and do not create replies.
 
+### US-B05 Mention a member
+
+**As a member, I want to mention someone with @username so that they are notified and can open the post.**
+
+- **AC-B05.1:** Given a tweet or reply contains @username, when it commits, then that member is notified once. Matching ignores case. Repeating the same handle notifies once. The author is not notified. An unknown or deleted username does not fail the post and creates no notification. At most 10 members are notified; any further handles stay as text.
+- **AC-B05.2:** An email address is not a mention. A reply notifies its parent author with a reply and, separately, each mentioned member with a mention. Deleting the tweet removes those notifications.
+- **AC-B05.3:** While composing, typing @ offers matching people and inserts the chosen @username. A mention in a tweet links to that profile. The notification reads “mentioned you” and opens the tweet.
+- **Abuse:** The create response does not list who was notified. Handles are matched with the username rule and looked up with a parameterized query. The cap of 10 limits notification fan-out.
+
 ## Epic C — Social graph
 
 ### US-C01 Follow/unfollow

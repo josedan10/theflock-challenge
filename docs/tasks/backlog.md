@@ -43,6 +43,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **NOT-01:** In-app notifications for relevant social activity, with deduplication, read state, pagination, and accessible UI.
 - [x] **LIVE-01:** Live timeline updates with reconnect/catch-up behavior and duplicate suppression.
 - [x] **IMG-01:** Tweet image uploads with validation, ownership, safe storage lifecycle, and accessible rendering.
+- [x] **MEN-01:** Mention members with @username in a tweet or reply. Notify up to 10 existing members once; skip the author and unknown handles. Suggest people while typing @, link mentions to profiles, and show a notification (TWEET-04, US-B05).
 
 ## Local development experience
 

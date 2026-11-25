@@ -6,7 +6,9 @@ import {
   createTweetRequestSchema,
   IMAGE_MAX_BYTES,
   IMAGE_MIME_TYPES,
+  mentionDraft,
   TWEET_MAX_LENGTH,
+  USER_SEARCH_MIN_LENGTH,
 } from "@twitter-clone/contracts";
 import { CircleAlertIcon, ImagePlusIcon, SendIcon, XIcon } from "lucide-react";
 import {
@@ -20,6 +22,11 @@ import {
 
 import { ApiError } from "../lib/api-client";
 import { apiFormErrors, type FormErrors, NO_ERRORS } from "../lib/form-errors";
+import {
+  SEARCH_DEBOUNCE_MS,
+  useDebouncedValue,
+  useUserSearch,
+} from "../lib/search";
 import { sessionCsrfToken, useApiClient } from "../lib/session";
 import { type TweetAuthorRef, useCreateTweet } from "../lib/tweets";
 
@@ -64,6 +71,9 @@ export function TweetComposer({
   const createTweet = useCreateTweet(member, parentTweetId);
   const replying = parentTweetId !== undefined;
   const [content, setContent] = useState("");
+  const [caret, setCaret] = useState(0);
+  const [mentionClosed, setMentionClosed] = useState(false);
+  const [activeMention, setActiveMention] = useState(0);
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS);
   const [posted, setPosted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -88,6 +98,28 @@ export function TweetComposer({
     };
   }, [previewUrl]);
 
+  const draft = mentionDraft(content, caret);
+  const mentionQuery =
+    draft !== null &&
+    !mentionClosed &&
+    codePointLength(draft.query) >= USER_SEARCH_MIN_LENGTH
+      ? draft.query
+      : null;
+  const debouncedMention = useDebouncedValue(mentionQuery, SEARCH_DEBOUNCE_MS);
+  const suggestions = useUserSearch(debouncedMention);
+  // Cached search rows stay in the query after the box is cleared. Show them
+  // only while this exact @handle is still being typed.
+  const people =
+    mentionQuery === null || debouncedMention !== mentionQuery
+      ? []
+      : (suggestions.data?.items ?? [])
+          .map((item) => item.user)
+          .filter((person) => person.username !== member.username)
+          .slice(0, 5);
+  const selectedMention = Math.min(
+    activeMention,
+    Math.max(people.length - 1, 0),
+  );
   const remaining = TWEET_MAX_LENGTH - codePointLength(content.trim());
   const over = remaining < 0;
   const empty = content.trim().length === 0;
@@ -132,7 +164,46 @@ export function TweetComposer({
    * the same validation and double-submit guard apply. Plain Enter keeps
    * adding a new line, and a key that finishes an IME composition is ignored.
    */
+  function chooseMention(username: string) {
+    if (draft === null) {
+      return;
+    }
+    const next = `${content.slice(0, draft.start)}@${username} ${content.slice(caret)}`;
+    const place = draft.start + username.length + 2;
+    setContent(next);
+    setCaret(place);
+    setMentionClosed(true);
+    setPosted(false);
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(place, place);
+    });
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (people.length > 0 && !event.nativeEvent.isComposing) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMentionClosed(true);
+        return;
+      }
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        setActiveMention(
+          (current) => (current + delta + people.length) % people.length,
+        );
+        return;
+      }
+      if (event.key === "Enter" && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+        const person = people[selectedMention];
+        if (person !== undefined) {
+          chooseMention(person.username);
+        }
+        return;
+      }
+    }
     if (
       event.key === "Enter" &&
       (event.metaKey || event.ctrlKey) &&
@@ -204,6 +275,9 @@ export function TweetComposer({
           onSettled: finish,
           onSuccess: () => {
             setContent("");
+            setCaret(0);
+            setMentionClosed(true);
+            setActiveMention(0);
             clearImage();
             setPosted(true);
             textareaRef.current?.focus();
@@ -249,18 +323,59 @@ export function TweetComposer({
           aria-keyshortcuts="Meta+Enter Control+Enter"
           id="tweet-content"
           name="content"
+          aria-activedescendant={
+            people.length > 0 ? `tweet-mention-${selectedMention}` : undefined
+          }
+          aria-autocomplete="list"
+          aria-controls={people.length > 0 ? "tweet-mentions" : undefined}
+          aria-expanded={people.length > 0}
           onChange={(event) => {
             setContent(event.target.value);
+            setCaret(event.target.selectionStart ?? event.target.value.length);
+            setActiveMention(0);
+            setMentionClosed(false);
             setPosted(false);
           }}
           onKeyDown={onKeyDown}
+          onSelect={(event) => {
+            setCaret(event.currentTarget.selectionStart ?? 0);
+          }}
           ref={textareaRef}
           rows={3}
           value={content}
         />
+        {people.length === 0 ? null : (
+          <ul
+            aria-label="Mention someone"
+            className="grid overflow-hidden rounded-lg border bg-popover text-popover-foreground"
+            id="tweet-mentions"
+            role="listbox"
+          >
+            {people.map((person, index) => (
+              <li key={person.id} role="presentation">
+                <button
+                  aria-selected={index === selectedMention}
+                  className="flex w-full items-baseline gap-2 px-3 py-2 text-left text-sm hover:bg-muted aria-selected:bg-muted"
+                  id={`tweet-mention-${index}`}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    chooseMention(person.username);
+                  }}
+                  role="option"
+                  type="button"
+                >
+                  <span className="font-semibold">{person.displayName}</span>
+                  <span className="text-muted-foreground">
+                    @{person.username}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <FieldDescription id="tweet-content-hint">
-          Up to {TWEET_MAX_LENGTH} characters. Press <kbd>⌘</kbd>{" "}
-          <kbd>Enter</kbd> or <kbd>Ctrl</kbd> <kbd>Enter</kbd> to{" "}
+          Up to {TWEET_MAX_LENGTH} characters. Type @ to mention someone. Press{" "}
+          <kbd>⌘</kbd> <kbd>Enter</kbd> or <kbd>Ctrl</kbd> <kbd>Enter</kbd> to{" "}
           {replying ? "reply" : "post"}.
         </FieldDescription>
         <FieldError

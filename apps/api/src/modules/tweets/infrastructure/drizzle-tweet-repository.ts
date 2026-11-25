@@ -1,4 +1,5 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { mentionedUsernames } from "@twitter-clone/contracts";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { users } from "../../auth/infrastructure/auth.schema.js";
 import { ImageUnavailableError } from "../../media/domain/image-policy.js";
@@ -86,6 +87,27 @@ export function createDrizzleTweetRepository(db: Database): TweetRepository {
             },
             tweet.now,
           );
+        }
+        const handles = mentionedUsernames(created.content);
+        if (handles.length > 0) {
+          const mentioned = await tx
+            .select({ id: users.id })
+            .from(users)
+            .where(
+              and(inArray(users.username, handles), isNull(users.deletedAt)),
+            );
+          for (const person of mentioned) {
+            await recordNotification(
+              tx,
+              {
+                actorId: tweet.authorId,
+                recipientId: person.id,
+                tweetId: created.id,
+                type: "mention",
+              },
+              tweet.now,
+            );
+          }
         }
         const image =
           tweet.image === undefined

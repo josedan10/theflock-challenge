@@ -12,6 +12,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../../app.js";
 import {
   likes,
+  notifications,
   tweets,
   tweetDescendants,
   users,
@@ -423,5 +424,57 @@ describe("THR-01 US-B04 public threads", () => {
       sql`explain (analyze,buffers,format json) ${threadQuery(root, null, anchor, 21)}`,
     );
     expect(JSON.stringify(plan)).toContain("tweet_descendants_page_idx");
+  });
+});
+
+describe("mentions", () => {
+  it("US-B05 notifies an existing member named with @ once", async () => {
+    const response = await post(ada, "Hello @Grace and @grace and @nobody");
+
+    expect(response.statusCode).toBe(201);
+    const { tweet } = createTweetResponseSchema.parse(response.json());
+    const rows = await database.db
+      .select({
+        recipientId: notifications.recipientId,
+        type: notifications.type,
+      })
+      .from(notifications)
+      .where(eq(notifications.tweetId, tweet.id));
+    expect(rows).toEqual([{ recipientId: grace.userId, type: "mention" }]);
+  });
+
+  it("US-B05 does not notify the author or a deleted member", async () => {
+    await database.db
+      .update(users)
+      .set({ deletedAt: NOW })
+      .where(eq(users.id, grace.userId));
+
+    const response = await post(ada, "Hi @ada and @grace");
+
+    expect(response.statusCode).toBe(201);
+    await expect(database.db.$count(notifications)).resolves.toBe(0);
+  });
+
+  it("US-B05 notifies a mentioned member separately from the reply", async () => {
+    const root = tweetIdOf(await post(ada, "root"));
+    const milo = await registerMember("milo");
+
+    const response = await replyTo(root, grace, { content: "See @milo" });
+
+    expect(response.statusCode).toBe(201);
+    const rows = await database.db
+      .select({
+        recipientId: notifications.recipientId,
+        type: notifications.type,
+      })
+      .from(notifications)
+      .where(eq(notifications.tweetId, tweetIdOf(response)));
+    expect(rows).toHaveLength(2);
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { recipientId: ada.userId, type: "reply" },
+        { recipientId: milo.userId, type: "mention" },
+      ]),
+    );
   });
 });

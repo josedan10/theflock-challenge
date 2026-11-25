@@ -7,16 +7,22 @@ import {
 } from "./timeline";
 import { tweetAuthorSchema } from "./tweet";
 
-/** What happened: someone followed you, liked or replied to your tweet. */
-export const notificationTypeSchema = z.enum(["follow", "like", "reply"]);
+/** What happened: someone followed you, liked or replied to your tweet, or mentioned you. */
+export const notificationTypeSchema = z.enum([
+  "follow",
+  "like",
+  "reply",
+  "mention",
+]);
 
 /** A notification's kind. */
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
 
 /**
  * One notification for the signed-in member (NOT-01). `actor` carries public
- * fields only. `tweet` is the liked tweet or the new reply, and `null` for a
- * follow. Its text is plain and must be escaped when rendered. `read` is the
+ * fields only. `tweet` is the liked tweet, the new reply, or the post that
+ * mentioned you, and `null` for a follow. Its text is plain and must be
+ * escaped when rendered. `read` is the
  * recipient's own state.
  */
 export const notificationSchema = z.strictObject({

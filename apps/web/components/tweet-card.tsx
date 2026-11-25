@@ -8,6 +8,7 @@ import { compactTime } from "../lib/relative-time";
 import { cn } from "../lib/utils";
 
 import { TweetActions } from "./tweet-actions";
+import { TweetText } from "./tweet-text";
 
 import type { Tweet } from "@twitter-clone/contracts";
 
@@ -227,9 +228,10 @@ export function TweetCard({
           {deleteControl}
         </div>
         {replying}
-        <p className="text-xl leading-snug whitespace-pre-wrap break-words">
-          {tweet.content}
-        </p>
+        <TweetText
+          className="text-xl leading-snug whitespace-pre-wrap break-words"
+          content={tweet.content}
+        />
         <TweetImage image={tweet.image} />
         <time
           className="text-sm text-muted-foreground"
@@ -275,7 +277,10 @@ export function TweetCard({
           {deleteControl}
         </div>
         {replying}
-        <p className="whitespace-pre-wrap break-words">{tweet.content}</p>
+        <TweetText
+          className="whitespace-pre-wrap break-words"
+          content={tweet.content}
+        />
         <TweetImage image={tweet.image} />
         <TweetActions onReply={onReply} tweet={tweet} viewerId={viewerId} />
         {footer}
