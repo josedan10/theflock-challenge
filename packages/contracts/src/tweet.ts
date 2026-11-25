@@ -36,7 +36,7 @@ export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 /** Largest accepted width or height, in pixels. ASVS 5.0.0 V5.2.6. */
 export const IMAGE_MAX_EDGE_PX = 4096;
 
-/** Image description length in Unicode code points. It is the text alternative. */
+/** Optional image description, stored as the text alternative (AC-F02.4). */
 export const IMAGE_ALT_MAX_LENGTH = 200;
 
 /** How long an unattached upload stays usable, in seconds. */
@@ -44,15 +44,15 @@ export const UPLOAD_INTENT_TTL_SECONDS = 15 * 60;
 
 export const imageMimeTypeSchema = z.enum(IMAGE_MIME_TYPES);
 
-/** Description shown as the image's text alternative (AC-F02.4). */
+/**
+ * Description shown as the image's text alternative (AC-F02.4). Empty is
+ * allowed: the image is then exposed with an empty alternative.
+ */
 export const imageAltSchema = z
   .string()
   .trim()
   .refine((value) => !value.includes("\u0000"), {
     message: "Must not contain a null character.",
-  })
-  .refine((value) => codePointLength(value) >= 1, {
-    message: "Describe the image.",
   })
   .refine((value) => codePointLength(value) <= IMAGE_ALT_MAX_LENGTH, {
     message: "Must be at most 200 characters.",
@@ -63,13 +63,13 @@ export const imageAltSchema = z
  * Unknown keys are rejected.
  */
 export const attachImageSchema = z.strictObject({
-  alt: imageAltSchema,
+  alt: imageAltSchema.default(""),
   uploadId: z.uuid(),
 });
 
 /** Image on a tweet card. `url` is this API's object URL. */
 export const tweetImageSchema = z.object({
-  alt: z.string().min(1),
+  alt: imageAltSchema,
   height: z.number().int().positive().max(IMAGE_MAX_EDGE_PX),
   url: z.url(),
   width: z.number().int().positive().max(IMAGE_MAX_EDGE_PX),

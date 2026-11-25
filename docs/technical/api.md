@@ -245,7 +245,7 @@ Tweet text is plain text that clients escape, and it is never logged: logs carry
 
 ## Tweet images (`IMG-01` / US-F02)
 
-Off unless `UPLOADS_ENABLED=true`. The web control is shown only when `NEXT_PUBLIC_UPLOADS_ENABLED=true`. One JPEG, PNG, or WebP per tweet or reply, at most 5 MiB and 4096 pixels on each edge. The member supplies a description of 1–200 characters; that string is the image's text alternative.
+Off unless `UPLOADS_ENABLED=true`. The web control is shown only when `NEXT_PUBLIC_UPLOADS_ENABLED=true`. One JPEG, PNG, or WebP per tweet or reply, at most 5 MiB and 4096 pixels on each edge. A description of up to 200 characters is optional and, when present, is the image's text alternative.
 
 1. `POST /v1/media/upload-intents` with `{ "mimeType", "byteSize" }` requires a session and `X-CSRF-Token`. `201` returns `{ uploadId, uploadToken, uploadPath, expiresAt }` for 15 minutes. The token is a secret shown once. Logs record ids only.
 2. `PUT` `uploadPath` with `Content-Type: application/octet-stream`, `X-CSRF-Token`, and `X-Upload-Token`. The body length must equal `byteSize`. The API decodes the image, rejects a mismatch, animation, or oversized result, rewrites the bytes, and answers `204`. A failed image is not readable. Another member's upload is `422` with the message "That image is not available."

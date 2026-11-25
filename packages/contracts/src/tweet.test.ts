@@ -97,8 +97,14 @@ describe("tweet content contract", () => {
       createTweetRequestSchema.safeParse({
         content: "hello",
         image: { alt: "   ", uploadId },
-      }).success,
-    ).toBe(false);
+      }).data?.image?.alt,
+    ).toBe("");
+    expect(
+      createTweetRequestSchema.parse({
+        content: "hello",
+        image: { uploadId },
+      }).image?.alt,
+    ).toBe("");
   });
 
   it("rejects unknown fields so clients cannot set authors or timestamps", () => {
