@@ -46,12 +46,12 @@ Required journeys: register/login/logout, create/delete tweet, follow and see ti
 ### Accessibility/visual
 
 - `axe` on core pages/states; zero serious/critical violations.
-- Keyboard and screen-reader manual checklist before release.
+- Keyboard and screen-reader checks before completing the local feature scope.
 - Screenshot regression for layout-critical states across breakpoints; review intentional changes.
 
 ### Performance and resilience
 
-- k6 smoke on every release candidate; scheduled load suite verifies p95 targets and error rate.
+- Representative local performance checks verify query plans, p95 targets, and error rate when applicable.
 - Database query-count assertions and representative `EXPLAIN` snapshots prevent N+1/full scans.
 - Kill/restart API during safe reads; verify health/readiness and graceful shutdown.
 
@@ -65,7 +65,7 @@ Required journeys: register/login/logout, create/delete tweet, follow and see ti
 
 - Bats tests run `doctor.sh` with missing tools/vars and assert actionable messages.
 - Clean-runner job follows `docs/SETUP.md` exactly.
-- Migration test from zero and previous release; backup/restore drill monthly with checksum/row-count verification.
+- Migration test from zero and the prior schema. Local database backup/restore guidance is for developer data recovery only, not an off-host production service.
 
 ## Fixtures and determinism
 

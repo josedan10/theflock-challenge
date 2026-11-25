@@ -2,7 +2,7 @@
 
 ## Decision summary
 
-Use a TypeScript monorepo with a Next.js web app, a stateless Fastify REST API, and PostgreSQL. Deploy web to Vercel and the containerized API to the existing DigitalOcean Droplet behind Caddy. Keep PostgreSQL in Compose for local development; production may initially use a hardened Postgres container on the Droplet with encrypted off-host backups, with a documented migration path to managed Postgres.
+Use a TypeScript monorepo with a Next.js web app, a stateless Fastify REST API, and PostgreSQL. Run all application services locally through the documented Docker Compose workflow. Production deployment and cloud hosting are out of scope.
 
 ## Why this shape
 
@@ -17,9 +17,9 @@ Use a TypeScript monorepo with a Next.js web app, a stateless Fastify REST API, 
 ```text
 Browser
   │ HTTPS (session cookie, CSRF header)
-  ├──────────────► Vercel / Next.js web
+  ├──────────────► localhost / Next.js web
   │
-  └──────────────► api.example.com / Caddy
+  └──────────────► localhost / Fastify API
                          │
                          ▼
                    Fastify API container
@@ -28,7 +28,7 @@ Browser
                  PostgreSQL
 ```
 
-Prefer `app.example.com` and `api.example.com` so the deployment remains same-site. CORS allows only known web origins, including explicit preview policy. Do not use wildcard origins with credentials.
+Local CORS allows only the configured web origin. Do not use wildcard origins with credentials.
 
 ## Proposed repository
 
@@ -103,6 +103,6 @@ Do not split into microservices. The workload and team do not justify distribute
 ## Open decisions before implementation
 
 1. Final product/domain name and resulting cookie/CORS origins.
-2. Whether production DB starts on the Droplet or on a free managed provider (recommendation in infrastructure doc).
+2. Local image storage adapter and lifecycle for uploads; no cloud provider is assumed.
 3. Public visibility for logged-out tweets. Profiles are public in v1: `GET /v1/users/:username` allows an anonymous read and omits email, credentials, and storage keys (requirements rule 10).
 4. Account deletion/export behavior and retention.

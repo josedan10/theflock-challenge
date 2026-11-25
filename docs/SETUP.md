@@ -97,15 +97,15 @@ pnpm build
 
 Run the test suites with Node 22. Testcontainers fails to load on Node 23.1 (`createZstdDecompress` is missing).
 
-To stop without deleting data: `docker compose down`. To deliberately erase local DB data: `docker compose down -v` (destructive; never run for production).
+To stop without deleting data: `docker compose down`. To deliberately erase local DB data: `docker compose down -v` (destructive).
 
 ## Configuration rules
 
 - Values inside containers use service DNS (`postgres`), not `localhost`.
 - Browser-visible API URL uses the host URL (`http://localhost:4000`).
-- `COOKIE_SECURE=false` is local-only; production must be `true` over HTTPS.
+- `COOKIE_SECURE=false` is for local HTTP development. Do not expose this configuration on a public network.
 - `AUTH_RATE_LIMIT_PER_MINUTE` (default 5) and `TWEET_RATE_LIMIT_PER_MINUTE` (default 20) are per-client budgets. Browser tests raise both; keep the defaults in real environments.
-- Production and preview secrets belong in Vercel/Droplet secret configuration, never repository `.env` files.
+- Keep secrets in ignored local `.env` files; never commit them or put them in browser-visible variables.
 
 ## Getting diagnostic help
 
