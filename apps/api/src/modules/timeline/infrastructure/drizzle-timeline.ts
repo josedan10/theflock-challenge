@@ -1,8 +1,10 @@
 import { sql } from "drizzle-orm";
 
 import type { DatabaseExecutor } from "../../../platform/database/client.js";
+import type { ReadTimelineSinceRows } from "../application/read-timeline-since.js";
 import type {
   ReadTimelineRows,
+  TimelineEntry,
   TimelinePosition,
 } from "../application/read-timeline.js";
 
@@ -78,19 +80,80 @@ export function createReadTimelineRows(db: DatabaseExecutor): ReadTimelineRows {
     const rows = await db.execute<TimelineRow>(
       timelineQuery(viewer, before, count),
     );
-    return rows.map((r) => ({
-      id: r.id,
-      content: r.content,
-      createdAt: r.created_at,
-      author: {
-        id: r.author_id,
-        username: r.username,
-        displayName: r.display_name,
-        avatarUrl: null,
-      },
-      likeCount: Number(r.like_count),
-      likedByViewer: r.liked,
-      replyCount: Number(r.reply_count),
-    }));
+    return rows.map(mapTimelineRow);
+  };
+}
+
+/**
+ * Same eligible authors and indexes as {@link timelineQuery}, but the boundary
+ * is exclusive *newer* than `after` so a reconnect can catch up (AC-F01.3).
+ */
+export function timelineSinceQuery(
+  viewer: string,
+  after: TimelinePosition,
+  count: number,
+) {
+  const boundary = sql`and (t.created_at, t.id) > (${after.createdAt}::timestamptz, ${after.id}::uuid)`;
+  return sql`
+    with eligible(author_id) as (
+      select ${viewer}::uuid union all
+      select following_id from follows where follower_id = ${viewer}::uuid
+    ), page as (
+      select posts.*, u.id as author_id, u.username, u.display_name
+      from eligible e join users u on u.id = e.author_id and u.deleted_at is null
+      cross join lateral (
+        select t.id, t.content, t.created_at from tweets t
+        where t.author_id = e.author_id ${boundary}
+        order by t.created_at desc nulls last, t.id desc nulls last limit ${count}
+      ) posts
+      order by posts.created_at desc, posts.id desc limit ${count}
+    )
+    select p.id, p.content,
+      to_char(p.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
+      p.author_id, p.username, p.display_name, reactions.like_count, reactions.liked,
+      (select count(*) from tweets c where c.parent_tweet_id = p.id) as reply_count
+    from page p cross join lateral (
+      select count(*) as like_count, coalesce(bool_or(l.user_id = ${viewer}::uuid), false) as liked
+      from likes l where l.tweet_id = p.id
+    ) reactions
+    order by p.created_at desc, p.id desc`;
+}
+
+export function createReadTimelineSinceRows(
+  db: DatabaseExecutor,
+): ReadTimelineSinceRows {
+  return async (viewer, after, count) => {
+    const rows = await db.execute<TimelineRow>(
+      timelineSinceQuery(viewer, after, count),
+    );
+    return rows.map(mapTimelineRow);
+  };
+}
+
+/** The author plus current followers: who may hear this tweet on a live stream. */
+export function createListTimelineRecipients(db: DatabaseExecutor) {
+  return async (authorId: string): Promise<string[]> => {
+    const rows = await db.execute<{ id: string }>(sql`
+      select ${authorId}::uuid as id
+      union
+      select follower_id as id from follows where following_id = ${authorId}::uuid`);
+    return rows.map((row) => row.id);
+  };
+}
+
+function mapTimelineRow(r: TimelineRow): TimelineEntry {
+  return {
+    id: r.id,
+    content: r.content,
+    createdAt: r.created_at,
+    author: {
+      id: r.author_id,
+      username: r.username,
+      displayName: r.display_name,
+      avatarUrl: null,
+    },
+    likeCount: Number(r.like_count),
+    likedByViewer: r.liked,
+    replyCount: Number(r.reply_count),
   };
 }
