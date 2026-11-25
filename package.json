@@ -9,8 +9,10 @@
   },
   "scripts": {
     "activity": "pnpm --filter @twitter-clone/api activity",
+    "activity:reset": "pnpm --filter @twitter-clone/api activity --reset",
+    "activity:stop": "docker compose --profile activity stop activity",
     "build": "turbo run build",
-    "compose:down": "docker compose --profile dev down",
+    "compose:down": "docker compose --profile dev --profile activity down",
     "compose:logs": "docker compose --profile dev logs -f",
     "compose:ps": "docker compose --profile dev ps",
     "compose:up": "docker compose --profile dev up -d --build --wait",
