@@ -58,6 +58,21 @@ export function tweetsAheadOfPage(
  * The list the member sees. `showAhead` is false once they have asked for an
  * older page: newer posts then wait on the banner instead of jumping the list.
  */
+/**
+ * Authoritative first-page cards that belong above the currently loaded page,
+ * merged with tweets already waiting, first copy wins (AC-F01.3).
+ */
+export function mergeLiveTweets(
+  pending: readonly Tweet[],
+  fetched: readonly Tweet[],
+  loadedFirstPage: readonly Tweet[],
+): Tweet[] {
+  return dedupeTweets([
+    ...tweetsAheadOfPage(fetched, loadedFirstPage),
+    ...pending,
+  ]);
+}
+
 export function assembleTimeline(
   pending: readonly Tweet[],
   pages: readonly { items: readonly Tweet[] }[] | undefined,

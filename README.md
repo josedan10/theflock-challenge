@@ -44,14 +44,15 @@ See [the architecture](docs/technical/architecture.md) and [local setup](docs/SE
 ### Prerequisites
 
 - Docker Desktop or Docker Engine with Compose v2 running
-- Node.js **22 LTS** and Corepack
+- Node.js **26 LTS** and Corepack
 - Git
 
-Node 23 is not supported by the integration-test tooling. Confirm the active version with `node --version` before installing dependencies.
+Confirm the active version with `node --version` before installing dependencies. Node 26 LTS is the recommended development runtime. Node 22–24 still satisfy `engines`; Node 23.0–23.7 need the workspace `undici` patch to load Testcontainers and jsdom.
 
 ### 1. Install dependencies
 
 ```bash
+npm install -g corepack@0.36.0
 corepack enable
 pnpm install --frozen-lockfile
 ```

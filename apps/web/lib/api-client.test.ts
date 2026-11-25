@@ -260,6 +260,13 @@ describe("API client", () => {
       );
     });
 
+    it("US-F01 names the credentialed live stream URL without fetching it", () => {
+      const { client } = clientReturning(jsonResponse(200, { items: [] }));
+      expect(client.timelineStreamUrl()).toBe(
+        "http://api.test/v1/timeline/stream",
+      );
+    });
+
     it("US-B03 AC-B03.3 reads the first page with credentials and no CSRF header", async () => {
       const { client, fetchImpl } = clientReturning(
         jsonResponse(200, { items: [tweet], nextCursor: null }),

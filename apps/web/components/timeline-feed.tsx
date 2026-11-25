@@ -24,6 +24,7 @@ import {
   useDeleteTweet,
   useHomeTimeline,
   usePendingTweets,
+  useTimelineLive,
 } from "../lib/tweets";
 
 import { PostUndo } from "./post-undo";
@@ -42,14 +43,17 @@ interface DeleteFailure {
 }
 
 /**
- * Home timeline (US-B03, FEED-02). Pages come from `GET /v1/timeline`. Tweet
- * text is rendered as text. The cursor never leaves the query cache.
+ * Home timeline (US-B03, FEED-02, LIVE-01). Pages come from `GET /v1/timeline`.
+ * Tweet text is rendered as text. The cursor never leaves the query cache.
+ * Live ids arrive over SSE and merge into the pending list without moving
+ * focus.
  */
 export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
   const router = useRouter();
   const member = { id: user.id, username: user.username };
   const pending = usePendingTweets(user.id);
   const timeline = useHomeTimeline(user.id);
+  const liveAnnouncement = useTimelineLive(user.id, timeline.isSuccess);
   const deleteTweet = useDeleteTweet(member);
   const queryClient = useQueryClient();
   const undoWindows = useUndoWindows(user.id);
@@ -215,6 +219,11 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         >
           Home
         </h2>
+        {liveAnnouncement === "" ? null : (
+          <p className="sr-only" role="status">
+            {liveAnnouncement}
+          </p>
+        )}
       </div>
 
       {deferNewPosts && ahead.length > 0 ? (

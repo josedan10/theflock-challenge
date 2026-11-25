@@ -6,6 +6,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import {
+  TIMELINE_LIVE_EVENT,
+  timelineLiveEventSchema,
+} from "@twitter-clone/contracts";
+import { useEffect, useState } from "react";
 
 import { ApiError } from "./api-client";
 import { openUndoWindow } from "./post-undo";
@@ -13,6 +18,7 @@ import { sessionCsrfToken, useApiClient } from "./session";
 import {
   assembleTimeline,
   dedupeTweets,
+  mergeLiveTweets,
   restoreTweet,
   tweetSlot,
   type TweetSlot,
@@ -53,6 +59,112 @@ export function usePendingTweets(memberId: string) {
     queryKey: pendingKey(memberId),
     staleTime: Number.POSITIVE_INFINITY,
   });
+}
+
+/** Batch live ids before refetching the first timeline page. */
+export const LIVE_TIMELINE_REFETCH_MS = 50;
+
+function tweetIsKnown(
+  tweetId: string,
+  pending: readonly Tweet[],
+  pages: InfiniteData<TimelinePage> | undefined,
+): boolean {
+  if (pending.some((tweet) => tweet.id === tweetId)) {
+    return true;
+  }
+  return (
+    pages?.pages.some((page) =>
+      page.items.some((tweet) => tweet.id === tweetId),
+    ) === true
+  );
+}
+
+/**
+ * Opens the home-timeline SSE stream and merges new eligible cards into the
+ * pending list. Does not move focus (AC-F01.2). Duplicate ids are dropped
+ * (AC-F01.3). EventSource reconnects with `Last-Event-ID` on its own.
+ */
+export function useTimelineLive(memberId: string, enabled: boolean): string {
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
+  const [announcement, setAnnouncement] = useState("");
+
+  useEffect(() => {
+    if (!enabled || typeof EventSource === "undefined") {
+      return;
+    }
+    const source = new EventSource(apiClient.timelineStreamUrl(), {
+      withCredentials: true,
+    });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const queued = new Set<string>();
+
+    const flush = () => {
+      timer = undefined;
+      const ids = [...queued];
+      queued.clear();
+      const pending =
+        queryClient.getQueryData<Tweet[]>(pendingKey(memberId)) ?? [];
+      const pages = queryClient.getQueryData<InfiniteData<TimelinePage>>(
+        homeTimelineKey(memberId),
+      );
+      const unseen = ids.filter((id) => !tweetIsKnown(id, pending, pages));
+      if (unseen.length === 0) {
+        return;
+      }
+      void apiClient.getTimeline().then((page) => {
+        const latestPending =
+          queryClient.getQueryData<Tweet[]>(pendingKey(memberId)) ?? [];
+        const latestPages = queryClient.getQueryData<
+          InfiniteData<TimelinePage>
+        >(homeTimelineKey(memberId));
+        const loaded = latestPages?.pages[0]?.items ?? [];
+        const merged = mergeLiveTweets(latestPending, page.items, loaded);
+        queryClient.setQueryData<Tweet[]>(pendingKey(memberId), merged);
+        const added = merged.filter(
+          (tweet) =>
+            !latestPending.some((item) => item.id === tweet.id) &&
+            !loaded.some((item) => item.id === tweet.id),
+        ).length;
+        if (added > 0) {
+          setAnnouncement(
+            added === 1 ? "1 new post" : `${String(added)} new posts`,
+          );
+        }
+      });
+    };
+
+    const onTweet = (event: Event) => {
+      if (!(event instanceof MessageEvent) || typeof event.data !== "string") {
+        return;
+      }
+      let payload: unknown;
+      try {
+        payload = JSON.parse(event.data) as unknown;
+      } catch {
+        return;
+      }
+      const parsed = timelineLiveEventSchema.safeParse(payload);
+      if (!parsed.success) {
+        return;
+      }
+      queued.add(parsed.data.tweetId);
+      if (timer === undefined) {
+        timer = setTimeout(flush, LIVE_TIMELINE_REFETCH_MS);
+      }
+    };
+    source.addEventListener(TIMELINE_LIVE_EVENT, onTweet);
+
+    return () => {
+      source.removeEventListener(TIMELINE_LIVE_EVENT, onTweet);
+      source.close();
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+    };
+  }, [apiClient, enabled, memberId, queryClient]);
+
+  return announcement;
 }
 
 /** Home timeline pages. The cursor stays inside the query cache. */

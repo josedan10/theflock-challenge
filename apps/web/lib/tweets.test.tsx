@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   fakeApiClient,
@@ -10,13 +10,58 @@ import {
 import { ApiError } from "./api-client";
 import { UNDO_WINDOW_MS, useUndoWindows } from "./post-undo";
 import { SessionProvider, useSession } from "./session";
-import { useCreateTweet, useDeleteTweet, useTimelineItems } from "./tweets";
+import {
+  useCreateTweet,
+  useDeleteTweet,
+  useHomeTimeline,
+  useTimelineItems,
+  useTimelineLive,
+} from "./tweets";
 
 import type { ApiClient } from "./api-client";
 import type { Tweet } from "@twitter-clone/contracts";
 import type { ReactNode } from "react";
 
 const member = { id: testSession.user.id, username: testSession.user.username };
+
+class FakeEventSource {
+  static latest: FakeEventSource | undefined;
+  readonly url: string;
+  readonly withCredentials: boolean;
+  private readonly listeners = new Map<string, Set<EventListener>>();
+
+  constructor(url: string, init?: EventSourceInit) {
+    this.url = url;
+    this.withCredentials = init?.withCredentials === true;
+    FakeEventSource.latest = this;
+  }
+
+  addEventListener(type: string, listener: EventListener): void {
+    const set = this.listeners.get(type) ?? new Set();
+    set.add(listener);
+    this.listeners.set(type, set);
+  }
+
+  removeEventListener(type: string, listener: EventListener): void {
+    this.listeners.get(type)?.delete(listener);
+  }
+
+  close(): void {
+    FakeEventSource.latest = undefined;
+  }
+
+  emit(type: string, data: string): void {
+    const event = new MessageEvent(type, { data });
+    this.listeners.get(type)?.forEach((listener) => {
+      listener(event);
+    });
+  }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  FakeEventSource.latest = undefined;
+});
 
 function renderTweets(apiClient: ApiClient) {
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -235,5 +280,66 @@ describe("deleting a posted tweet", () => {
     await waitFor(() =>
       expect(ids(result.current.posted)).toEqual(["t3", "t2", "t1"]),
     );
+  });
+});
+
+describe("US-F01 live timeline", () => {
+  it("AC-F01.2/3 refetches cards, announces without a duplicate, and sends cookies", async () => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+    const liveTweet = {
+      ...tweetWith("0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f77", "from grace"),
+      createdAt: "2026-11-24T13:00:00.000Z",
+    };
+    const getTimeline = vi
+      .fn()
+      .mockResolvedValueOnce({ items: [], nextCursor: null })
+      .mockResolvedValue({ items: [liveTweet], nextCursor: null });
+    const apiClient = fakeApiClient({
+      getTimeline,
+      me: vi.fn(async () => testSession),
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <SessionProvider apiClient={apiClient}>{children}</SessionProvider>
+    );
+    const view = renderHook(
+      () => ({
+        live: useTimelineLive(member.id, true),
+        posted: useTimelineItems(member.id),
+        session: useSession(),
+        timeline: useHomeTimeline(member.id),
+      }),
+      { wrapper },
+    );
+    await waitFor(() =>
+      expect(view.result.current.session.data).toEqual(testSession),
+    );
+    await waitFor(() =>
+      expect(view.result.current.timeline.isSuccess).toBe(true),
+    );
+    expect(FakeEventSource.latest?.withCredentials).toBe(true);
+    expect(FakeEventSource.latest?.url).toBe(
+      "http://api.test/v1/timeline/stream",
+    );
+
+    act(() => {
+      FakeEventSource.latest?.emit(
+        "timeline.tweet",
+        JSON.stringify({ tweetId: liveTweet.id }),
+      );
+    });
+    await waitFor(() =>
+      expect(view.result.current.posted.map((tweet) => tweet.content)).toEqual([
+        "from grace",
+      ]),
+    );
+    expect(view.result.current.live).toBe("1 new post");
+
+    act(() => {
+      FakeEventSource.latest?.emit(
+        "timeline.tweet",
+        JSON.stringify({ tweetId: liveTweet.id }),
+      );
+    });
+    await waitFor(() => expect(getTimeline).toHaveBeenCalledTimes(2));
   });
 });

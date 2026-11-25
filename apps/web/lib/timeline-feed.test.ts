@@ -7,6 +7,7 @@ import {
   dedupeTweets,
   restoreTweet,
   tweetSlot,
+  mergeLiveTweets,
   tweetsAheadOfPage,
 } from "./timeline-feed";
 
@@ -119,6 +120,30 @@ describe("timeline feed assembly (AC-B03.3)", () => {
         (item) => item.content,
       ),
     ).toEqual(["fresh", "loaded"]);
+  });
+
+  it("AC-F01.3 keeps the fetched card when a live page repeats a pending id", () => {
+    const loaded = tweet(
+      "bbbbbbbb-bbbb-7bbb-8bbb-bbbbbbbbbbb2",
+      "2026-11-24T12:00:00.000Z",
+      "loaded",
+    );
+    const pending = tweet(
+      "bbbbbbbb-bbbb-7bbb-8bbb-bbbbbbbbbbb4",
+      "2026-11-24T14:00:00.000Z",
+      "stale pending",
+    );
+    const fetched = tweet(
+      "bbbbbbbb-bbbb-7bbb-8bbb-bbbbbbbbbbb4",
+      "2026-11-24T14:00:00.000Z",
+      "canonical",
+    );
+
+    expect(
+      mergeLiveTweets([pending], [fetched, loaded], [loaded]).map(
+        (item) => item.content,
+      ),
+    ).toEqual(["canonical"]);
   });
 });
 

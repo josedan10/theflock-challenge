@@ -91,6 +91,7 @@ Do not split into microservices. The workload and team do not justify distribute
 - Browser client cache (TanStack Query) handles deduplication, optimistic changes, and invalidation.
 - Authenticated API responses default to `Cache-Control: private, no-store` until deliberate caching is designed.
 - No Redis in v1. Add it only for measured cross-instance rate limiting/cache/pub-sub needs.
+- Live timeline updates (LIVE-01) use SSE on the API process. After a tweet commits, an in-memory hub notifies that member's open streams; reconnect catch-up reads the tweets table. There is no outbox, worker, or Redis pub/sub.
 
 ## Architectural fitness rules
 

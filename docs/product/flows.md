@@ -74,9 +74,13 @@
 
 ## Planned feature flows
 
-### Real-time
+### Real-time (LIVE-01 / US-F01)
 
-Use SSE before WebSockets because updates are server-to-client. Events contain IDs only; clients refetch authoritative data. Reconnect uses `Last-Event-ID`/cursor catch-up.
+1. A signed-in member on `/home` opens `GET /v1/timeline/stream` (SSE) with the session cookie. No CSRF token: this is a read.
+2. After a tweet by the member or someone they follow commits, the API writes an SSE event whose `id` is a signed cursor and whose `data` is `{ "tweetId" }`. Tweet text never goes on the stream.
+3. The browser refetches `GET /v1/timeline` and merges new cards the same way as a post from this visit. At the top of the feed they prepend with the entrance animation; while reading older pages, a **Show N new posts** banner waits instead of jumping the list. Focus stays where it was.
+4. EventSource reconnects with `Last-Event-ID`. The API replays at most 30 missed eligible ids, newest first, then resumes live events. The client drops ids it already has.
+5. Disconnects, other authors' tweets, and a bad `Last-Event-ID` never expand what that member is allowed to see. Duplicate delivery is suppressed by tweet id.
 
 ### Images
 

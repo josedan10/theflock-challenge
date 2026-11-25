@@ -4,6 +4,15 @@ export interface CreateTweetDependencies {
   tweets: TweetRepository;
   clock: () => Date;
   generateId: () => string;
+  /**
+   * Notified after the tweet row commits. Failures here must not fail the
+   * create: reconnect catch-up recovers a missed live fan-out.
+   */
+  onCreated?: (tweet: {
+    id: string;
+    authorId: string;
+    createdAt: Date;
+  }) => Promise<void> | void;
 }
 
 export interface CreateTweetInput {
@@ -20,8 +29,8 @@ export type CreateTweet = (input: CreateTweetInput) => Promise<TweetCard>;
 export function createCreateTweet(
   dependencies: CreateTweetDependencies,
 ): CreateTweet {
-  return (input) =>
-    dependencies.tweets.create({
+  return async (input) => {
+    const card = await dependencies.tweets.create({
       authorId: input.authorId,
       ...(input.parentTweetId === undefined
         ? {}
@@ -30,4 +39,15 @@ export function createCreateTweet(
       id: dependencies.generateId(),
       now: dependencies.clock(),
     });
+    try {
+      await dependencies.onCreated?.({
+        authorId: card.author.id,
+        createdAt: card.createdAt,
+        id: card.id,
+      });
+    } catch {
+      // Live fan-out must not hide a committed tweet (LIVE-01).
+    }
+    return card;
+  };
 }

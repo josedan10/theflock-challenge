@@ -24,6 +24,12 @@ export interface TweetsModuleOptions {
   /** Injected for deterministic tests; defaults to the system clock. */
   clock?: () => Date;
   writeRateLimit?: AuthRateLimit;
+  /** LIVE-01: fan-out after a successful create, including replies. */
+  onTweetCreated?: (tweet: {
+    id: string;
+    authorId: string;
+    createdAt: Date;
+  }) => Promise<void> | void;
 }
 
 /** Composition root for publishing and deleting tweets. */
@@ -33,6 +39,9 @@ export function tweetsModule(options: TweetsModuleOptions) {
     clock: options.clock ?? (() => new Date()),
     generateId: uuidv7,
     tweets,
+    ...(options.onTweetCreated === undefined
+      ? {}
+      : { onCreated: options.onTweetCreated }),
   });
   const deleteTweet = createDeleteTweet(tweets);
 

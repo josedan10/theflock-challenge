@@ -24,9 +24,9 @@ fi
 if command -v node >/dev/null 2>&1; then
   NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || printf 0)"
   if [ "$NODE_MAJOR" -ge 22 ]; then ok "node: $(node --version)"; else fail "Node.js 22+ is required; found $(node --version)"; fi
-else fail "node is missing — install Node.js 22 LTS"; fi
+else fail "node is missing — install Node.js 26 LTS"; fi
 
-if command -v corepack >/dev/null 2>&1; then ok "corepack is available"; else fail "corepack is missing — install/enable it with your Node.js 22 installation"; fi
+if command -v corepack >/dev/null 2>&1; then ok "corepack is available"; else fail "corepack is missing — Node 26 does not ship it; run: npm install -g corepack@0.36.0 && corepack enable"; fi
 
 printf '\nConfiguration\n'
 ENV_FILE="$ROOT/.env"

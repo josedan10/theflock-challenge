@@ -1,0 +1,20 @@
+diff --git a/lib/interceptor/decompress.js b/lib/interceptor/decompress.js
+index 835c9fa7794fd2ecf6feca1f713bc0ab29ab2df9..cb4ec5d16a8892477151cb8c9a54f20459c450f1 100644
+--- a/lib/interceptor/decompress.js
++++ b/lib/interceptor/decompress.js
+@@ -73,9 +73,13 @@ const supportedEncodings = {
+   gzip: createGunzip,
+   'x-gzip': createGunzip,
+   br: createBrotliDecompress,
+-  deflate: createInflate,
++  deflate: createInflate
++}
++
++// zstd landed in Node 22.15 / 23.8; bind at load crashes on 23.0–23.7.
++if (typeof createZstdDecompress === 'function') {
+   // https://www.rfc-editor.org/rfc/rfc9659.html#section-3
+-  zstd: createZstdDecompress.bind(null, { params: { [constants.ZSTD_d_windowLogMax]: 23 } })
++  supportedEncodings.zstd = createZstdDecompress.bind(null, { params: { [constants.ZSTD_d_windowLogMax]: 23 } })
+ }
+ 
+ const defaultSkipStatusCodes = /** @type {const} */ ([204, 304])
