@@ -337,10 +337,9 @@ describe("TweetComposer image", () => {
     await user.upload(input, new File([png], "dot.png", { type: "image/png" }));
     await user.type(textbox(), "With a picture");
     expect(submit()).toBeEnabled();
-    await user.type(
-      screen.getByRole("textbox", { name: "Image description" }),
-      "A dot",
-    );
+    expect(
+      screen.queryByRole("textbox", { name: "Image description" }),
+    ).not.toBeInTheDocument();
     await user.click(submit());
 
     await waitFor(() => expect(createTweet).toHaveBeenCalled());
@@ -358,14 +357,12 @@ describe("TweetComposer image", () => {
       {
         content: "With a picture",
         image: {
-          alt: "A dot",
+          alt: "",
           uploadId: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f70",
         },
       },
       testSession.csrfToken,
     );
-    expect(
-      screen.queryByRole("img", { name: "A dot" }),
-    ).not.toBeInTheDocument();
+    expect(document.querySelector("img")).toBeNull();
   });
 });

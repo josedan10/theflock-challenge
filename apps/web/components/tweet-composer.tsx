@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   codePointLength,
   createTweetRequestSchema,
-  IMAGE_ALT_MAX_LENGTH,
   IMAGE_MAX_BYTES,
   IMAGE_MIME_TYPES,
   TWEET_MAX_LENGTH,
@@ -32,7 +31,6 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -70,12 +68,10 @@ export function TweetComposer({
   const [posted, setPosted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imageAlt, setImageAlt] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputId = useId();
-  const altInputId = useId();
   // Blocks a second submit before the disabled state re-renders.
   const submitting = useRef(false);
 
@@ -95,14 +91,12 @@ export function TweetComposer({
   const remaining = TWEET_MAX_LENGTH - codePointLength(content.trim());
   const over = remaining < 0;
   const empty = content.trim().length === 0;
-  const altTooLong = codePointLength(imageAlt.trim()) > IMAGE_ALT_MAX_LENGTH;
   const fieldErrors = errors.fields.content ?? [];
   const imageErrors = errors.fields.image ?? [];
   const invalid = over || fieldErrors.length > 0;
 
   function clearImage() {
     setImageFile(null);
-    setImageAlt("");
     setPreviewUrl(null);
     if (fileInputRef.current !== null) {
       fileInputRef.current.value = "";
@@ -157,7 +151,6 @@ export function TweetComposer({
         : {
             content,
             image: {
-              alt: imageAlt,
               uploadId: "00000000-0000-7000-8000-000000000001",
             },
           },
@@ -304,27 +297,12 @@ export function TweetComposer({
             )}
           </div>
           {previewUrl === null ? null : (
-            // Local preview of a file the member just chose. It is not the stored object.
+            // Local preview only. The posted image has an empty text alternative.
             <img
-              alt={imageAlt.trim() === "" ? "Selected image preview" : imageAlt}
+              alt=""
               className="max-h-48 w-full rounded-xl border object-contain"
               src={previewUrl}
             />
-          )}
-          {imageFile === null ? null : (
-            <Field data-invalid={altTooLong}>
-              <FieldLabel htmlFor={altInputId}>Image description</FieldLabel>
-              <Input
-                aria-describedby={`${altInputId}-hint`}
-                id={altInputId}
-                maxLength={IMAGE_ALT_MAX_LENGTH}
-                onChange={(event) => setImageAlt(event.target.value)}
-                value={imageAlt}
-              />
-              <FieldDescription id={`${altInputId}-hint`}>
-                Optional. This is the text alternative for the image.
-              </FieldDescription>
-            </Field>
           )}
           {imageErrors.length === 0 ? null : (
             <FieldError errors={imageErrors.map((message) => ({ message }))} />
@@ -356,9 +334,7 @@ export function TweetComposer({
           </p>
           <Button
             aria-busy={busy || createTweet.isPending}
-            disabled={
-              empty || over || altTooLong || busy || createTweet.isPending
-            }
+            disabled={empty || over || busy || createTweet.isPending}
             type="submit"
           >
             {busy || createTweet.isPending ? (
