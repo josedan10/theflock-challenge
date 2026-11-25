@@ -63,6 +63,7 @@ describe("tweet persistence", () => {
       id: input.id,
       likeCount: 0,
       likedByViewer: false,
+      replyCount: 0,
     });
     await expect(database.db.$count(tweets)).resolves.toBe(1);
   });

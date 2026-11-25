@@ -27,6 +27,7 @@ function fakeTweets() {
         id: tweet.id,
         likeCount: 0,
         likedByViewer: false,
+        replyCount: 0,
       };
     },
     async deleteOwned(tweetId, authorId) {

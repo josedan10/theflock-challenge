@@ -14,6 +14,8 @@ export interface TimelineEntry extends TimelinePosition {
   content: string;
   likeCount: number;
   likedByViewer: boolean;
+  /** Direct replies, counted for this bounded page only. */
+  replyCount: number;
 }
 
 export class InvalidTimelineCursorError extends Error {}

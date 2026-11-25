@@ -101,6 +101,7 @@ async function buildTestApp(
             id: TWEET_ID,
             likeCount: 0,
             likedByViewer: false,
+            replyCount: 0,
           };
         },
         deleteTweet: async (input) => {
@@ -158,6 +159,7 @@ describe("POST /v1/tweets", () => {
       createdAt: NOW.toISOString(),
       likeCount: 0,
       likedByViewer: false,
+      replyCount: 0,
     });
     expect(created).toEqual([{ authorId: MEMBER_ID, content: "hello world" }]);
     expect(response.body).not.toContain("ada@example.com");

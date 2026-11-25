@@ -31,6 +31,7 @@ export const testTweet: Tweet = {
   id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
   likeCount: 0,
   likedByViewer: false,
+  replyCount: 0,
 };
 
 export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {

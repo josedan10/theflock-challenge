@@ -3,6 +3,7 @@ import {
   createTweetResponseSchema,
   errorResponseSchema,
   threadPageSchema,
+  timelinePageSchema,
 } from "@twitter-clone/contracts";
 import { eq, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -126,6 +127,7 @@ describe("tweets end to end", () => {
       createdAt: NOW.toISOString(),
       likeCount: 0,
       likedByViewer: false,
+      replyCount: 0,
     });
     const [stored] = await database.db
       .select()
@@ -224,6 +226,31 @@ async function thread(id: string, query = "", member?: Member) {
 }
 
 describe("THR-01 US-B04 public threads", () => {
+  it("US-B04 counts direct replies on thread and timeline cards", async () => {
+    const root = tweetIdOf(await post(ada, "count my replies"));
+    const first = tweetIdOf(await replyTo(root, grace));
+    await replyTo(root, ada);
+    await replyTo(first, ada);
+
+    const page = await thread(root);
+    expect(page.selected.replyCount).toBe(2);
+    expect(page.items.find((item) => item.id === first)?.replyCount).toBe(1);
+    expect(
+      page.items
+        .filter((item) => item.id !== first)
+        .map((item) => item.replyCount),
+    ).toEqual([0, 0]);
+
+    const home = await app.inject({
+      cookies: { sid: ada.token },
+      url: "/v1/timeline",
+    });
+    const card = timelinePageSchema
+      .parse(home.json())
+      .items.find((item) => item.id === root);
+    expect(card?.replyCount).toBe(2);
+  });
+
   it("AC-B04.1/2/3 returns bounded public pages with direct parents, stable order and real likes", async () => {
     const root = tweetIdOf(await post(ada, "root"));
     const first = tweetIdOf(

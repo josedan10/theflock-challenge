@@ -220,6 +220,7 @@ describe("API client", () => {
       id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
       likeCount: 0,
       likedByViewer: false,
+      replyCount: 0,
     };
 
     it("US-B01 AC-B01.1 posts a tweet with the CSRF token and parses the card", async () => {
@@ -407,6 +408,7 @@ describe("THR-01 client", () => {
     content: "reply",
     likeCount: 0,
     likedByViewer: false,
+    replyCount: 0,
   };
   it("AC-B04.1 sends CSRF on reply creation without allowing an author field", async () => {
     const { client, fetchImpl } = clientReturning(jsonResponse(201, { tweet }));

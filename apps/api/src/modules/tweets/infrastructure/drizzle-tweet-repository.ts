@@ -76,6 +76,8 @@ export function createDrizzleTweetRepository(db: Database): TweetRepository {
           // A tweet that was just created has no likes yet.
           likeCount: 0,
           likedByViewer: false,
+          // Nor any replies.
+          replyCount: 0,
         };
       });
     },
