@@ -507,4 +507,39 @@ describe("THR-01 client", () => {
       expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ method: "DELETE" });
     });
   });
+
+  describe("notifications", () => {
+    it("NOT-01 reads a page with an encoded cursor and the unread count", async () => {
+      const page = clientReturning(
+        jsonResponse(200, { items: [], nextCursor: null }),
+      );
+      await page.client.getNotifications("a+b");
+      expect(page.fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/notifications?cursor=a%2Bb",
+      );
+
+      const count = clientReturning(jsonResponse(200, { unreadCount: 2 }));
+      await expect(count.client.getUnreadCount()).resolves.toEqual({
+        unreadCount: 2,
+      });
+      expect(count.fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/notifications/unread-count",
+      );
+    });
+
+    it("NOT-01 marks read with the CSRF token", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { unreadCount: 0 }),
+      );
+
+      await expect(
+        client.markNotificationsRead({ all: true }, "csrf-token"),
+      ).resolves.toEqual({ unreadCount: 0 });
+      expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+        body: JSON.stringify({ all: true }),
+        headers: { "x-csrf-token": "csrf-token" },
+        method: "POST",
+      });
+    });
+  });
 });
