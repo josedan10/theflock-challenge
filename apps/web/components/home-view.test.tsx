@@ -104,9 +104,7 @@ describe("HomeView tweets", () => {
     expect(
       await screen.findByRole("textbox", { name: "What's happening?" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Home timeline" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
     expect(
       await screen.findByText(
         "Your timeline is empty. Post a tweet above, or search for people and follow them to see their posts here.",
@@ -131,7 +129,7 @@ describe("HomeView tweets", () => {
     await post("two");
 
     const items = within(
-      screen.getByRole("list", { name: "Home timeline" }),
+      screen.getByRole("list", { name: "Home" }),
     ).getAllByRole("article");
     expect(
       items.map(
@@ -257,7 +255,7 @@ describe("HomeView tweets", () => {
     await user.click(banner);
 
     const items = within(
-      screen.getByRole("list", { name: "Home timeline" }),
+      screen.getByRole("list", { name: "Home" }),
     ).getAllByRole("article");
     expect(
       items.map(

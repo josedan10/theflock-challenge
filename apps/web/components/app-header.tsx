@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellIcon,
   CircleAlertIcon,
   HouseIcon,
   LogOutIcon,
@@ -13,9 +14,11 @@ import { useState } from "react";
 
 import { apiFormErrors } from "../lib/form-errors";
 import { leaveTo } from "../lib/navigation";
+import { useUnreadCount } from "../lib/notifications";
 import { useLogOut, useSession } from "../lib/session";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   NavigationMenu,
@@ -35,6 +38,7 @@ export function AppHeader() {
   const logOut = useLogOut();
   const [error, setError] = useState<string | null>(null);
   const user = session.data?.user ?? null;
+  const unread = useUnreadCount(user?.id ?? null).data?.unreadCount ?? 0;
 
   return (
     <header className="border-b bg-background">
@@ -80,6 +84,30 @@ export function AppHeader() {
                   >
                     <SearchIcon aria-hidden="true" />
                     Search
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    active={pathname === "/notifications"}
+                    className="relative no-underline"
+                    render={<Link href="/notifications" />}
+                  >
+                    <BellIcon aria-hidden="true" />
+                    {/* The name comes from this content, so it always matches
+                        what is visible: "Notifications 3 unread". On phones
+                        the word is visually hidden for room. */}
+                    <span className="sr-only md:not-sr-only">
+                      Notifications
+                    </span>
+                    {unread > 0 ? (
+                      <>
+                        {" "}
+                        <Badge className="absolute -top-1 left-4 h-4 min-w-4 px-1 text-[0.65rem] tabular-nums md:static">
+                          {unread > 99 ? "99+" : unread}
+                        </Badge>{" "}
+                        <span className="sr-only">unread</span>
+                      </>
+                    ) : null}
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>

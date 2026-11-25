@@ -25,29 +25,32 @@ Status semantics: `400` malformed cursor/request, `401` unauthenticated, `403` a
 
 ## Routes
 
-| Method | Route                        |             Auth | Purpose                                       |
-| ------ | ---------------------------- | ---------------: | --------------------------------------------- |
-| POST   | `/auth/register`             |               no | Create user and session                       |
-| POST   | `/auth/login`                |               no | Create/rotate session                         |
-| POST   | `/auth/logout`               |              yes | Revoke current session                        |
-| GET    | `/me`                        |              yes | Current user/session-safe profile             |
-| PATCH  | `/me/profile`                |              yes | Edit display name/bio/avatar key when enabled |
-| GET    | `/users/:username`           |         optional | Public profile                                |
-| GET    | `/users/:username/tweets`    |         optional | Profile tweet page                            |
-| GET    | `/users/:username/followers` |         optional | Cursor-paginated followers                    |
-| GET    | `/users/:username/following` |         optional | Cursor-paginated following                    |
-| PUT    | `/users/:username/follow`    |              yes | Idempotently follow                           |
-| DELETE | `/users/:username/follow`    |              yes | Idempotently unfollow                         |
-| GET    | `/users/search?q=`           |              yes | Search public user fields                     |
-| POST   | `/tweets`                    |              yes | Create tweet                                  |
-| POST   | `/tweets/:id/replies`        |              yes | Reply to a visible tweet or reply             |
-| GET    | `/tweets/:id/thread`         |         optional | Selected tweet and paged descendants          |
-| DELETE | `/tweets/:id`                |              yes | Delete own tweet                              |
-| PUT    | `/tweets/:id/like`           |              yes | Idempotently like                             |
-| DELETE | `/tweets/:id/like`           |              yes | Idempotently unlike                           |
-| GET    | `/timeline?cursor=&limit=`   |              yes | Home timeline                                 |
-| GET    | `/health/live`               |               no | Process liveness only                         |
-| GET    | `/health/ready`              | internal/limited | Dependency readiness, no secret details       |
+| Method | Route                           |             Auth | Purpose                                       |
+| ------ | ------------------------------- | ---------------: | --------------------------------------------- |
+| POST   | `/auth/register`                |               no | Create user and session                       |
+| POST   | `/auth/login`                   |               no | Create/rotate session                         |
+| POST   | `/auth/logout`                  |              yes | Revoke current session                        |
+| GET    | `/me`                           |              yes | Current user/session-safe profile             |
+| PATCH  | `/me/profile`                   |              yes | Edit display name/bio/avatar key when enabled |
+| GET    | `/users/:username`              |         optional | Public profile                                |
+| GET    | `/users/:username/tweets`       |         optional | Profile tweet page                            |
+| GET    | `/users/:username/followers`    |         optional | Cursor-paginated followers                    |
+| GET    | `/users/:username/following`    |         optional | Cursor-paginated following                    |
+| PUT    | `/users/:username/follow`       |              yes | Idempotently follow                           |
+| DELETE | `/users/:username/follow`       |              yes | Idempotently unfollow                         |
+| GET    | `/users/search?q=`              |              yes | Search public user fields                     |
+| POST   | `/tweets`                       |              yes | Create tweet                                  |
+| POST   | `/tweets/:id/replies`           |              yes | Reply to a visible tweet or reply             |
+| GET    | `/tweets/:id/thread`            |         optional | Selected tweet and paged descendants          |
+| DELETE | `/tweets/:id`                   |              yes | Delete own tweet                              |
+| PUT    | `/tweets/:id/like`              |              yes | Idempotently like                             |
+| DELETE | `/tweets/:id/like`              |              yes | Idempotently unlike                           |
+| GET    | `/timeline?cursor=&limit=`      |              yes | Home timeline                                 |
+| GET    | `/notifications?cursor=&limit=` |              yes | The member's notifications                    |
+| GET    | `/notifications/unread-count`   |              yes | Unread badge count                            |
+| POST   | `/notifications/read`           |              yes | Mark ids or all read                          |
+| GET    | `/health/live`                  |               no | Process liveness only                         |
+| GET    | `/health/ready`                 | internal/limited | Dependency readiness, no secret details       |
 
 Follow responses return `{ relationship: { following, followerCount } }`. Like responses return `{ like: { liked, likeCount } }`. Create tweet returns the complete card view model so the client does not invent timestamps/counts.
 
@@ -250,6 +253,16 @@ Omit `cursor` on the first page. Pass the returned cursor unchanged for the next
 - Protected routes use the `requireSession` pre-handler. Missing, unknown, expired, and revoked sessions all get the same `401`.
 - Cookie-authenticated mutations also use `requireCsrf`, which returns `403 FORBIDDEN` for a missing or wrong `X-CSRF-Token`.
 - The CSRF token is `HMAC-SHA256(SESSION_SECRET, session token)` (signed double-submit). It is bound to one session, cannot be forged without the key, and is re-derivable, so `/me` returns the same token. Only its SHA-256 hash is stored. Rotating `SESSION_SECRET` invalidates outstanding CSRF tokens, but not sessions.
+
+## Notifications (`/v1/notifications`)
+
+All three routes belong to the session member (NOT-01) and answer `Cache-Control: no-store`; no session is `401`.
+
+- `GET /v1/notifications?cursor=&limit=` → `notificationPageSchema`: newest first by `(created_at, id)`. Each item has `type` (`follow`, `like`, `reply`), the actor's public fields, `tweet` (`{ id, content }` of the liked tweet or the new reply; `null` for a follow), `createdAt` and `read`. Cursor and limit follow the timeline rules; the cursor is signed under a notifications label and bound to the member, so another member's or a tampered cursor is `400 MALFORMED_REQUEST`, as is any invalid parameter. Notifications from soft-deleted actors are hidden.
+- `GET /v1/notifications/unread-count` → `{ "unreadCount": 3 }` from committed rows.
+- `POST /v1/notifications/read` with `{ "ids": [uuid, …] }` (1–50) or `{ "all": true }` requires `X-CSRF-Token` (`403` without it) and answers `200 { "unreadCount": n }` after commit. Only the member's own notifications change: other members' ids are ignored, never revealed. `all` marks what arrived up to the request. An invalid body is `422`.
+
+Notifications are created by follow, like and reply in the same transaction as the action, deduplicated by a unique key, and never for a member's own action. Rate limits per client address: list 120/minute, count 240/minute (the badge polls it), mark-read 60/minute.
 
 ## Rate-limit starting points
 

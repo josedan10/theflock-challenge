@@ -63,6 +63,31 @@ describe("AppHeader", () => {
     expect(search).toHaveAttribute("aria-current", "page");
   });
 
+  it("NOT-01 shows a bell named with the unread count", async () => {
+    pathname.mockReturnValue("/notifications");
+    renderWithSession(
+      <AppHeader />,
+      fakeApiClient({
+        getUnreadCount: vi.fn(async () => ({ unreadCount: 3 })),
+        me: vi.fn(async () => testSession),
+      }),
+    );
+
+    const bell = await screen.findByRole("link", {
+      name: /^Notifications\s*3\s*unread$/,
+    });
+    expect(bell).toHaveAttribute("href", "/notifications");
+    expect(bell).toHaveAttribute("aria-current", "page");
+    expect(bell).toHaveTextContent("3");
+  });
+
+  it("NOT-01 drops the count from the bell when everything is read", async () => {
+    renderWithSession(<AppHeader />, signedIn());
+
+    const bell = await screen.findByRole("link", { name: "Notifications" });
+    expect(bell).not.toHaveTextContent(/\d/);
+  });
+
   it("offers Log in and Create account to a signed-out visitor", async () => {
     pathname.mockReturnValue("/u/ada");
     renderWithSession(<AppHeader />);

@@ -5,6 +5,7 @@ import {
   type DatabaseExecutor,
 } from "../../../platform/database/client.js";
 import { users } from "../../auth/infrastructure/auth.schema.js";
+import { recordNotification } from "../../notifications/infrastructure/record-notification.js";
 import {
   FollowTargetNotFoundError,
   SelfFollowError,
@@ -130,6 +131,16 @@ export function createDrizzleFollowRepository(db: Database): FollowRepository {
         } catch (error: unknown) {
           interpretFollowPersistenceError(error);
         }
+        // Same transaction; a re-follow after unfollowing does not repeat it.
+        await recordNotification(
+          tx,
+          {
+            actorId: input.followerId,
+            recipientId: targetId,
+            type: "follow",
+          },
+          input.now,
+        );
         return {
           followerCount: await followerCount(tx, targetId),
           following: true,

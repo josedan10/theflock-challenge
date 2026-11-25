@@ -13,6 +13,11 @@ import {
   type LikeResponse,
   likeResponseSchema,
   type LoginRequest,
+  type MarkReadRequest,
+  type NotificationPage,
+  notificationPageSchema,
+  type UnreadCountResponse,
+  unreadCountResponseSchema,
   type PublicProfileResponse,
   publicProfileResponseSchema,
   type RegisterRequest,
@@ -68,6 +73,15 @@ export interface ApiClient {
   like(tweetId: string, csrfToken: string): Promise<LikeResponse>;
   /** Removes the member's like; resolves with the committed state and count. */
   unlike(tweetId: string, csrfToken: string): Promise<LikeResponse>;
+  /** One page of the member's notifications; cursor as for the timeline. */
+  getNotifications(cursor?: string): Promise<NotificationPage>;
+  /** The member's unread notification count. */
+  getUnreadCount(): Promise<UnreadCountResponse>;
+  /** Marks ids or everything read; resolves with the committed count. */
+  markNotificationsRead(
+    input: MarkReadRequest,
+    csrfToken: string,
+  ): Promise<UnreadCountResponse>;
   /** Deletes the signed-in member's own tweet. */
   deleteTweet(tweetId: string, csrfToken: string): Promise<void>;
   /**
@@ -199,6 +213,30 @@ export function createApiClient(
         { method: "GET" },
       );
       return followListPageSchema.parse(await response.json());
+    },
+    async getNotifications(cursor) {
+      const query =
+        cursor === undefined
+          ? ""
+          : `?${new URLSearchParams({ cursor }).toString()}`;
+      const response = await request(`/notifications${query}`, {
+        method: "GET",
+      });
+      return notificationPageSchema.parse(await response.json());
+    },
+    async getUnreadCount() {
+      const response = await request("/notifications/unread-count", {
+        method: "GET",
+      });
+      return unreadCountResponseSchema.parse(await response.json());
+    },
+    async markNotificationsRead(input, csrfToken) {
+      const response = await request("/notifications/read", {
+        body: input,
+        csrfToken,
+        method: "POST",
+      });
+      return unreadCountResponseSchema.parse(await response.json());
     },
     async getProfile(username) {
       const response = await request(`/users/${encodeURIComponent(username)}`, {

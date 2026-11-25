@@ -84,4 +84,9 @@ API grants a short-lived upload intent; browser uploads to S3-compatible storage
 
 ### Notifications
 
-Domain events written in the same transaction (outbox pattern) produce deduplicated notifications. v1 supports follow and like, excludes self-notifications, and marks items read explicitly.
+1. Someone follows a member, likes their tweet, or replies to it. The notification is written in the same transaction as that action, so it exists exactly when the action commits. Repeating the action (re-like, re-follow, retry) never notifies twice, and a member is never notified of their own action.
+2. The header's bell shows the unread count, refreshed periodically.
+3. The Notifications page lists them newest first with Load more. Opening one marks it read; **Mark all as read** clears the rest. Read state is the member's own.
+4. Deleting the liked tweet or the reply removes its notification.
+
+**Failure paths:** a failed load offers retry; a failed mark-read keeps the item unread and says so.

@@ -83,11 +83,21 @@ Composite PK `(follower_id, following_id)`; check `follower_id <> following_id`;
 
 Composite PK `(user_id, tweet_id)`; index `(tweet_id, created_at DESC, user_id)` supports counts/lists.
 
+## Notifications (NOT-01)
+
+Migration `notifications` adds `notifications(id, recipient_id, actor_id, type, tweet_id nullable, dedupe_key UNIQUE, read_at, created_at)`.
+
+- `type` is `follow`, `like` or `reply`; a check requires `tweet_id` for likes and replies only (the liked tweet, or the new reply) and another forbids `actor_id = recipient_id`.
+- `dedupe_key` is `follow:{actor}:{recipient}`, `like:{actor}:{tweet}` or `reply:{reply}`; inserts use `ON CONFLICT DO NOTHING`, so repeats and concurrent retries notify once.
+- Rows are written by the follow, like and reply commands in their own transaction. This gives the outbox's guarantee (no notification without its action, none lost) without a relay worker; a separate outbox is only worth adding if live delivery has to publish outside PostgreSQL.
+- Foreign keys cascade from the recipient, the actor and the tweet, so deleting a tweet or reply removes its notifications.
+- `notifications_recipient_created_id_idx (recipient_id, created_at DESC, id DESC)` serves the page; the partial `notifications_recipient_unread_idx (recipient_id) WHERE read_at IS NULL` serves the badge count.
+- Rollback: stop serving the routes and the writes; the table is additive and can stay.
+
 ## Optional tables (create only in bonus milestones)
 
 - `tweet_media(tweet_id PK/FK, object_key UNIQUE, mime_type, byte_size, width, height, status, created_at)`.
-- `notifications(id, recipient_id, actor_id, type, tweet_id nullable, dedupe_key UNIQUE, read_at, created_at)` with recipient cursor index.
-- `outbox_events(id, aggregate_type, aggregate_id, event_type, payload jsonb, created_at, published_at)` for reliable notification delivery.
+- `outbox_events(id, aggregate_type, aggregate_id, event_type, payload jsonb, created_at, published_at)`: only if live delivery (LIVE-01) needs to publish events outside the database.
 
 ## Timeline query shape
 
