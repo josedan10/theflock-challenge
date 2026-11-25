@@ -1,8 +1,13 @@
 import { v7 as uuidv7 } from "uuid";
 
+import { createSignedKeysetCursor } from "../../platform/pagination/signed-keyset-cursor.js";
+
 import { createCreateTweet } from "./application/create-tweet.js";
 import { createDeleteTweet } from "./application/delete-tweet.js";
+import { createReadThread } from "./application/read-thread.js";
+import { threadRoutes } from "./http/thread-routes.js";
 import { tweetRoutes } from "./http/tweet-routes.js";
+import { createThreadReader } from "./infrastructure/drizzle-thread-reader.js";
 import { createDrizzleTweetRepository } from "./infrastructure/drizzle-tweet-repository.js";
 
 import type { Database } from "../../platform/database/client.js";
@@ -12,6 +17,8 @@ import type { FastifyInstance } from "fastify";
 
 export interface TweetsModuleOptions {
   db: Database;
+  optionalSession: AuthGuard;
+  sessionSecret: string;
   requireSession: AuthGuard;
   requireCsrf: AuthGuard;
   /** Injected for deterministic tests; defaults to the system clock. */
@@ -30,6 +37,22 @@ export function tweetsModule(options: TweetsModuleOptions) {
   const deleteTweet = createDeleteTweet(tweets);
 
   return async (app: FastifyInstance): Promise<void> => {
+    await threadRoutes(app, {
+      requireSession: options.requireSession,
+      requireCsrf: options.requireCsrf,
+      optionalSession: options.optionalSession,
+      ...(options.writeRateLimit === undefined
+        ? {}
+        : { writeRateLimit: options.writeRateLimit }),
+      createTweet,
+      read: createReadThread(
+        createThreadReader(options.db),
+        createSignedKeysetCursor(
+          options.sessionSecret,
+          "tweet-thread/cursor-key",
+        ),
+      ),
+    });
     await tweetRoutes(app, {
       createTweet,
       deleteTweet,

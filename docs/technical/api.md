@@ -40,6 +40,8 @@ Status semantics: `400` malformed cursor/request, `401` unauthenticated, `403` a
 | DELETE | `/users/:username/follow`    |              yes | Idempotently unfollow                         |
 | GET    | `/users/search?q=`           |              yes | Search public user fields                     |
 | POST   | `/tweets`                    |              yes | Create tweet                                  |
+| POST   | `/tweets/:id/replies`        |              yes | Reply to a visible tweet or reply             |
+| GET    | `/tweets/:id/thread`         |         optional | Selected tweet and paged descendants          |
 | DELETE | `/tweets/:id`                |              yes | Delete own tweet                              |
 | PUT    | `/tweets/:id/like`           |              yes | Idempotently like                             |
 | DELETE | `/tweets/:id/like`           |              yes | Idempotently unlike                           |
@@ -257,3 +259,9 @@ Omit `cursor` on the first page. Pass the returned cursor unchanged for the next
 - Reads: 120/minute/user/IP. Health checks are separately limited/allowlisted.
 
 Return `Retry-After`. Limits are defense-in-depth, not business quotas, and must not rely solely on attacker-controlled IP headers. The client address honours `X-Forwarded-For` only from proxies listed in `TRUST_PROXY` (addresses, CIDRs, or `loopback`/`linklocal`/`uniquelocal`); production behind Caddy must set it, or every client shares the proxy's budget.
+
+## Threaded replies (THR-01 / US-B04)
+
+- `POST /v1/tweets/:id/replies` accepts the same strict `{ content }` (1–280 trimmed Unicode code points) and returns the same `201 { tweet }` card as posting a tweet. Only the session and URL choose author and parent. The parent may itself be a reply. Requires a live session and session CSRF token; uses the configured tweet write budget per client on this route. Invalid content, absent parent, unauthorized requests and rate limiting produce `422`, `404`, `401/403` and `429`, respectively.
+- `GET /v1/tweets/:id/thread` is public. Returns `{ selected, items, nextCursor }`; selected and descendant cards have a nullable `parentTweetId`. Deleted authors are not shown. Guest liked state is false; an active session personalizes likes. Responses are not cached. Optional `limit` (default 20, max 30) and a signed `cursor` page all descendants, not just immediate children, in ascending creation time and UUID. Every child follows its parent. Cursors are valid only for that selected tweet; malformed, foreign or modified cursors return `400`. Read limit: 120/minute/client.
+- `DELETE /v1/tweets/:id` still requires ownership of the target and confirmation in the UI. Its transaction removes the entire subtree, even other authors' replies, and their likes. A reply remains an authored tweet for feed eligibility and profile counts. The public page is `/tweets/:id`; opening a nested reply selects that branch.

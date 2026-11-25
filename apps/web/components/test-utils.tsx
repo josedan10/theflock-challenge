@@ -35,6 +35,12 @@ export const testTweet: Tweet = {
 
 export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
+    createReply: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    getThread: vi.fn(async () => {
+      throw new Error("not used");
+    }),
     createTweet: vi.fn(async (input: { content: string }) => ({
       tweet: { ...testTweet, content: input.content },
     })),

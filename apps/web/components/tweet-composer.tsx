@@ -39,8 +39,10 @@ function limitAnnouncement(remaining: number): string {
  */
 export function TweetComposer({
   member,
-}: Readonly<{ member: TweetAuthorRef }>) {
-  const createTweet = useCreateTweet(member);
+  parentTweetId,
+}: Readonly<{ member: TweetAuthorRef; parentTweetId?: string }>) {
+  const createTweet = useCreateTweet(member, parentTweetId);
+  const replying = parentTweetId !== undefined;
   const [content, setContent] = useState("");
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS);
   const [posted, setPosted] = useState(false);
@@ -78,7 +80,7 @@ export function TweetComposer({
 
   return (
     <form
-      aria-label="Post a tweet"
+      aria-label={replying ? "Post a reply" : "Post a tweet"}
       className="grid gap-3"
       // POST, so a submit before hydration never puts the text in the URL.
       method="post"
@@ -92,7 +94,9 @@ export function TweetComposer({
         </Alert>
       )}
       <Field data-invalid={invalid}>
-        <FieldLabel htmlFor="tweet-content">What&apos;s happening?</FieldLabel>
+        <FieldLabel htmlFor="tweet-content">
+          {replying ? "Your reply" : "What's happening?"}
+        </FieldLabel>
         <Textarea
           aria-describedby={
             fieldErrors.length > 0
@@ -139,7 +143,7 @@ export function TweetComposer({
         </p>
         <div className="flex items-center gap-3">
           <p className="text-sm text-muted-foreground" role="status">
-            {posted ? "Posted." : ""}
+            {posted ? (replying ? "Reply posted." : "Posted.") : ""}
           </p>
           <Button
             aria-busy={createTweet.isPending}
@@ -159,7 +163,7 @@ export function TweetComposer({
             ) : (
               <>
                 <SendIcon aria-hidden="true" data-icon="inline-start" />
-                Post
+                {replying ? "Post reply" : "Post"}
               </>
             )}
           </Button>

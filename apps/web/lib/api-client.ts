@@ -14,6 +14,8 @@ import {
   type PublicProfileResponse,
   publicProfileResponseSchema,
   type RegisterRequest,
+  type ThreadPage,
+  threadPageSchema,
   type TimelinePage,
   timelinePageSchema,
   type UpdateProfileRequest,
@@ -54,6 +56,12 @@ export interface ApiClient {
     input: CreateTweetRequest,
     csrfToken: string,
   ): Promise<CreateTweetResponse>;
+  createReply(
+    parentId: string,
+    input: CreateTweetRequest,
+    csrfToken: string,
+  ): Promise<CreateTweetResponse>;
+  getThread(id: string, cursor?: string): Promise<ThreadPage>;
   /** Deletes the signed-in member's own tweet. */
   deleteTweet(tweetId: string, csrfToken: string): Promise<void>;
   /**
@@ -138,6 +146,22 @@ export function createApiClient(
   }
 
   return {
+    async createReply(parentId, input, csrfToken) {
+      const response = await request(
+        `/tweets/${encodeURIComponent(parentId)}/replies`,
+        { body: input, method: "POST", csrfToken },
+      );
+      return createTweetResponseSchema.parse(await response.json());
+    },
+    async getThread(id, cursor) {
+      const query =
+        cursor === undefined ? "" : `?cursor=${encodeURIComponent(cursor)}`;
+      const response = await request(
+        `/tweets/${encodeURIComponent(id)}/thread${query}`,
+        { method: "GET" },
+      );
+      return threadPageSchema.parse(await response.json());
+    },
     async createTweet(input, csrfToken) {
       const response = await request("/tweets", {
         body: input,

@@ -112,3 +112,13 @@ SRC-01 migration `user_search_trigram` enables `pg_trgm` (a trusted extension: t
 - Migration names are timestamped and immutable. CI runs from empty and previous release schemas.
 
 FEED-01 adds empty `follows` and `likes` tables; it does not rewrite existing users or tweets. Apply before the API rollout. To roll back the API, leave these additive tables in place and forward-fix with a new migration; do not drop social data. SOC-01 serves follow and unfollow on the existing `follows` table and adds no migration. SOC-02 serves like and unlike on the existing `likes` table and adds no migration either.
+
+## Thread storage and migration (THR-01)
+
+`tweets.parent_tweet_id` is nullable for roots and references `tweets.id ON DELETE CASCADE`; the child index supports deletes. An insert trigger requires a pre-existing parent and advances a reply's creation instant to at least one microsecond after that parent if needed. Parent and creation instant cannot be rewritten, so cycles cannot be introduced. Existing tweets stay roots without a data backfill.
+
+A recursive walk followed by sorting and limiting would visit an entire subtree even to serve the first anonymous page. Instead, `tweet_descendants` stores only proper ancestor/descendant pairs, with an index on `(ancestor_id, created_at, descendant_id)`. The insert trigger copies the parent's ancestors plus the parent itself transactionally. This makes indexed keyset reads possible from any selected node; a reply costs O(depth) extra rows, and a long chain can require quadratic storage. The broad-thread integration fixture exercises the real query with `EXPLAIN (ANALYZE, BUFFERS)`.
+
+Reply writes take a shared lock on the conversation root; deletes take an exclusive lock there before walking the subtree. This common lock order prevents a new reply from interleaving ancestor-index writes with cascade deletes in reverse order. Unrelated conversations remain independent. **Local challenge only:** synchronous cascades can hold locks, amplify writes and exhaust database resources on very large or deep trees. Production should revisit quotas, retention and batched deletion or tombstones rather than copying this approach.
+
+Apply the additive migration before the API. An API rollback can leave the tables, nullable column, triggers and indexes in place. Already-written replies stay protected by cascade semantics; forward-fix any schema issue without dropping their data.

@@ -9,6 +9,7 @@ export interface CreateTweetDependencies {
 export interface CreateTweetInput {
   /** The authenticated member; never taken from the request body. */
   authorId: string;
+  parentTweetId?: string;
   /** Contract-validated, trimmed content. */
   content: string;
 }
@@ -22,6 +23,9 @@ export function createCreateTweet(
   return (input) =>
     dependencies.tweets.create({
       authorId: input.authorId,
+      ...(input.parentTweetId === undefined
+        ? {}
+        : { parentTweetId: input.parentTweetId }),
       content: input.content,
       id: dependencies.generateId(),
       now: dependencies.clock(),

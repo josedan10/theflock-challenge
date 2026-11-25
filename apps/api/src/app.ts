@@ -158,6 +158,8 @@ export async function buildApp(
     );
     await app.register(
       tweetsModule({
+        optionalSession: auth.optionalSession,
+        sessionSecret: options.auth.sessionSecret,
         db: options.auth.db,
         requireCsrf: auth.requireCsrf,
         requireSession: auth.requireSession,

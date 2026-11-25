@@ -52,9 +52,10 @@ After M3, profile UI work can proceed alongside M4. The project is local-only; p
 
 ## M6 — Conversations and media
 
-- Thread replies with bounded reads and clear parent/child relationships.
+- Nested, publicly readable tweet replies with bounded thread pagination, clear parent/child relationships, and accessible UI.
+- Root deletion removes the complete reply subtree for this challenge; document fan-out/locking risk and avoid treating this as a production pattern.
 - Tweet image uploads with validation, ownership, safe local storage, and accessible presentation.
-- **Exit:** reply and upload flows pass API, integration, browser, and accessibility tests.
+- **Exit:** thread API/UI, subtree deletion, and upload flows pass API, real PostgreSQL integration, browser, and accessibility tests.
 
 ## M7 — Notifications and live updates
 

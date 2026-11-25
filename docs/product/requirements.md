@@ -13,7 +13,7 @@ The application (working title: **Twitter Clone**) is a deliberately small Twitt
 
 ### Non-goals for v1
 
-- Algorithmic ranking, retweets/quotes, hashtags, DMs, polls, threads, moderation tooling, account recovery, OAuth/social login, verified accounts, private accounts, or multiple tweet media items.
+- Algorithmic ranking, retweets/quotes, hashtags, DMs, polls, moderation tooling, account recovery, OAuth/social login, verified accounts, private accounts, or multiple tweet media items.
 - Exactly matching Twitter/X branding or visual design.
 - Multi-region/high-availability infrastructure.
 
@@ -25,27 +25,32 @@ The application (working title: **Twitter Clone**) is a deliberately small Twitt
 
 ## 3. Functional requirements
 
-| ID         | Requirement                                                                     | Priority |
-| ---------- | ------------------------------------------------------------------------------- | -------- |
-| AUTH-01    | Register with email, password, unique username, and optional display name       | Must     |
-| AUTH-02    | Log in and log out using a revocable server-side session                        | Must     |
-| AUTH-03    | Protect all write actions and private/member routes                             | Must     |
-| PROFILE-01 | Show username, display name, bio, avatar placeholder, follower/following counts | Must     |
-| PROFILE-02 | Edit own display name, bio, and supported profile fields                        | Should   |
-| TWEET-01   | Create a plain-text tweet of 1–280 Unicode characters                           | Must     |
-| TWEET-02   | Delete only one's own tweet                                                     | Must     |
-| FEED-01    | Show tweets by followed users and the member, newest first                      | Must     |
-| FEED-02    | Paginate timeline with stable cursor-based pagination                           | Must     |
-| SOCIAL-01  | Follow/unfollow another user, never oneself                                     | Must     |
-| SOCIAL-02  | Like/unlike a tweet idempotently and display the count                          | Must     |
-| SOCIAL-03  | List followers and following with pagination                                    | Must     |
-| SEARCH-01  | Search users by case-insensitive username or display name                       | Must     |
-| UI-01      | Mobile-first responsive interface at `<640`, `640–1024`, and `>1024` px         | Must     |
-| RT-01      | Stream new timeline items without refresh                                       | Could    |
-| MEDIA-01   | Attach one validated image to a tweet                                           | Could    |
-| NOTIFY-01  | Notify recipients of a new follow or like on their tweet                        | Could    |
+| ID         | Requirement                                                                                                    | Priority |
+| ---------- | -------------------------------------------------------------------------------------------------------------- | -------- |
+| AUTH-01    | Register with email, password, unique username, and optional display name                                      | Must     |
+| AUTH-02    | Log in and log out using a revocable server-side session                                                       | Must     |
+| AUTH-03    | Protect all write actions and private/member routes                                                            | Must     |
+| PROFILE-01 | Show username, display name, bio, avatar placeholder, follower/following counts                                | Must     |
+| PROFILE-02 | Edit own display name, bio, and supported profile fields                                                       | Should   |
+| TWEET-01   | Create a plain-text tweet of 1–280 Unicode characters                                                          | Must     |
+| TWEET-02   | Delete only one's own tweet                                                                                    | Must     |
+| THREAD-01  | Create and read publicly visible, recursively nested replies; deleting a root removes its entire reply subtree | Must     |
+| FEED-01    | Show tweets by followed users and the member, newest first                                                     | Must     |
+| FEED-02    | Paginate timeline with stable cursor-based pagination                                                          | Must     |
+| SOCIAL-01  | Follow/unfollow another user, never oneself                                                                    | Must     |
+| SOCIAL-02  | Like/unlike a tweet idempotently and display the count                                                         | Must     |
+| SOCIAL-03  | List followers and following with pagination                                                                   | Must     |
+| SEARCH-01  | Search users by case-insensitive username or display name                                                      | Must     |
+| UI-01      | Mobile-first responsive interface at `<640`, `640–1024`, and `>1024` px                                        | Must     |
+| RT-01      | Stream new timeline items without refresh                                                                      | Could    |
+| MEDIA-01   | Attach one validated image to a tweet                                                                          | Could    |
+| NOTIFY-01  | Notify recipients of a new follow or like on their tweet                                                       | Could    |
 
 The detailed test conditions live in [user-stories.md](user-stories.md).
+
+### Thread deletion tradeoff
+
+For this local challenge, deleting a tweet synchronously deletes that tweet and every descendant reply, including replies authored by other members. This intentionally simple behavior differs from what X documents. A large reply tree can make a delete expensive, hold locks for a long time, and amplify database work. This is not a production recommendation; production should evaluate bounded/asynchronous deletion, tombstones, and retention semantics.
 
 ## 4. Business rules
 

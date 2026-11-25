@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   check,
+  primaryKey,
   index,
   pgTable,
   timestamp,
@@ -26,12 +28,20 @@ export const tweets = pgTable(
     authorId: uuid("author_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    parentTweetId: uuid("parent_tweet_id").references(
+      (): AnyPgColumn => tweets.id,
+      { onDelete: "cascade" },
+    ),
     content: varchar("content", { length: 280 }).notNull(),
     createdAt: timestamptz("created_at").notNull(),
     // Reserved: editing is not a v1 feature.
     updatedAt: timestamptz("updated_at"),
   },
   (table) => [
+    index("tweets_parent_tweet_id_idx")
+      .on(table.parentTweetId)
+      .where(sql`${table.parentTweetId} is not null`),
+    check("tweets_not_own_parent", sql`${table.parentTweetId} <> ${table.id}`),
     // Profile pages: one author's tweets, newest first.
     index("tweets_author_id_created_at_id_idx").on(
       table.authorId,
@@ -50,6 +60,32 @@ export const tweets = pgTable(
     check(
       "tweets_content_trimmed_check",
       sql`${table.content} = btrim(${table.content}, E' \\t\\n\\r')`,
+    ),
+  ],
+);
+
+/** Indexed ancestry projection maintained by database triggers in the same transaction as a reply. */
+export const tweetDescendants = pgTable(
+  "tweet_descendants",
+  {
+    ancestorId: uuid("ancestor_id")
+      .notNull()
+      .references(() => tweets.id, { onDelete: "cascade" }),
+    descendantId: uuid("descendant_id")
+      .notNull()
+      .references(() => tweets.id, { onDelete: "cascade" }),
+    createdAt: timestamptz("created_at").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.descendantId, t.ancestorId] }),
+    index("tweet_descendants_page_idx").on(
+      t.ancestorId,
+      t.createdAt,
+      t.descendantId,
+    ),
+    check(
+      "tweet_descendants_no_self",
+      sql`${t.ancestorId} <> ${t.descendantId}`,
     ),
   ],
 );
