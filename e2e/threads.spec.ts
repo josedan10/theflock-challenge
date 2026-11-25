@@ -23,7 +23,9 @@ test("THR-01 US-B04 posts a nested reply and reads its branch signed out", async
     .getByRole("link", { name: /Open thread/ });
   await expect(rootLink).toHaveAttribute("href", /^\/tweets\//);
   const href = await rootLink.getAttribute("href");
-  if (href === null) throw new Error("Root thread link has no destination.");
+  if (href === null) {
+    throw new Error("Root thread link has no destination.");
+  }
   const root = new URL(href, baseURL);
   await rootLink.click();
   await expect(page).toHaveURL(root.href);
