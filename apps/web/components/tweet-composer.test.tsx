@@ -391,6 +391,12 @@ describe("TweetComposer mentions", () => {
     });
 
     const option = await screen.findByRole("option", { name: /Grace Hopper/ });
+    expect(textbox()).not.toHaveAttribute("aria-expanded");
+    expect(textbox()).toHaveAttribute("aria-controls", "tweet-mentions");
+    expect(textbox()).toHaveAttribute(
+      "aria-activedescendant",
+      "tweet-mention-0",
+    );
     expect(searchUsers).toHaveBeenCalledWith("gr");
     fireEvent.mouseDown(option);
 

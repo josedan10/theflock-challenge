@@ -323,12 +323,14 @@ export function TweetComposer({
           aria-keyshortcuts="Meta+Enter Control+Enter"
           id="tweet-content"
           name="content"
+          // A textarea's implicit textbox role allows aria-controls and
+          // aria-activedescendant, not aria-expanded. That attribute is what
+          // axe reports as aria-allowed-attr on #tweet-content.
           aria-activedescendant={
             people.length > 0 ? `tweet-mention-${selectedMention}` : undefined
           }
-          aria-autocomplete="list"
+          aria-autocomplete={people.length > 0 ? "list" : undefined}
           aria-controls={people.length > 0 ? "tweet-mentions" : undefined}
-          aria-expanded={people.length > 0}
           onChange={(event) => {
             setContent(event.target.value);
             setCaret(event.target.selectionStart ?? event.target.value.length);
