@@ -78,7 +78,10 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
   const isOwner = session.isSuccess && session.data?.user.id === profile.id;
 
   return (
-    <article aria-labelledby="profile-heading" className="grid gap-4">
+    <article
+      aria-labelledby="profile-heading"
+      className="content-enter grid gap-4"
+    >
       <Card className="overflow-hidden">
         <div aria-hidden="true" className="h-24 bg-muted sm:h-32" />
         <CardContent className="grid gap-6 pb-6">

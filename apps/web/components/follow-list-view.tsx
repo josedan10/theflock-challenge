@@ -142,7 +142,10 @@ export function FollowListView({
       ) : null}
 
       {items.length > 0 ? (
-        <ul aria-labelledby="follow-list-heading" className="grid gap-2">
+        <ul
+          aria-labelledby="follow-list-heading"
+          className="content-enter grid gap-2"
+        >
           {items.map((item) => (
             <li key={item.user.id}>
               <MemberRow item={item} viewerUsername={viewer?.username} />

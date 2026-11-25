@@ -231,7 +231,10 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       {isPosting ? <PostingTweet /> : null}
 
       {items.length > 0 ? (
-        <ol aria-labelledby="home-timeline-heading" className="grid gap-3">
+        <ol
+          aria-labelledby="home-timeline-heading"
+          className="content-enter grid gap-3"
+        >
           {items.map((tweet) => (
             <li
               className={appearing.has(tweet.id) ? "tweet-appear" : undefined}
