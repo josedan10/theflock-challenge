@@ -126,6 +126,7 @@ describe("US-B03 home timeline", () => {
     expect(feed.items.map((t) => t.id)).toEqual([followed, own]);
     expect(feed.items[0]).toEqual({
       id: followed,
+      image: null,
       createdAt: "2026-11-24T12:00:00.000000Z",
       content: "hello",
       author: {

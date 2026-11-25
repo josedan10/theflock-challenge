@@ -34,6 +34,7 @@ export interface TimelineModuleOptions {
   requireSession: AuthGuard;
   live: TimelineLiveRuntime;
   corsOrigin: string;
+  mediaOrigin: string;
   /** Override used by tests. Production keeps the starting budget. */
   rateLimit?: AuthRateLimit;
   /** Override for opening GET /timeline/stream. Default: 30/minute. */
@@ -43,7 +44,7 @@ export interface TimelineModuleOptions {
 /** GET /v1/timeline uses only the session member to determine feed eligibility. */
 export function timelineModule(options: TimelineModuleOptions) {
   const read = createReadTimeline(
-    createReadTimelineRows(options.db),
+    createReadTimelineRows(options.db, options.mediaOrigin),
     createTimelineCursor(options.sessionSecret),
   );
   const readLimit = authRateLimitConfig(

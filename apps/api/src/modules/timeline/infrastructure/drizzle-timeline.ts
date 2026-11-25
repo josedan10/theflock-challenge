@@ -1,3 +1,4 @@
+import { mediaObjectUrl, type TweetImage } from "@twitter-clone/contracts";
 import { sql } from "drizzle-orm";
 
 import type { DatabaseExecutor } from "../../../platform/database/client.js";
@@ -55,11 +56,13 @@ export function timelineQuery(
     select p.id, p.content,
       to_char(p.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
       p.author_id, p.username, p.display_name, reactions.like_count, reactions.liked,
-      (select count(*) from tweets c where c.parent_tweet_id = p.id) as reply_count
+      (select count(*) from tweets c where c.parent_tweet_id = p.id) as reply_count,
+      m.object_key, m.alt_text, m.width, m.height
     from page p cross join lateral (
       select count(*) as like_count, coalesce(bool_or(l.user_id = ${viewer}::uuid), false) as liked
       from likes l where l.tweet_id = p.id
     ) reactions
+    left join tweet_media m on m.tweet_id = p.id
     order by p.created_at desc, p.id desc`;
 }
 
@@ -73,14 +76,21 @@ interface TimelineRow extends Record<string, unknown> {
   like_count: string;
   liked: boolean;
   reply_count: string;
+  object_key: string | null;
+  alt_text: string | null;
+  width: number | string | null;
+  height: number | string | null;
 }
 
-export function createReadTimelineRows(db: DatabaseExecutor): ReadTimelineRows {
+export function createReadTimelineRows(
+  db: DatabaseExecutor,
+  mediaOrigin: string,
+): ReadTimelineRows {
   return async (viewer, before, count) => {
     const rows = await db.execute<TimelineRow>(
       timelineQuery(viewer, before, count),
     );
-    return rows.map(mapTimelineRow);
+    return rows.map((row) => mapTimelineRow(row, mediaOrigin));
   };
 }
 
@@ -111,22 +121,25 @@ export function timelineSinceQuery(
     select p.id, p.content,
       to_char(p.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
       p.author_id, p.username, p.display_name, reactions.like_count, reactions.liked,
-      (select count(*) from tweets c where c.parent_tweet_id = p.id) as reply_count
+      (select count(*) from tweets c where c.parent_tweet_id = p.id) as reply_count,
+      m.object_key, m.alt_text, m.width, m.height
     from page p cross join lateral (
       select count(*) as like_count, coalesce(bool_or(l.user_id = ${viewer}::uuid), false) as liked
       from likes l where l.tweet_id = p.id
     ) reactions
+    left join tweet_media m on m.tweet_id = p.id
     order by p.created_at desc, p.id desc`;
 }
 
 export function createReadTimelineSinceRows(
   db: DatabaseExecutor,
+  mediaOrigin: string,
 ): ReadTimelineSinceRows {
   return async (viewer, after, count) => {
     const rows = await db.execute<TimelineRow>(
       timelineSinceQuery(viewer, after, count),
     );
-    return rows.map(mapTimelineRow);
+    return rows.map((row) => mapTimelineRow(row, mediaOrigin));
   };
 }
 
@@ -141,7 +154,24 @@ export function createListTimelineRecipients(db: DatabaseExecutor) {
   };
 }
 
-function mapTimelineRow(r: TimelineRow): TimelineEntry {
+function mapImage(row: TimelineRow, mediaOrigin: string): TweetImage | null {
+  if (
+    row.object_key === null ||
+    row.alt_text === null ||
+    row.width === null ||
+    row.height === null
+  ) {
+    return null;
+  }
+  return {
+    alt: row.alt_text,
+    height: Number(row.height),
+    url: mediaObjectUrl(mediaOrigin, row.object_key),
+    width: Number(row.width),
+  };
+}
+
+function mapTimelineRow(r: TimelineRow, mediaOrigin: string): TimelineEntry {
   return {
     id: r.id,
     content: r.content,
@@ -152,6 +182,7 @@ function mapTimelineRow(r: TimelineRow): TimelineEntry {
       displayName: r.display_name,
       avatarUrl: null,
     },
+    image: mapImage(r, mediaOrigin),
     likeCount: Number(r.like_count),
     likedByViewer: r.liked,
     replyCount: Number(r.reply_count),

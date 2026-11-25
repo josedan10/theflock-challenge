@@ -84,6 +84,35 @@ const environmentSchema = z
       .max(30 * 24 * 60 * 60)
       .default(7 * 24 * 60 * 60),
     TRUST_PROXY: trustProxy,
+    /** Directory for rewritten images. Required when uploads are enabled. */
+    MEDIA_STORAGE_DIR: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .transform((value) =>
+        value === undefined || value.length === 0 ? undefined : value,
+      ),
+    /**
+     * Origin written into image URLs. Not taken from the request Host header.
+     * No path, query, or hash.
+     */
+    PUBLIC_API_ORIGIN: z
+      .string()
+      .url()
+      .default("http://localhost:4000")
+      .refine((value) => {
+        const url = new URL(value);
+        return (
+          (url.protocol === "http:" || url.protocol === "https:") &&
+          url.pathname === "/" &&
+          url.search === "" &&
+          url.hash === "" &&
+          url.username === "" &&
+          url.password === ""
+        );
+      }, "PUBLIC_API_ORIGIN must be an origin with no path."),
+    UPLOADS_ENABLED: booleanFlag.default(false),
   })
   .refine(
     (environment) =>
@@ -91,6 +120,15 @@ const environmentSchema = z
     {
       message: "COOKIE_SECURE must be true in production.",
       path: ["COOKIE_SECURE"],
+    },
+  )
+  .refine(
+    (environment) =>
+      !environment.UPLOADS_ENABLED ||
+      environment.MEDIA_STORAGE_DIR !== undefined,
+    {
+      message: "MEDIA_STORAGE_DIR is required when UPLOADS_ENABLED is true.",
+      path: ["MEDIA_STORAGE_DIR"],
     },
   );
 

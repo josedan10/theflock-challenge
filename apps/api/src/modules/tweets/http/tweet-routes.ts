@@ -11,6 +11,7 @@ import {
   authRateLimitConfig,
 } from "../../auth/http/rate-limit.js";
 import { parseBody } from "../../auth/http/validation.js";
+import { ImageUnavailableError } from "../../media/domain/image-policy.js";
 import { NotTweetAuthorError, TweetNotFoundError } from "../domain/errors.js";
 
 import { toTweet } from "./tweet-card.js";
@@ -30,6 +31,10 @@ export interface TweetRouteDependencies {
   requireCsrf: AuthGuard;
   createTweet: CreateTweet;
   deleteTweet: DeleteTweet;
+  /** Origin used in image URLs. Ignored when the card has no image. */
+  mediaOrigin: string;
+  /** When false, a body that names an image is rejected (US-F02). */
+  uploadsEnabled: boolean;
   writeRateLimit?: AuthRateLimit;
 }
 
@@ -55,18 +60,39 @@ export async function tweetRoutes(
   };
 
   app.post("/tweets", writeConfig, async (request, reply) => {
-    const { content } = parseBody(createTweetRequestSchema, request.body);
+    const { content, image } = parseBody(
+      createTweetRequestSchema,
+      request.body,
+    );
+    if (image !== undefined && !dependencies.uploadsEnabled) {
+      throw new AppError("VALIDATION_ERROR", "Image uploads are not enabled.", {
+        image: ["Image uploads are not enabled."],
+      });
+    }
     const auth = authContext(request);
-    const card = await dependencies.createTweet({
-      authorId: auth.user.id,
-      content,
-    });
+    let card;
+    try {
+      card = await dependencies.createTweet({
+        authorId: auth.user.id,
+        content,
+        ...(image === undefined ? {} : { image }),
+      });
+    } catch (error: unknown) {
+      if (error instanceof ImageUnavailableError) {
+        throw new AppError("VALIDATION_ERROR", error.message, {
+          image: [error.message],
+        });
+      }
+      throw error;
+    }
     // Ids only: tweet text is user content and stays out of logs.
     request.log.info(
       { authorId: auth.user.id, tweetId: card.id },
       "tweet created",
     );
-    const body: CreateTweetResponse = { tweet: toTweet(card) };
+    const body: CreateTweetResponse = {
+      tweet: toTweet(card, dependencies.mediaOrigin),
+    };
     return reply.code(201).header("cache-control", "no-store").send(body);
   });
 

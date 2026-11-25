@@ -9,6 +9,8 @@ import {
   type AuthModuleOptions,
   createAuthRuntime,
 } from "./modules/auth/auth-module.js";
+import { createLocalObjectStore } from "./modules/media/infrastructure/local-object-store.js";
+import { mediaModule } from "./modules/media/media-module.js";
 import { notificationsModule } from "./modules/notifications/notifications-module.js";
 import { followListsModule } from "./modules/social/follow-lists-module.js";
 import { followsModule } from "./modules/social/follows-module.js";
@@ -57,6 +59,10 @@ export interface BuildAppOptions {
   };
   /** Override for the tweet create/delete budget. Default: 20/minute. */
   tweetWriteRateLimit?: AuthRateLimit;
+  /** Origin embedded in image URLs. Defaults to the local API origin. */
+  mediaOrigin?: string;
+  /** Enables IMG-01. Omit to keep image uploads off. */
+  uploads?: { storageDir: string };
 }
 
 /** Creates an injectable API instance with the platform security baseline. */
@@ -99,8 +105,14 @@ export async function buildApp(
   if (options.auth !== undefined) {
     const auth = createAuthRuntime(options.auth);
     await app.register(auth.plugin, { prefix: "/v1" });
+    const mediaOrigin = options.mediaOrigin ?? "http://localhost:4000";
+    const objects =
+      options.uploads === undefined
+        ? undefined
+        : createLocalObjectStore(options.uploads.storageDir);
     const timelineLive = createTimelineLiveRuntime({
       db: options.auth.db,
+      mediaOrigin,
       sessionSecret: options.auth.sessionSecret,
       ...(options.timelineLive?.heartbeatMs === undefined
         ? {}
@@ -118,6 +130,7 @@ export async function buildApp(
         corsOrigin: options.corsOrigin,
         db: options.auth.db,
         live: timelineLive,
+        mediaOrigin,
         requireSession: auth.requireSession,
         sessionSecret: options.auth.sessionSecret,
         ...(options.timelineRateLimit === undefined
@@ -203,14 +216,31 @@ export async function buildApp(
       }),
       { prefix: "/v1" },
     );
+    if (objects !== undefined) {
+      await app.register(
+        mediaModule({
+          db: options.auth.db,
+          objects,
+          requireCsrf: auth.requireCsrf,
+          requireSession: auth.requireSession,
+          ...(options.auth.clock === undefined
+            ? {}
+            : { clock: options.auth.clock }),
+        }),
+        { prefix: "/v1" },
+      );
+    }
     await app.register(
       tweetsModule({
         optionalSession: auth.optionalSession,
         sessionSecret: options.auth.sessionSecret,
         db: options.auth.db,
+        mediaOrigin,
         requireCsrf: auth.requireCsrf,
         requireSession: auth.requireSession,
+        uploadsEnabled: objects !== undefined,
         onTweetCreated: (tweet) => timelineLive.publish(tweet),
+        ...(objects === undefined ? {} : { objects }),
         ...(options.auth.clock === undefined
           ? {}
           : { clock: options.auth.clock }),

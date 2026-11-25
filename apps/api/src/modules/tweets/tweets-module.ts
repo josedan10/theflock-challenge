@@ -13,6 +13,7 @@ import { createDrizzleTweetRepository } from "./infrastructure/drizzle-tweet-rep
 import type { Database } from "../../platform/database/client.js";
 import type { AuthGuard } from "../auth/http/authentication.js";
 import type { AuthRateLimit } from "../auth/http/rate-limit.js";
+import type { ObjectStore } from "../media/application/ports.js";
 import type { FastifyInstance } from "fastify";
 
 export interface TweetsModuleOptions {
@@ -30,6 +31,9 @@ export interface TweetsModuleOptions {
     authorId: string;
     createdAt: Date;
   }) => Promise<void> | void;
+  mediaOrigin: string;
+  uploadsEnabled: boolean;
+  objects?: ObjectStore;
 }
 
 /** Composition root for publishing and deleting tweets. */
@@ -43,7 +47,7 @@ export function tweetsModule(options: TweetsModuleOptions) {
       ? {}
       : { onCreated: options.onTweetCreated }),
   });
-  const deleteTweet = createDeleteTweet(tweets);
+  const deleteTweet = createDeleteTweet(tweets, options.objects);
 
   return async (app: FastifyInstance): Promise<void> => {
     await threadRoutes(app, {
@@ -55,16 +59,20 @@ export function tweetsModule(options: TweetsModuleOptions) {
         : { writeRateLimit: options.writeRateLimit }),
       createTweet,
       read: createReadThread(
-        createThreadReader(options.db),
+        createThreadReader(options.db, options.mediaOrigin),
         createSignedKeysetCursor(
           options.sessionSecret,
           "tweet-thread/cursor-key",
         ),
       ),
+      mediaOrigin: options.mediaOrigin,
+      uploadsEnabled: options.uploadsEnabled,
     });
     await tweetRoutes(app, {
       createTweet,
       deleteTweet,
+      mediaOrigin: options.mediaOrigin,
+      uploadsEnabled: options.uploadsEnabled,
       requireCsrf: options.requireCsrf,
       requireSession: options.requireSession,
       ...(options.writeRateLimit === undefined
