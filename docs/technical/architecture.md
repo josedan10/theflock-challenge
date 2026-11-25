@@ -100,10 +100,10 @@ Do not split into microservices. The workload and team do not justify distribute
 - API process is stateless apart from in-flight work; uploads/backups never rely on container filesystem.
 - All list queries are bounded and use cursor pagination.
 - Bonus features are behind server and client feature flags.
+- Tweet images (IMG-01) use a local filesystem object-storage adapter rooted at `MEDIA_STORAGE_DIR`, mounted as a volume in Compose. The API rewrites each image before storing it. No cloud bucket is assumed.
 
 ## Open decisions before implementation
 
 1. Final product/domain name and resulting cookie/CORS origins.
-2. Local image storage adapter and lifecycle for uploads; no cloud provider is assumed.
-3. Public visibility for logged-out tweets. Profiles are public in v1: `GET /v1/users/:username` allows an anonymous read and omits email, credentials, and storage keys (requirements rule 10).
-4. Account deletion/export behavior and retention.
+2. Public visibility for logged-out tweets. Profiles are public in v1: `GET /v1/users/:username` allows an anonymous read and omits email, credentials, and storage keys (requirements rule 10).
+3. Account deletion/export behavior and retention.
