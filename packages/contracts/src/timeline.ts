@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { STORED_USERNAME_PATTERN } from "./auth";
 import { tweetSchema } from "./tweet";
 
 export const TIMELINE_DEFAULT_LIMIT = 20;
@@ -24,9 +25,33 @@ export const timelineQuerySchema = z.strictObject({
     .default(TIMELINE_DEFAULT_LIMIT),
 });
 
+/**
+ * The tweet a home-timeline reply answers. `username` is null when that
+ * member is no longer visible. Root tweets use `null` instead of this object.
+ */
+export const timelineReplyContextSchema = z.strictObject({
+  content: z.string().min(1),
+  id: z.uuid(),
+  username: z.string().regex(STORED_USERNAME_PATTERN).nullable(),
+});
+
+/** Parent shown above a reply in the home timeline. */
+export type TimelineReplyContext = z.infer<typeof timelineReplyContextSchema>;
+
+/**
+ * One home-timeline card. The API sets `replyingTo` to the parent of a reply
+ * and to `null` for a root tweet. A card the client created itself may omit it.
+ */
+export const timelineItemSchema = tweetSchema.extend({
+  replyingTo: timelineReplyContextSchema.nullable().optional(),
+});
+
+/** A home-timeline card, including reply context. */
+export type TimelineItem = z.infer<typeof timelineItemSchema>;
+
 /** A null cursor means that no further eligible row was visible in this read. */
 export const timelinePageSchema = z.strictObject({
-  items: z.array(tweetSchema).max(TIMELINE_MAX_LIMIT),
+  items: z.array(timelineItemSchema).max(TIMELINE_MAX_LIMIT),
   nextCursor: cursor.nullable(),
 });
 

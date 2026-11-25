@@ -34,6 +34,7 @@
 2. An IntersectionObserver sentinel requests the next page once; a manual **Load more** control remains available.
 3. The client deduplicates by tweet ID, preserves scroll position, and stops on a null cursor.
 4. Retry affects only the failed page. Newer posts are offered via a non-disruptive banner rather than prepended while reading.
+5. A reply shows who it answers and a short excerpt of that tweet, linking to the parent. A root tweet has no excerpt. When the parent author is no longer visible, the excerpt stays and the name is omitted.
 
 ## 5. Like/unlike
 

@@ -29,6 +29,7 @@ import type {
   CreateTweetRequest,
   ProfilePostsPage,
   ThreadItem,
+  TimelineItem,
   TimelinePage,
   Tweet,
 } from "@twitter-clone/contracts";
@@ -295,7 +296,7 @@ export function useCreateTweet(member: TweetAuthorRef, parentTweetId?: string) {
 
 interface PageSlot {
   index: number;
-  slot: TweetSlot;
+  slot: TweetSlot<TimelineItem>;
 }
 
 /** Drops one card from infinite-query pages. Leaves other cache values as-is. */
@@ -374,7 +375,7 @@ export function useDeleteTweet(member: TweetAuthorRef) {
               slot: tweetSlot(
                 pages.pages[pageIndex]?.items ?? [],
                 tweetId,
-              ) as TweetSlot,
+              ) as TweetSlot<TimelineItem>,
             };
 
       if (pendingSlot !== undefined) {

@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   expectNoSeriousA11yViolations,
+  password,
   register,
   uniqueMember,
 } from "./support";
@@ -55,4 +56,51 @@ test("FEED-02 US-B03 pages the home timeline without duplicates", async ({
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Load more" })).toHaveCount(0);
   await expectNoSeriousA11yViolations(page);
+});
+
+test("US-B04 a reply in the feed shows the tweet it answers", async ({
+  page,
+  playwright,
+}, testInfo) => {
+  const grace = uniqueMember(testInfo);
+  const graceApi = await playwright.request.newContext();
+  const registered = await graceApi.post(`${apiUrl}/v1/auth/register`, {
+    data: {
+      email: grace.email,
+      password,
+      username: grace.username,
+    },
+  });
+  expect(registered.ok()).toBeTruthy();
+  const { csrfToken: graceCsrf } = (await registered.json()) as {
+    csrfToken: string;
+  };
+  const posted = await graceApi.post(`${apiUrl}/v1/tweets`, {
+    data: { content: "Fog sat in the valley until nine." },
+    headers: { "x-csrf-token": graceCsrf },
+  });
+  expect(posted.ok()).toBeTruthy();
+  const { tweet } = (await posted.json()) as { tweet: { id: string } };
+  await graceApi.dispose();
+
+  const ada = uniqueMember(testInfo);
+  await register(page, ada);
+  await expect(page).toHaveURL(/\/home$/);
+  const me = await page.request.get(`${apiUrl}/v1/me`);
+  expect(me.ok()).toBeTruthy();
+  const { csrfToken } = (await me.json()) as { csrfToken: string };
+  const replied = await page.request.post(
+    `${apiUrl}/v1/tweets/${tweet.id}/replies`,
+    {
+      data: { content: "Which trailhead was that?" },
+      headers: { "x-csrf-token": csrfToken },
+    },
+  );
+  expect(replied.ok()).toBeTruthy();
+
+  await page.reload();
+  const context = page.getByRole("link", { name: /Replying to @/ });
+  await expect(context).toBeVisible();
+  await expect(context).toContainText("Fog sat in the valley until nine.");
+  await expect(context).toHaveAttribute("href", `/tweets/${tweet.id}`);
 });

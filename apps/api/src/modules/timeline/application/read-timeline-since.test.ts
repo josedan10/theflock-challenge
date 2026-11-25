@@ -23,6 +23,7 @@ const entry = (id: string): TimelineEntry => ({
   likeCount: 0,
   likedByViewer: false,
   replyCount: 0,
+  replyingTo: null,
 });
 
 describe("US-F01 AC-F01.3 catch-up page", () => {

@@ -138,6 +138,7 @@ describe("US-B03 home timeline", () => {
       likeCount: 2,
       likedByViewer: true,
       replyCount: 0,
+      replyingTo: null,
     });
     expect((await page(author.token)).items[0]).toMatchObject({
       id: followed,
@@ -149,6 +150,41 @@ describe("US-B03 home timeline", () => {
       .set({ deletedAt: FIXED_NOW })
       .where(eq(users.id, author.id));
     expect((await page(viewer.token)).items.map((t) => t.id)).toEqual([own]);
+  });
+
+  it("US-B04 shows the parent of a reply and hides a deleted parent's name", async () => {
+    const viewer = await register("ada");
+    const grace = await register("grace");
+    const parent = await tweet(grace.id);
+    await database.sql`update tweets set content = 'Fog sat in the valley' where id = ${parent}`;
+    const reply = uuidv7();
+    await database.sql`insert into tweets (id, author_id, parent_tweet_id, content, created_at)
+      values (${reply}, ${viewer.id}, ${parent}, 'Which trailhead?', '2026-11-24T12:00:01.000000Z'::timestamptz)`;
+    await database.db
+      .insert(follows)
+      .values({ followerId: viewer.id, followingId: grace.id });
+
+    const feed = await page(viewer.token);
+    expect(feed.items.find((item) => item.id === reply)?.replyingTo).toEqual({
+      content: "Fog sat in the valley",
+      id: parent,
+      username: "grace",
+    });
+    expect(
+      feed.items.find((item) => item.id === parent)?.replyingTo,
+    ).toBeNull();
+
+    await database.db
+      .update(users)
+      .set({ deletedAt: FIXED_NOW })
+      .where(eq(users.id, grace.id));
+    const after = await page(viewer.token);
+    expect(after.items.map((item) => item.id)).toEqual([reply]);
+    expect(after.items[0]?.replyingTo).toEqual({
+      content: "Fog sat in the valley",
+      id: parent,
+      username: null,
+    });
   });
 
   it("AC-B03.3 preserves exact descending tuple boundaries through a newer insert and deleted anchor", async () => {
