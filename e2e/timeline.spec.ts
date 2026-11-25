@@ -37,7 +37,9 @@ test("FEED-02 US-B03 pages the home timeline without duplicates", async ({
   }
 
   await page.reload();
-  const cards = page.getByRole("list", { name: "Home" }).getByRole("article");
+  const cards = page
+    .getByRole("list", { exact: true, name: "Home" })
+    .getByRole("article");
   await expect(cards).toHaveCount(20);
   await expect(cards.first()).toContainText("Timeline 21");
   await expect(page.getByText("Timeline 01", { exact: true })).toHaveCount(0);

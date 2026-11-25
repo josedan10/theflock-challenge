@@ -9,7 +9,8 @@ import {
 
 const composer = (page: Page) =>
   page.getByRole("textbox", { name: "What's happening?" });
-const newPosts = (page: Page) => page.getByRole("list", { name: "Home" });
+const newPosts = (page: Page) =>
+  page.getByRole("list", { exact: true, name: "Home" });
 
 async function post(page: Page, content: string) {
   await composer(page).fill(content);
