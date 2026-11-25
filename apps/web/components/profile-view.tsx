@@ -19,6 +19,7 @@ import {
 } from "../lib/form-errors";
 import { formatCount, formatExactCount } from "../lib/format-count";
 import { usePublicProfile, useSession, useUpdateProfile } from "../lib/session";
+import { useHydrated } from "../lib/use-hydrated";
 
 import { ProfileSkeleton } from "./skeletons";
 import { TextField } from "./text-field";
@@ -39,6 +40,7 @@ import {
 export function ProfileView({ username }: Readonly<{ username: string }>) {
   const profileQuery = usePublicProfile(username);
   const session = useSession();
+  const hydrated = useHydrated();
 
   if (profileQuery.isPending) {
     return <ProfileSkeleton label="Loading profile…" />;
@@ -76,7 +78,8 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
   }
 
   const { profile } = profileQuery.data;
-  const isOwner = session.isSuccess && session.data?.user.id === profile.id;
+  const isOwner =
+    hydrated && session.isSuccess && session.data?.user.id === profile.id;
 
   return (
     <article
