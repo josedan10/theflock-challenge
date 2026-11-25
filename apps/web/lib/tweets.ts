@@ -203,13 +203,13 @@ export function useCreateTweet(member: TweetAuthorRef, parentTweetId?: string) {
             sessionCsrfToken(queryClient),
           ),
     onSuccess: ({ tweet }) => {
+      // Home posts and replies each get their own Undo window (AC-B01.6).
+      openUndoWindow(queryClient, member.id, tweet.id);
       if (parentTweetId === undefined) {
         queryClient.setQueryData<Tweet[]>(
           pendingKey(member.id),
           (pending = []) => dedupeTweets([tweet, ...pending]),
         );
-        // Each new home post gets its own Undo window (AC-B01.6).
-        openUndoWindow(queryClient, member.id, tweet.id);
       } else {
         void queryClient.invalidateQueries({ queryKey: THREAD_KEY });
         void queryClient.invalidateQueries({

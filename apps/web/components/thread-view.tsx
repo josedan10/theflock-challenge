@@ -1,6 +1,10 @@
 "use client";
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   ChevronDownIcon,
   CircleAlertIcon,
@@ -8,15 +12,22 @@ import {
   RotateCwIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ApiError } from "../lib/api-client";
+import { apiFormErrors } from "../lib/form-errors";
 import { threadHref } from "../lib/navigation";
+import {
+  clearUndoWindows,
+  closeUndoWindow,
+  useUndoWindows,
+} from "../lib/post-undo";
 import { useApiClient, useSession } from "../lib/session";
 import { buildConversations } from "../lib/thread-conversations";
 import { THREAD_KEY, useDeleteTweet, type TweetAuthorRef } from "../lib/tweets";
 import { useHydrated } from "../lib/use-hydrated";
 
+import { PostUndo } from "./post-undo";
 import { TimelineSkeleton } from "./skeletons";
 import { TweetCard, type TweetCardProps } from "./tweet-card";
 import { TweetComposer } from "./tweet-composer";
@@ -39,16 +50,23 @@ type CardLayout = Omit<
 
 /** A card the signed-in author can delete, reporting a failed delete on it. */
 function MemberCard({
+  announce = null,
   item,
   layout,
   member,
-}: Readonly<{ item: ThreadItem; layout: CardLayout; member: TweetAuthorRef }>) {
+}: Readonly<{
+  /** A failed undo, which replaces the delete error until the next delete. */
+  announce?: string | null;
+  item: ThreadItem;
+  layout: CardLayout;
+  member: TweetAuthorRef;
+}>) {
   const remove = useDeleteTweet(member);
   const [failure, setFailure] = useState<string | null>(null);
   return (
     <TweetCard
       {...layout}
-      failure={failure}
+      failure={announce ?? failure}
       onDelete={(id) => {
         setFailure(null);
         remove.mutate(id, {
@@ -120,9 +138,28 @@ function ParentContext({
  */
 export function ThreadView({ id }: Readonly<{ id: string }>) {
   const client = useApiClient();
+  const queryClient = useQueryClient();
   const session = useSession();
   const hydrated = useHydrated();
   const member = hydrated ? (session.data?.user ?? undefined) : undefined;
+  const memberId = member?.id;
+  const undoWindows = useUndoWindows(memberId ?? "signed-out");
+  const undoReply = useDeleteTweet(
+    member ?? { id: "signed-out", username: "signed-out" },
+  );
+  const [undoing, setUndoing] = useState<string | null>(null);
+  const [undoFailure, setUndoFailure] = useState<{
+    message: string;
+    tweetId: string;
+  } | null>(null);
+
+  // Leaving the thread ends every undo window; the replies stay (AC-B01.6).
+  useEffect(() => {
+    if (memberId === undefined) {
+      return;
+    }
+    return () => clearUndoWindows(queryClient, memberId);
+  }, [queryClient, memberId]);
   const query = useInfiniteQuery({
     enabled: !session.isPending,
     getNextPageParam: (page: ThreadPage) => page.nextCursor ?? undefined,
@@ -137,10 +174,39 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
 
   const card = (item: ThreadItem, layout: CardLayout) =>
     member ? (
-      <MemberCard item={item} layout={layout} member={member} />
+      <MemberCard
+        announce={undoFailure?.tweetId === item.id ? undoFailure.message : null}
+        item={item}
+        layout={layout}
+        member={member}
+      />
     ) : (
       <TweetCard {...layout} tweet={item} viewerId={null} />
     );
+
+  /** Undo a new reply: delete it without the confirmation (AC-B01.6). */
+  function onUndo(tweetId: string) {
+    if (memberId === undefined) {
+      return;
+    }
+    setUndoFailure(null);
+    setUndoing(tweetId);
+    undoReply.mutate(tweetId, {
+      onError: (error) => {
+        if (error instanceof ApiError && error.code === "NOT_FOUND") {
+          closeUndoWindow(queryClient, memberId, tweetId);
+          return;
+        }
+        setUndoFailure({
+          message:
+            `We couldn't undo this reply. ${apiFormErrors(error).form ?? ""}`.trim(),
+          tweetId,
+        });
+      },
+      onSettled: () => setUndoing(null),
+      onSuccess: () => closeUndoWindow(queryClient, memberId, tweetId),
+    });
+  }
 
   const focusReplyBox = () => {
     document.getElementById("tweet-content")?.focus();
@@ -248,6 +314,22 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
                       {card(entry.item, {
                         connectAbove: entry.connectAbove,
                         connectBelow: entry.connectBelow,
+                        footer:
+                          memberId === undefined ||
+                          undoWindows[entry.item.id] === undefined ? null : (
+                            <PostUndo
+                              expiresAt={undoWindows[entry.item.id] ?? 0}
+                              onExpire={() =>
+                                closeUndoWindow(
+                                  queryClient,
+                                  memberId,
+                                  entry.item.id,
+                                )
+                              }
+                              onUndo={() => onUndo(entry.item.id)}
+                              pending={undoing === entry.item.id}
+                            />
+                          ),
                         replyingTo: entry.replyingTo,
                         variant: "row",
                       })}
