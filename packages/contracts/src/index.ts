@@ -5,6 +5,7 @@ export * from "./errors";
 export * from "./follow";
 export * from "./follow-list";
 export * from "./like";
+export * from "./notification";
 export * from "./profile";
 export * from "./search";
 export * from "./tweet";
