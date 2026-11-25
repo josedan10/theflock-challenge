@@ -264,7 +264,7 @@ Limits follow OWASP ASVS 5.0.0 V5.2.1, V5.2.2, and V5.2.6. Paths are server-gene
 
 ## Home timeline (`GET /v1/timeline`)
 
-Requires a live session; no CSRF token is needed for this read. Returns `200 { items: Tweet[], nextCursor: string | null }` with `Cache-Control: no-store`. Cards contain only the member's and currently followed authors' tweets, newest first (ties: descending tweet ID), with committed like counts and the session member's liked state.
+Requires a live session; no CSRF token is needed for this read. Returns `200 { items: TimelineItem[], nextCursor: string | null }` with `Cache-Control: no-store`. Cards contain only the member's and currently followed authors' tweets, newest first (ties: descending tweet ID), with committed like counts and the session member's liked state. A reply includes `replyingTo: { id, content, username }`, the parent tweet it answers. `username` is null when that member is no longer visible. A root tweet has `replyingTo: null`.
 
 Omit `cursor` on the first page. Pass the returned cursor unchanged for the next page; `null` means the end. A cursor is signed and bound to its viewer. The strict keyset survives deletion of its anchor and does not shift under newer inserts; following changes take effect on the next request. `limit` defaults to 20; positive decimal integers above 30 are clamped to 30. Invalid, unknown or repeated parameters and bad or cross-viewer cursors return `400 MALFORMED_REQUEST`. Missing, expired or revoked sessions return `401 UNAUTHENTICATED`. The read limit is 120 per minute per client address. Rotating `SESSION_SECRET` invalidates outstanding cursors; restart pagination without one.
 
