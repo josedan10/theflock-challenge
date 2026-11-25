@@ -131,7 +131,7 @@ With a migrated local database, run `pnpm db:seed` to reseed without restarting.
 
 ### Local activity simulator (DEV-01)
 
-The simulator makes the local app feel used. Seeded demo accounts post, reply and like through the API, exactly as the web app does, so mentions, notifications, pictures and the live Home banner all behave as they would for real members. It never acts as a real account, but it is aimed at them: once a real member has posted, demo accounts reply to and like that member's posts more than each other's.
+The simulator makes the local app feel used. Seeded demo accounts post, reply and like through the API, exactly as the web app does, so mentions, notifications, pictures and the live Home banner all behave as they would for real members. It never acts as a real account, but it is aimed at them: while any real member exists, about 9 in 10 actions involve one.
 
 To watch it live, follow the demo accounts listed in the [README](../README.md#see-it-live). Home only streams posts from people you follow.
 
@@ -139,7 +139,8 @@ It is **off by default**. Turn it on in the root `.env`:
 
 ```bash
 ACTIVITY_SIMULATOR=true
-ACTIVITY_INTERVAL_SECONDS=30 # one action per interval; 15–3600
+ACTIVITY_MIN_INTERVAL_SECONDS=15 # shortest gap between actions; 15–3600
+ACTIVITY_MAX_INTERVAL_SECONDS=40 # longest gap; each gap is random in between
 ```
 
 - **At startup:** `pnpm stack:up` starts the `activity` Compose service when the flag is `true`. Any value other than `true` or `false` stops setup before it changes anything.
@@ -147,18 +148,18 @@ ACTIVITY_INTERVAL_SECONDS=30 # one action per interval; 15–3600
 - **Stop:** `pnpm activity:stop` for the Compose service, or Ctrl+C in the foreground. An action in progress finishes first.
 - **Reset:** `pnpm activity:reset` deletes what the simulator posted, along with the replies, likes and notifications attached to it, and takes back the likes it gave, with their notifications. It works from the list the simulator keeps in `.data/activity-posts.txt`, so anything you did while signed in as a demo account stays. Uploaded picture files stay in the media folder but are no longer served.
 
-How each action is chosen, when a real member has posted recently (their 20 latest posts and replies are considered):
+How each action is chosen (constants in `apps/api/scripts/activity/plan.ts`):
 
-- 1 in 4 actions likes one of those posts.
-- Of the rest, 6 in 10 are replies, and 8 in 10 of those go to a real member.
-- The others are new posts.
-- When no real member has posted, demo accounts reply to each other 4 times in 10 and never like.
+- **A real member has posted** (their 20 latest posts and replies are considered): 35% of actions like one of those posts, 50% are replies (9 in 10 of them to a real member), and 15% are new posts. Measured over many actions, about 94% involve a real member.
+- **Real members exist but have not posted yet:** demo accounts write new posts, and 8 in 10 of them use a line with a mention, so about 3 in 4 actions mention a real member.
+- **Nobody real is around:** demo accounts reply to each other 4 times in 10, post otherwise, and never like.
+- **Browser-test accounts** (`e2e_…`, created by `pnpm test:e2e` in the same database) are not people, so the simulator ignores them.
 
-Lines come from `apps/api/scripts/activity-corpus`: 200 posts and replies, 30 of them with a picture. A `{mention}` slot is filled with another member's `@username`, choosing a real local member 8 times in 10 when there is one. A reply to a corpus post uses one of that post's own replies; a reply to anything else uses a random corpus reply. Pictures need `UPLOADS_ENABLED=true` on the API; without it, the same posts go out as text.
+Lines come from `apps/api/scripts/activity-corpus`: 200 posts and replies, 30 of them with a picture. A `{mention}` slot is filled with another member's `@username`, choosing a real local member 9 times in 10 when there is one. A reply to a corpus post uses one of that post's own replies; a reply to anything else uses a random corpus reply. Pictures need `UPLOADS_ENABLED=true` on the API; without it, the same posts go out as text.
 
 Safety limits:
 
 - It runs only with `NODE_ENV=development`.
 - It talks only to a local API (`localhost` or the Compose `api` service) and a local database (`localhost` or the Compose `postgres` service).
-- It acts once per interval, never more than once at a time. The 15-second floor keeps logins within the API's 5-per-minute budget.
+- It acts once per random gap of 15–40 seconds by default, never more than once at a time. The 15-second floor keeps logins within the API's 5-per-minute budget.
 - Sessions stay in memory. Errors print only the action and the HTTP status.
