@@ -36,14 +36,21 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **SRC-01:** Escaped, indexed user search with ranking and integration tests.
 - [x] **SRC-02:** Search UI with debounce, minimum length, empty/error states.
 
-## Release hardening
+## Product features
 
-- [ ] **REL-01:** Responsive/a11y manual review and automated 375/768/1440 suites.
-- [ ] **REL-02:** k6 smoke/load test and performance budgets.
-- [ ] **REL-03:** Production Droplet hardening, Caddy, deployment workflow, Vercel env setup.
-- [ ] **REL-04:** Automated encrypted backup, off-host retention, restore drill.
-- [ ] **REL-05:** Observability dashboards/alerts and incident rehearsal.
-- [ ] **REL-06:** Security threat-model review and OWASP-focused tests.
+- [ ] **THR-01:** Thread replies with parent-tweet validation, bounded thread reads, author context, and API/UI tests.
+- [ ] **NOT-01:** In-app notifications for relevant social activity, with deduplication, read state, pagination, and accessible UI.
+- [ ] **LIVE-01:** Live timeline updates with reconnect/catch-up behavior and duplicate suppression.
+- [ ] **IMG-01:** Tweet image uploads with validation, ownership, safe storage lifecycle, and accessible rendering.
+
+## Local development experience
+
+- [ ] **SEED-01:** Provide a repeatable full local seed environment with at least 10 users by default; allow a user-specified user count through build configuration or a `setup.sh`/seed-script flag. Keep generated credentials local-only and document how to inspect/reset seeded data.
+- [ ] **DEV-01:** Add an opt-in local activity simulator that periodically creates tweets and replies between seeded/fake accounts and real local users. It must be disabled by default and controllable at startup or through an environment feature flag; bound activity rate and make it safe to stop/reset.
+
+## Local quality gates
+
+- [ ] **QA-01:** Maintain responsive/a11y checks at 375/768/1440 widths, representative performance checks, and security tests for all local product features.
 
 ## Per-task definition of done
 
@@ -52,4 +59,4 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 3. Coverage gates do not regress; mutation score meets the critical-module threshold.
 4. Migration tested both on empty and representative databases; rollback/forward-fix documented.
 5. Logs/metrics have no secrets or sensitive data.
-6. Docs/runbook/API contract updated; CI and container build pass.
+6. Docs/setup/API contract updated where behavior changes; local CI and container build pass.

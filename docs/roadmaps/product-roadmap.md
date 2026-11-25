@@ -1,12 +1,12 @@
 # Product and delivery roadmap
 
-The sequence optimizes for early end-to-end validation. A milestone is complete only when code, tests, documentation, migrations, observability, and a deployable artifact are present.
+The sequence optimizes for end-to-end validation in a local development environment. A milestone is complete only when code, tests, documentation, migrations, and a reproducible local setup are present.
 
 ## Dependency graph
 
-`M0 Decisions → M1 Foundation → M2 Auth → M3 Tweets → M4 Social → M5 Search/UI → M6 Production`
+`M0 Decisions → M1 Foundation → M2 Auth → M3 Tweets → M4 Social → M5 Search/UI → M6 Conversations & media → M7 Notifications & live updates → M8 Local seed & activity tools`
 
-After M3, profile UI work can proceed alongside M4. Bonus work begins only after the required release gate.
+After M3, profile UI work can proceed alongside M4. The project is local-only; production deployment and release-hardening work are out of scope.
 
 ## M0 — Product and architecture baseline (current)
 
@@ -17,11 +17,11 @@ After M3, profile UI work can proceed alongside M4. Bonus work begins only after
 ## M1 — Reproducible foundation
 
 - pnpm workspace: `apps/web`, `apps/api`, `packages/contracts`, `packages/config`.
-- Multi-stage Dockerfiles, development Compose, production Compose overlay, health checks.
+- Dockerfiles and local Compose stack with health checks.
 - Typed environment loader and `doctor`/`setup` scripts with automated shell tests.
-- CI: lint, formatting, types, unit/integration tests, build, container scan, secret scan.
+- CI: lint, formatting, types, unit/integration tests, build, and relevant security checks.
 - Baseline Next.js and Fastify health path; Postgres migrations run as a one-shot job.
-- **Exit:** clean clone to healthy stack via documented commands; CI green; non-root production containers.
+- **Exit:** clean clone to healthy local stack via documented commands; CI green.
 
 ## M2 — Authentication and profiles
 
@@ -50,20 +50,23 @@ After M3, profile UI work can proceed alongside M4. Bonus work begins only after
 - Cross-browser Playwright suite and exploratory test charter.
 - **Exit:** US-D01 and US-E01 pass; no serious/critical axe findings; required scope demo approved.
 
-## M6 — Production release
+## M6 — Conversations and media
 
-- Provision DNS/TLS, Droplet network/firewall, secrets, backups, monitoring, uptime checks.
-- Vercel production/preview config; API staging then production deployment.
-- Restore drill, rollback rehearsal, load test, security review, release checklist.
-- **Exit:** smoke test passes, dashboards/alerts work, restore meets RTO, runbook verified by someone other than its author.
+- Thread replies with bounded reads and clear parent/child relationships.
+- Tweet image uploads with validation, ownership, safe local storage, and accessible presentation.
+- **Exit:** reply and upload flows pass API, integration, browser, and accessibility tests.
 
-## M7+ — Bonus features, one at a time
+## M7 — Notifications and live updates
 
-1. **SSE live timeline** — measure connection budget and reconnection behavior.
-2. **Image attachments** — introduce S3-compatible storage and content safety constraints.
-3. **Notifications** — implement transactional outbox and deduplication.
+- In-app notifications with deduplication, read state, and pagination.
+- Live timeline updates with reconnect/catch-up behavior and duplicate suppression.
+- **Exit:** notification and live-update behavior is tested across reconnects and duplicate delivery.
 
-Each is independently feature-flagged, observable, tested, and safely removable.
+## M8 — Reproducible local seed and activity simulator
+
+- Seed at least 10 users by default; allow configurable additional users through build/setup options or a script flag.
+- Add an opt-in development activity job that generates tweets and replies between seeded accounts and local real users. The feature is disabled by default and can be enabled at startup or through an environment flag, with bounded rate and safe shutdown.
+- **Exit:** documented fresh/reset seed workflow and deterministic tests for user-count configuration, disabled-by-default behavior, and simulator lifecycle.
 
 ## Plan mutation protocol
 
