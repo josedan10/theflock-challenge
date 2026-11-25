@@ -14,6 +14,8 @@ test-results/
 .idea/
 .pnpm-store/
 backups/*.dump
+.data/
+e2e/.media/
 
 # Archify outputs are reproducible from versioned JSON specifications.
 docs/diagrams/*.html

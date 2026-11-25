@@ -34,6 +34,7 @@ export interface TimelineLiveRuntime {
 
 export interface TimelineLiveRuntimeOptions {
   db: Database;
+  mediaOrigin: string;
   sessionSecret: string;
   heartbeatMs?: number;
   maxConnectionsPerViewer?: number;
@@ -53,7 +54,7 @@ export function createTimelineLiveRuntime(
   );
   const listRecipients = createListTimelineRecipients(options.db);
   const readSince = createReadTimelineSince(
-    createReadTimelineSinceRows(options.db),
+    createReadTimelineSinceRows(options.db, options.mediaOrigin),
   );
   const events = createLiveEventCursor(options.sessionSecret);
   return {

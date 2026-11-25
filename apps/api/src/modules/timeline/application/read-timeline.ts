@@ -1,3 +1,5 @@
+import type { TweetImage } from "@twitter-clone/contracts";
+
 /** UTC timestamp at PostgreSQL microsecond precision, plus the UUID tie-breaker. */
 export interface TimelinePosition {
   createdAt: string;
@@ -16,6 +18,7 @@ export interface TimelineEntry extends TimelinePosition {
   likedByViewer: boolean;
   /** Direct replies, counted for this bounded page only. */
   replyCount: number;
+  image: TweetImage | null;
 }
 
 export class InvalidTimelineCursorError extends Error {}

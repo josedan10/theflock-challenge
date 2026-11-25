@@ -21,6 +21,8 @@ export interface CreateTweetInput {
   parentTweetId?: string;
   /** Contract-validated, trimmed content. */
   content: string;
+  /** Verified upload owned by `authorId`, attached in the same transaction. */
+  image?: { alt: string; uploadId: string };
 }
 
 export type CreateTweet = (input: CreateTweetInput) => Promise<TweetCard>;
@@ -37,6 +39,7 @@ export function createCreateTweet(
         : { parentTweetId: input.parentTweetId }),
       content: input.content,
       id: dependencies.generateId(),
+      ...(input.image === undefined ? {} : { image: input.image }),
       now: dependencies.clock(),
     });
     try {

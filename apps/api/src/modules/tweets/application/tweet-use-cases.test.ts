@@ -25,6 +25,7 @@ function fakeTweets() {
         content: tweet.content,
         createdAt: tweet.now,
         id: tweet.id,
+        image: null,
         likeCount: 0,
         likedByViewer: false,
         replyCount: 0,
@@ -33,13 +34,13 @@ function fakeTweets() {
     async deleteOwned(tweetId, authorId) {
       const tweet = stored.get(tweetId);
       if (tweet === undefined) {
-        return "not-found";
+        return { objectKeys: [], outcome: "not-found" };
       }
       if (tweet.authorId !== authorId) {
-        return "not-author";
+        return { objectKeys: [], outcome: "not-author" };
       }
       stored.delete(tweetId);
-      return "deleted";
+      return { objectKeys: [], outcome: "deleted" };
     },
   };
   return { repository, stored };

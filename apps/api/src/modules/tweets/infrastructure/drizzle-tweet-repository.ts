@@ -1,6 +1,9 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { users } from "../../auth/infrastructure/auth.schema.js";
+import { ImageUnavailableError } from "../../media/domain/image-policy.js";
+import { claimVerifiedUpload } from "../../media/infrastructure/drizzle-media-repository.js";
+import { tweetMedia } from "../../media/infrastructure/media.schema.js";
 import { recordNotification } from "../../notifications/infrastructure/record-notification.js";
 import { TweetNotFoundError } from "../domain/errors.js";
 
@@ -84,11 +87,25 @@ export function createDrizzleTweetRepository(db: Database): TweetRepository {
             tweet.now,
           );
         }
+        const image =
+          tweet.image === undefined
+            ? null
+            : await claimVerifiedUpload(tx, {
+                alt: tweet.image.alt,
+                now: tweet.now,
+                ownerId: tweet.authorId,
+                tweetId: created.id,
+                uploadId: tweet.image.uploadId,
+              });
+        if (tweet.image !== undefined && image === null) {
+          throw new ImageUnavailableError();
+        }
         return {
           author,
           content: created.content,
           createdAt: created.createdAt,
           id: created.id,
+          image,
           // A tweet that was just created has no likes yet.
           likeCount: 0,
           likedByViewer: false,
@@ -108,13 +125,24 @@ export function createDrizzleTweetRepository(db: Database): TweetRepository {
           .where(eq(tweets.id, tweetId))
           .for("update");
         if (found === undefined) {
-          return "not-found";
+          return { objectKeys: [], outcome: "not-found" };
         }
         if (found.authorId !== authorId) {
-          return "not-author";
+          return { objectKeys: [], outcome: "not-author" };
         }
+        const media = await tx
+          .select({ objectKey: tweetMedia.objectKey })
+          .from(tweetMedia)
+          .where(
+            sql`${tweetMedia.tweetId} = ${tweetId}::uuid or ${tweetMedia.tweetId} in (
+              select descendant_id from tweet_descendants where ancestor_id = ${tweetId}::uuid
+            )`,
+          );
         await tx.delete(tweets).where(eq(tweets.id, tweetId));
-        return "deleted";
+        return {
+          objectKeys: media.map((row) => row.objectKey),
+          outcome: "deleted",
+        };
       });
     },
   };

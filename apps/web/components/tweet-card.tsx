@@ -30,6 +30,24 @@ const fullTimeFormat = new Intl.DateTimeFormat(undefined, {
   timeStyle: "short",
 });
 
+/** The attached picture. `alt` is the author's description (AC-F02.4). */
+function TweetImage({ image }: Readonly<{ image: Tweet["image"] }>) {
+  if (image === null) {
+    return null;
+  }
+  return (
+    // The API already rewrote the bytes and serves them from its own origin.
+    // The Next image optimizer would fetch that URL server-side, which we do not need.
+    <img
+      alt={image.alt}
+      className="mt-1 max-h-96 w-full rounded-xl border object-contain"
+      height={image.height}
+      src={image.url}
+      width={image.width}
+    />
+  );
+}
+
 export interface TweetCardProps {
   tweet: Tweet;
   /** The signed-in member's id, or `null` when signed out. */
@@ -212,6 +230,7 @@ export function TweetCard({
         <p className="text-xl leading-snug whitespace-pre-wrap break-words">
           {tweet.content}
         </p>
+        <TweetImage image={tweet.image} />
         <time
           className="text-sm text-muted-foreground"
           dateTime={tweet.createdAt}
@@ -257,6 +276,7 @@ export function TweetCard({
         </div>
         {replying}
         <p className="whitespace-pre-wrap break-words">{tweet.content}</p>
+        <TweetImage image={tweet.image} />
         <TweetActions onReply={onReply} tweet={tweet} viewerId={viewerId} />
         {footer}
         {alert}

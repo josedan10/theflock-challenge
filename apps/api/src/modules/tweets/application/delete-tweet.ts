@@ -1,5 +1,6 @@
 import { NotTweetAuthorError, TweetNotFoundError } from "../domain/errors.js";
 
+import type { ObjectStore } from "../../media/application/ports.js";
 import type { TweetRepository } from "./ports.js";
 
 export interface DeleteTweetInput {
@@ -16,14 +17,20 @@ export type DeleteTweet = (input: DeleteTweetInput) => Promise<void>;
  * @throws {TweetNotFoundError} When the tweet does not exist or was deleted.
  * @throws {NotTweetAuthorError} When someone else wrote it.
  */
-export function createDeleteTweet(tweets: TweetRepository): DeleteTweet {
+export function createDeleteTweet(
+  tweets: TweetRepository,
+  objects?: ObjectStore,
+): DeleteTweet {
   return async ({ memberId, tweetId }) => {
-    const outcome = await tweets.deleteOwned(tweetId, memberId);
-    if (outcome === "not-found") {
+    const result = await tweets.deleteOwned(tweetId, memberId);
+    if (result.outcome === "not-found") {
       throw new TweetNotFoundError();
     }
-    if (outcome === "not-author") {
+    if (result.outcome === "not-author") {
       throw new NotTweetAuthorError();
+    }
+    if (objects !== undefined) {
+      await Promise.all(result.objectKeys.map((key) => objects.delete(key)));
     }
   };
 }

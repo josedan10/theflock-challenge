@@ -26,6 +26,9 @@ import {
   type TimelinePage,
   timelinePageSchema,
   type UpdateProfileRequest,
+  type UploadIntentRequest,
+  type UploadIntentResponse,
+  uploadIntentResponseSchema,
   type UserSearchResponse,
   userSearchResponseSchema,
 } from "@twitter-clone/contracts";
@@ -63,6 +66,18 @@ export interface ApiClient {
     input: CreateTweetRequest,
     csrfToken: string,
   ): Promise<CreateTweetResponse>;
+  /** Asks for a short-lived image upload (US-F02). */
+  createUploadIntent(
+    input: UploadIntentRequest,
+    csrfToken: string,
+  ): Promise<UploadIntentResponse>;
+  /** Sends image bytes to an upload intent. The path must be the one the API returned. */
+  uploadImage(
+    uploadPath: string,
+    uploadToken: string,
+    bytes: Uint8Array,
+    csrfToken: string,
+  ): Promise<void>;
   createReply(
     parentId: string,
     input: CreateTweetRequest,
@@ -192,6 +207,14 @@ export function createApiClient(
       });
       return createTweetResponseSchema.parse(await response.json());
     },
+    async createUploadIntent(input, csrfToken) {
+      const response = await request("/media/upload-intents", {
+        body: input,
+        csrfToken,
+        method: "POST",
+      });
+      return uploadIntentResponseSchema.parse(await response.json());
+    },
     async deleteTweet(tweetId, csrfToken) {
       await request(`/tweets/${encodeURIComponent(tweetId)}`, {
         csrfToken,
@@ -313,6 +336,43 @@ export function createApiClient(
         method: "PATCH",
       });
       return publicProfileResponseSchema.parse(await response.json());
+    },
+    async uploadImage(uploadPath, uploadToken, bytes, csrfToken) {
+      if (
+        !uploadPath.startsWith("/v1/media/uploads/") ||
+        uploadPath.includes("..")
+      ) {
+        throw new ApiError(
+          0,
+          "VALIDATION_ERROR",
+          "That image is not available.",
+        );
+      }
+      const copy = new ArrayBuffer(bytes.byteLength);
+      new Uint8Array(copy).set(bytes);
+      let response: Response;
+      try {
+        response = await fetchImpl(`${baseUrl}${uploadPath}`, {
+          body: new Blob([copy], { type: "application/octet-stream" }),
+          credentials: "include",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/octet-stream",
+            "x-csrf-token": csrfToken,
+            "x-upload-token": uploadToken,
+          },
+          method: "PUT",
+        });
+      } catch {
+        throw new ApiError(
+          0,
+          "NETWORK_ERROR",
+          "Can't reach the server. Check your connection and try again.",
+        );
+      }
+      if (!response.ok) {
+        throw await toApiError(response);
+      }
     },
   };
 }
