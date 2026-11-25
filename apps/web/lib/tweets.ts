@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 
 import { ApiError } from "./api-client";
+import { openUndoWindow } from "./post-undo";
 import { sessionCsrfToken, useApiClient } from "./session";
 import {
   assembleTimeline,
@@ -95,6 +96,8 @@ export function useCreateTweet(member: TweetAuthorRef, parentTweetId?: string) {
           pendingKey(member.id),
           (pending = []) => dedupeTweets([tweet, ...pending]),
         );
+        // Each new home post gets its own Undo window (AC-B01.6).
+        openUndoWindow(queryClient, member.id, tweet.id);
       } else {
         void queryClient.invalidateQueries({ queryKey: THREAD_KEY });
         void queryClient.invalidateQueries({
