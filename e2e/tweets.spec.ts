@@ -48,7 +48,9 @@ test("TWT-02 US-B01 posts tweets, shows them newest first, and counts them on th
   await expect(cards).toHaveCount(2);
   await expect(cards.first()).toContainText("Second post!");
   await expect(
-    cards.first().getByRole("link", { name: `@${member.username}` }),
+    cards
+      .first()
+      .getByRole("link", { name: `@${member.username}`, exact: true }),
   ).toBeVisible();
   await expectNoSeriousA11yViolations(page);
 

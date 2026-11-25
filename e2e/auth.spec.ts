@@ -87,6 +87,7 @@ test("US-A02 AC-A02.4 sends a signed-out visitor from /home to /login", async ({
 test("US-A01 AC-A01.3 validates registration locally with accessible errors", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/register");
   await expectNoSeriousA11yViolations(page);
 

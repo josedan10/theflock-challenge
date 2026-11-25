@@ -9,3 +9,4 @@ export * from "./profile";
 export * from "./search";
 export * from "./tweet";
 export * from "./timeline";
+export * from "./thread";

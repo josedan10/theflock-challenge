@@ -1,3 +1,13 @@
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -69,4 +79,31 @@ export async function startTestDatabase(
       await container.stop();
     },
   };
+}
+
+/** Boots the actual journal prefix so forward migrations can be exercised with existing data. */
+export async function startTestDatabaseThrough(
+  lastMigrationIndex: number,
+): Promise<TestDatabase> {
+  const previous = await mkdtemp(join(tmpdir(), "previous-schema-"));
+  try {
+    const journal = JSON.parse(
+      await readFile(join(MIGRATIONS_FOLDER, "meta/_journal.json"), "utf8"),
+    ) as { entries: { idx: number; tag: string }[] };
+    const entries = journal.entries.filter((e) => e.idx <= lastMigrationIndex);
+    await mkdir(join(previous, "meta"));
+    await writeFile(
+      join(previous, "meta/_journal.json"),
+      JSON.stringify({ ...journal, entries }),
+    );
+    for (const { tag } of entries) {
+      await copyFile(
+        join(MIGRATIONS_FOLDER, `${tag}.sql`),
+        join(previous, `${tag}.sql`),
+      );
+    }
+    return await startTestDatabase(previous);
+  } finally {
+    await rm(previous, { recursive: true, force: true });
+  }
 }

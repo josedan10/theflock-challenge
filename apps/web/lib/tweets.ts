@@ -30,6 +30,8 @@ export interface TweetAuthorRef {
   username: string;
 }
 
+export const THREAD_KEY = ["thread"] as const;
+
 const homeTimelineKey = (memberId: string) =>
   ["timeline", "home", memberId] as const;
 
@@ -96,7 +98,7 @@ export function useTimelineItems(memberId: string) {
  * the request and a short minimum spinner time, so a fast post does not pop
  * in before the loader is visible.
  */
-export function useCreateTweet(member: TweetAuthorRef) {
+export function useCreateTweet(member: TweetAuthorRef, parentTweetId?: string) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
@@ -104,6 +106,13 @@ export function useCreateTweet(member: TweetAuthorRef) {
     mutationFn: async (input: CreateTweetRequest) => {
       const started = Date.now();
       try {
+        if (parentTweetId !== undefined) {
+          return await apiClient.createReply(
+            parentTweetId,
+            input,
+            sessionCsrfToken(queryClient),
+          );
+        }
         return await apiClient.createTweet(
           input,
           sessionCsrfToken(queryClient),
@@ -113,9 +122,17 @@ export function useCreateTweet(member: TweetAuthorRef) {
       }
     },
     onSuccess: ({ tweet }) => {
-      queryClient.setQueryData<Tweet[]>(pendingKey(member.id), (pending = []) =>
-        dedupeTweets([tweet, ...pending]),
-      );
+      if (parentTweetId === undefined) {
+        queryClient.setQueryData<Tweet[]>(
+          pendingKey(member.id),
+          (pending = []) => dedupeTweets([tweet, ...pending]),
+        );
+      } else {
+        void queryClient.invalidateQueries({ queryKey: THREAD_KEY });
+        void queryClient.invalidateQueries({
+          queryKey: homeTimelineKey(member.id),
+        });
+      }
       void queryClient.invalidateQueries({
         queryKey: profileKey(member.username),
       });
@@ -216,10 +233,15 @@ export function useDeleteTweet(member: TweetAuthorRef) {
         );
       }
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({
-        queryKey: profileKey(member.username),
-      });
+    onSettled: (_result, error) => {
+      if (error && !(error instanceof ApiError && error.code === "NOT_FOUND")) {
+        return;
+      }
+      // Descendant replies can belong to other authors. Re-read their counts
+      // and any previously loaded subtree or home page after a cascade.
+      void queryClient.invalidateQueries({ queryKey: THREAD_KEY });
+      void queryClient.invalidateQueries({ queryKey: ["profile"] });
+      void queryClient.invalidateQueries({ queryKey: timeline });
     },
   });
 }

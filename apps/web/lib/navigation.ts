@@ -5,3 +5,5 @@
 export function leaveTo(path: string): void {
   window.location.replace(path);
 }
+
+export const threadHref = (id: string) => `/tweets/${encodeURIComponent(id)}`;

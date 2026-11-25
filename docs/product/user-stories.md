@@ -53,6 +53,15 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-B03.4:** Cursor tampering returns `400`; page size defaults to 20 and caps at 30.
 - **AC-B03.5:** Loading, empty, error, and end-of-feed states are distinguishable and accessible.
 
+### US-B04 Create and read threaded replies
+
+- **AC-B04.1:** An authenticated member can reply with 1–280 Unicode characters to any existing, publicly visible tweet, including another reply. The server sets the author from the session.
+- **AC-B04.2:** Replies are publicly readable by members and logged-out visitors. Each reply belongs to exactly one parent; arbitrary nesting is supported.
+- **AC-B04.3:** A thread view shows the selected tweet and its descendant replies in deterministic parent-before-child order, with bounded pagination and author context.
+- **AC-B04.4:** Only a reply's author can delete that reply. Deleting a tweet removes its full descendant subtree, regardless of reply authorship; deletion is atomic from the API's perspective.
+- **AC-B04.5:** Thread navigation, reply composition, loading, empty, error, and pagination states are keyboard accessible and clearly announced.
+- **AC-B04.6:** Invalid content, missing parent, unauthenticated writes, and rate limits return safe errors and do not create replies.
+
 ## Epic C — Social graph
 
 ### US-C01 Follow/unfollow

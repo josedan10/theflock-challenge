@@ -4,9 +4,9 @@ The sequence optimizes for early end-to-end validation. A milestone is complete 
 
 ## Dependency graph
 
-`M0 Decisions → M1 Foundation → M2 Auth → M3 Tweets → M4 Social → M5 Search/UI → M6 Production`
+`M0 Decisions → M1 Foundation → M2 Auth → M3 Tweets → M4 Social → M5 Search/UI → M6 Conversations → M7 Notifications/live updates → M8 Local seed/activity tools`
 
-After M3, profile UI work can proceed alongside M4. Bonus work begins only after the required release gate.
+After M3, profile UI work can proceed alongside M4. The project is local-only; production deployment is out of scope.
 
 ## M0 — Product and architecture baseline (current)
 
@@ -50,14 +50,13 @@ After M3, profile UI work can proceed alongside M4. Bonus work begins only after
 - Cross-browser Playwright suite and exploratory test charter.
 - **Exit:** US-D01 and US-E01 pass; no serious/critical axe findings; required scope demo approved.
 
-## M6 — Production release
+## M6 — Conversations
 
-- Provision DNS/TLS, Droplet network/firewall, secrets, backups, monitoring, uptime checks.
-- Vercel production/preview config; API staging then production deployment.
-- Restore drill, rollback rehearsal, load test, security review, release checklist.
-- **Exit:** smoke test passes, dashboards/alerts work, restore meets RTO, runbook verified by someone other than its author.
+- Nested, publicly readable tweet replies with bounded thread pagination and accessible UI.
+- Root deletion removes the complete reply subtree for this challenge; document fan-out/locking risk and avoid treating this as a production pattern.
+- **Exit:** thread API/UI, subtree deletion, accessibility, and real PostgreSQL tests pass.
 
-## M7+ — Bonus features, one at a time
+## M7+ — Planned features, one at a time
 
 1. **SSE live timeline** — measure connection budget and reconnection behavior.
 2. **Image attachments** — introduce S3-compatible storage and content safety constraints.

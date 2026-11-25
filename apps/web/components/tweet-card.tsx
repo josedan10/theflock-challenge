@@ -4,6 +4,8 @@ import { CircleAlertIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { threadHref } from "../lib/navigation";
+
 import type { Tweet } from "@twitter-clone/contracts";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -29,6 +31,7 @@ export interface TweetCardProps {
   tweet: Tweet;
   /** The signed-in member's id, or `null` when signed out. */
   viewerId: string | null;
+  showThreadLink?: boolean;
   onDelete?: (tweetId: string) => void;
   /** Why the last delete of this tweet failed; focuses its Delete button. */
   failure?: string | null;
@@ -40,6 +43,7 @@ export interface TweetCardProps {
  */
 export function TweetCard({
   failure = null,
+  showThreadLink = true,
   onDelete,
   tweet,
   viewerId,
@@ -96,7 +100,8 @@ export function TweetCard({
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete this tweet?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This can&apos;t be undone.
+                  This also deletes every reply below this tweet, including
+                  replies by other people. This can&apos;t be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -118,6 +123,15 @@ export function TweetCard({
         ) : null}
       </header>
       <p className="whitespace-pre-wrap break-words">{tweet.content}</p>
+      {showThreadLink ? (
+        <Link className="w-fit text-sm underline" href={threadHref(tweet.id)}>
+          Open thread
+          <span className="sr-only">
+            {" "}
+            for @{tweet.author.username}&apos;s tweet
+          </span>
+        </Link>
+      ) : null}
       {failure === null ? null : (
         <Alert variant="destructive">
           <CircleAlertIcon aria-hidden="true" />

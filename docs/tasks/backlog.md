@@ -27,6 +27,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **TWT-02:** Composer/card components and optimistic/error behavior.
 - [x] **FEED-01:** Keyset timeline SQL, indexes, cursor signing/validation, integration and explain-plan tests.
 - [x] **FEED-02:** Infinite feed with deduplication, retry/end/empty states and Playwright tests.
+- [ ] **THR-01:** Nested public replies, bounded thread reads, accessible thread UI, and documented challenge-only subtree deletion behavior.
 
 ## Social/search
 

@@ -55,13 +55,23 @@
 3. List entries show identity and viewer relationship controls.
 4. Follow changes reconcile both the row and profile counts.
 
-## 8. Responsive navigation
+## 8. Threaded replies
+
+1. Any visitor opens a tweet's thread; the parent and nested descendants are public.
+2. A signed-in member replies to the selected tweet or to any reply. The API validates the parent and derives the author from the session.
+3. The thread displays replies in deterministic parent-before-child order and fetches bounded pages without duplicating entries.
+4. A reply author may delete their own reply. Deleting any tweet removes all descendants, including replies by other users.
+5. Show confirmation before deletion and reconcile thread views after success; errors preserve the visible content and offer retry.
+
+**Implementation caveat:** synchronous recursive deletion is an intentional local-challenge simplification. On a large thread it can cause expensive fan-out deletes and long transactions/locks; do not carry this design into a production-scale service without redesigning deletion.
+
+## 9. Responsive navigation
 
 - **Mobile `<640`:** single content column, compact header/bottom navigation, composer as page or sheet.
 - **Tablet `640–1024`:** persistent primary navigation plus content column where space permits.
 - **Desktop `>1024`:** constrained three-area shell; required content/actions never depend on hover.
 
-## Bonus flows and decisions
+## Planned feature flows
 
 ### Real-time
 

@@ -1,14 +1,3 @@
-import {
-  copyFile,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { v7 as uuidv7 } from "uuid";
@@ -18,7 +7,7 @@ import { follows, likes, tweets } from "../../../platform/database/schema.js";
 import { buildNewUser, FIXED_NOW } from "../../../tests/auth-factories.js";
 import {
   MIGRATIONS_FOLDER,
-  startTestDatabase,
+  startTestDatabaseThrough,
   type TestDatabase,
 } from "../../../tests/postgres.js";
 import { createDrizzleUserRepository } from "../../auth/infrastructure/drizzle-user-repository.js";
@@ -31,36 +20,13 @@ const tweet = uuidv7();
 beforeAll(async () => {
   // Model the actual previous deployment: same migration SQL and Drizzle journal,
   // with existing members and a tweet before the new relations are installed.
-  const previous = await mkdtemp(join(tmpdir(), "pre-feed-"));
-  try {
-    const journal = JSON.parse(
-      await readFile(join(MIGRATIONS_FOLDER, "meta/_journal.json"), "utf8"),
-    ) as { entries: { idx: number; tag: string }[] };
-    const entries = journal.entries.filter((e) => e.idx <= 1);
-    await mkdir(join(previous, "meta"));
-    await writeFile(
-      join(previous, "meta/_journal.json"),
-      JSON.stringify({ ...journal, entries }),
-    );
-    for (const { tag } of entries) {
-      await copyFile(
-        join(MIGRATIONS_FOLDER, `${tag}.sql`),
-        join(previous, `${tag}.sql`),
-      );
-    }
-    database = await startTestDatabase(previous);
-  } finally {
-    await rm(previous, { recursive: true, force: true });
-  }
+  database = await startTestDatabaseThrough(1);
   const members = createDrizzleUserRepository(database.db);
   author = (await members.create(buildNewUser())).id;
   follower = (await members.create(buildNewUser())).id;
-  await database.db.insert(tweets).values({
-    authorId: author,
-    createdAt: FIXED_NOW,
-    content: "pre-migration",
-    id: tweet,
-  });
+  // Seed with the historical schema, not today's Drizzle column list.
+  await database.sql`insert into tweets(id,author_id,content,created_at)
+    values (${tweet},${author},'pre-migration',${FIXED_NOW.toISOString()})`;
   await migrate(database.db, { migrationsFolder: MIGRATIONS_FOLDER });
 }, 120_000);
 afterAll(async () => {

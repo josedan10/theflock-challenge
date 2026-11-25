@@ -32,9 +32,11 @@ beforeAll(async () => {
     const journal = JSON.parse(
       await readFile(join(MIGRATIONS_FOLDER, "meta/_journal.json"), "utf8"),
     ) as { entries: { idx: number; tag: string }[] };
-    const entries = journal.entries.filter(
-      (entry) => !entry.tag.endsWith("_user_search_trigram"),
+    const searchMigrationIndex = journal.entries.findIndex((entry) =>
+      entry.tag.endsWith("_user_search_trigram"),
     );
+    expect(searchMigrationIndex).toBeGreaterThanOrEqual(0);
+    const entries = journal.entries.slice(0, searchMigrationIndex);
     await mkdir(join(previous, "meta"));
     await writeFile(
       join(previous, "meta/_journal.json"),

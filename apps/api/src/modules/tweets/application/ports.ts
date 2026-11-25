@@ -2,6 +2,7 @@
 export interface NewTweet {
   id: string;
   authorId: string;
+  parentTweetId?: string;
   content: string;
   now: Date;
 }

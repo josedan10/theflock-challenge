@@ -393,3 +393,49 @@ describe("API client", () => {
     });
   });
 });
+
+describe("THR-01 client", () => {
+  const tweet = {
+    id: session.user.id,
+    author: {
+      avatarUrl: null,
+      id: session.user.id,
+      username: "ada",
+      displayName: "Ada",
+    },
+    createdAt: session.user.createdAt,
+    content: "reply",
+    likeCount: 0,
+    likedByViewer: false,
+  };
+  it("AC-B04.1 sends CSRF on reply creation without allowing an author field", async () => {
+    const { client, fetchImpl } = clientReturning(jsonResponse(201, { tweet }));
+    await expect(
+      client.createReply("parent/id", { content: "reply" }, "csrf"),
+    ).resolves.toEqual({ tweet });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://api.test/v1/tweets/parent%2Fid/replies",
+      expect.objectContaining({
+        method: "POST",
+        body: '{"content":"reply"}',
+        headers: expect.objectContaining({ "x-csrf-token": "csrf" }),
+      }),
+    );
+  });
+  it.each([undefined, "cursor+test"])(
+    "AC-B04.2 validates a public thread page",
+    async (cursor) => {
+      const page = {
+        selected: { ...tweet, parentTweetId: null },
+        items: [],
+        nextCursor: null,
+      };
+      const { client, fetchImpl } = clientReturning(jsonResponse(200, page));
+      await expect(client.getThread(tweet.id, cursor)).resolves.toEqual(page);
+      expect(fetchImpl).toHaveBeenCalledWith(
+        `http://api.test/v1/tweets/${tweet.id}/thread${cursor ? "?cursor=cursor%2Btest" : ""}`,
+        expect.objectContaining({ method: "GET", credentials: "include" }),
+      );
+    },
+  );
+});
