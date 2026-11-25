@@ -1,7 +1,12 @@
 "use client";
 
 import { useMutationState } from "@tanstack/react-query";
-import { CircleAlertIcon } from "lucide-react";
+import {
+  ArrowUpIcon,
+  ChevronDownIcon,
+  CircleAlertIcon,
+  RotateCwIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -188,6 +193,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       {deferNewPosts && ahead.length > 0 ? (
         <p role="status">
           <Button onClick={showNewPosts} type="button" variant="outline">
+            <ArrowUpIcon aria-hidden="true" data-icon="inline-start" />
             Show {ahead.length} new {ahead.length === 1 ? "post" : "posts"}
           </Button>
         </p>
@@ -208,6 +214,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             type="button"
             variant="outline"
           >
+            <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
             Try again
           </Button>
         </div>
@@ -247,6 +254,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             <AlertDescription>We couldn't load older posts.</AlertDescription>
           </Alert>
           <Button onClick={loadOlder} type="button" variant="outline">
+            <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
             Try again
           </Button>
         </div>
@@ -263,6 +271,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             type="button"
             variant="outline"
           >
+            <ChevronDownIcon aria-hidden="true" data-icon="inline-start" />
             Load more
           </Button>
           <div aria-hidden="true" className="h-px w-full" ref={sentinel} />

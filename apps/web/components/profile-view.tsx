@@ -1,7 +1,12 @@
 "use client";
 
 import { updateProfileRequestSchema } from "@twitter-clone/contracts";
-import { CircleAlertIcon, UserRoundIcon } from "lucide-react";
+import {
+  CircleAlertIcon,
+  PencilIcon,
+  RotateCwIcon,
+  UserRoundIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useRef, useState } from "react";
 
@@ -60,6 +65,7 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
             </Link>
           ) : (
             <Button onClick={() => void profileQuery.refetch()} type="button">
+              <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
               Try again
             </Button>
           )}
@@ -245,6 +251,7 @@ function EditProfile({
         type="button"
         variant="outline"
       >
+        <PencilIcon aria-hidden="true" data-icon="inline-start" />
         Edit profile
       </Button>
     );

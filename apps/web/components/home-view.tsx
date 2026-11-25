@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlertIcon } from "lucide-react";
+import { CircleAlertIcon, RotateCwIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -55,6 +55,7 @@ export function HomeView() {
           type="button"
           variant="outline"
         >
+          <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
           Try again
         </Button>
       </div>
