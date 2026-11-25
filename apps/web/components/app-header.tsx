@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellIcon,
   CircleAlertIcon,
   HouseIcon,
   LogOutIcon,
@@ -13,9 +14,11 @@ import { useState } from "react";
 
 import { apiFormErrors } from "../lib/form-errors";
 import { leaveTo } from "../lib/navigation";
+import { useUnreadCount } from "../lib/notifications";
 import { useLogOut, useSession } from "../lib/session";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   NavigationMenu,
@@ -35,6 +38,7 @@ export function AppHeader() {
   const logOut = useLogOut();
   const [error, setError] = useState<string | null>(null);
   const user = session.data?.user ?? null;
+  const unread = useUnreadCount(user?.id ?? null).data?.unreadCount ?? 0;
 
   return (
     <header className="border-b bg-background">
@@ -80,6 +84,30 @@ export function AppHeader() {
                   >
                     <SearchIcon aria-hidden="true" />
                     Search
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    active={pathname === "/notifications"}
+                    aria-label={
+                      unread > 0
+                        ? `Notifications, ${unread} unread`
+                        : "Notifications"
+                    }
+                    className="relative no-underline"
+                    render={<Link href="/notifications" />}
+                  >
+                    <BellIcon aria-hidden="true" />
+                    {/* Icon only on phones, where the header has no room. */}
+                    <span className="hidden md:inline">Notifications</span>
+                    {unread > 0 ? (
+                      <Badge
+                        aria-hidden="true"
+                        className="absolute -top-1 left-4 h-4 min-w-4 px-1 text-[0.65rem] tabular-nums md:static"
+                      >
+                        {unread > 99 ? "99+" : unread}
+                      </Badge>
+                    ) : null}
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
