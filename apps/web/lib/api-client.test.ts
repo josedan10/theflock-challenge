@@ -224,6 +224,27 @@ describe("API client", () => {
       replyCount: 0,
     };
 
+    it("PROFILE-03 AC-A03.4 reads a profile page and encodes the cursor", async () => {
+      const card = { ...tweet, replyingTo: "grace" };
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { items: [card], nextCursor: null }),
+      );
+
+      await expect(
+        client.getProfilePosts("Ada Lovelace", "a+b/c="),
+      ).resolves.toEqual({
+        items: [card],
+        nextCursor: null,
+      });
+      expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/users/Ada%20Lovelace/tweets?cursor=a%2Bb%2Fc%3D",
+      );
+      expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+        credentials: "include",
+        method: "GET",
+      });
+    });
+
     it("US-B01 AC-B01.1 posts a tweet with the CSRF token and parses the card", async () => {
       const { client, fetchImpl } = clientReturning(
         jsonResponse(201, { tweet }),

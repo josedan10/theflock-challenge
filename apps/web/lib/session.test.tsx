@@ -46,6 +46,7 @@ function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     }),
     getFollowList: vi.fn(async () => ({ items: [], nextCursor: null })),
     searchUsers: vi.fn(async () => ({ items: [] })),
+    getProfilePosts: vi.fn(async () => ({ items: [], nextCursor: null })),
     getProfile: vi.fn(async () => ({
       profile: {
         ...session.user,

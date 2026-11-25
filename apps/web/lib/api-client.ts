@@ -18,6 +18,8 @@ import {
   notificationPageSchema,
   type UnreadCountResponse,
   unreadCountResponseSchema,
+  type ProfilePostsPage,
+  profilePostsPageSchema,
   type PublicProfileResponse,
   publicProfileResponseSchema,
   type RegisterRequest,
@@ -57,6 +59,11 @@ export interface ApiClient {
   /** The current session, or `null` when not signed in. */
   me(): Promise<AuthSessionResponse | null>;
   getProfile(username: string): Promise<PublicProfileResponse>;
+  /**
+   * One page of a member's tweets and replies. `cursor` is the opaque value
+   * from the previous page. Omit it for the first page.
+   */
+  getProfilePosts(username: string, cursor?: string): Promise<ProfilePostsPage>;
   updateProfile(
     input: UpdateProfileRequest,
     csrfToken: string,
@@ -268,6 +275,17 @@ export function createApiClient(
         method: "GET",
       });
       return publicProfileResponseSchema.parse(await response.json());
+    },
+    async getProfilePosts(username, cursor) {
+      const query =
+        cursor === undefined
+          ? ""
+          : `?${new URLSearchParams({ cursor }).toString()}`;
+      const response = await request(
+        `/users/${encodeURIComponent(username)}/tweets${query}`,
+        { method: "GET" },
+      );
+      return profilePostsPageSchema.parse(await response.json());
     },
     timelineStreamUrl() {
       return `${baseUrl}/v1/timeline/stream`;

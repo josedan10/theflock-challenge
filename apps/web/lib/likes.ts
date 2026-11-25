@@ -13,8 +13,8 @@ import type { LikeResponse, Tweet } from "@twitter-clone/contracts";
 
 type LikeFields = Pick<Tweet, "likeCount" | "likedByViewer">;
 
-/** Cache roots that hold tweet cards: home pages, pending posts, threads. */
-const TWEET_CACHE_ROOTS = [["timeline"], THREAD_KEY] as const;
+/** Cache roots that hold tweet cards: home pages, pending posts, threads, profiles. */
+const TWEET_CACHE_ROOTS = [["timeline"], THREAD_KEY, ["profile"]] as const;
 
 function isTweet(value: unknown): value is Tweet {
   return (

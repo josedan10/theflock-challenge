@@ -27,6 +27,7 @@ import {
 import type { InfiniteData } from "@tanstack/react-query";
 import type {
   CreateTweetRequest,
+  ProfilePostsPage,
   ThreadItem,
   TimelinePage,
   Tweet,
@@ -223,6 +224,18 @@ export function useTimelineLive(memberId: string, enabled: boolean): string {
   return announcement;
 }
 
+/** A member's tweets and replies. The cursor stays inside the query cache. */
+export function useProfilePosts(username: string, enabled: boolean) {
+  const apiClient = useApiClient();
+  return useInfiniteQuery({
+    enabled,
+    getNextPageParam: (page: ProfilePostsPage) => page.nextCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => apiClient.getProfilePosts(username, pageParam),
+    queryKey: [...profileKey(username), "posts"],
+  });
+}
+
 /** Home timeline pages. The cursor stays inside the query cache. */
 export function useHomeTimeline(memberId: string) {
   const apiClient = useApiClient();
@@ -285,6 +298,42 @@ interface PageSlot {
   slot: TweetSlot;
 }
 
+/** Drops one card from infinite-query pages. Leaves other cache values as-is. */
+function withoutTweetPages<T>(data: T, tweetId: string): T {
+  if (typeof data !== "object" || data === null || !("pages" in data)) {
+    return data;
+  }
+  const record = data as { pages?: unknown };
+  if (!Array.isArray(record.pages)) {
+    return data;
+  }
+  let changed = false;
+  const pages = record.pages.map((page) => {
+    if (typeof page !== "object" || page === null || !("items" in page)) {
+      return page;
+    }
+    const items = (page as { items?: unknown }).items;
+    if (!Array.isArray(items)) {
+      return page;
+    }
+    const next = items.filter(
+      (item) =>
+        !(
+          typeof item === "object" &&
+          item !== null &&
+          "id" in item &&
+          (item as { id: unknown }).id === tweetId
+        ),
+    );
+    if (next.length === items.length) {
+      return page;
+    }
+    changed = true;
+    return { ...page, items: next };
+  });
+  return changed ? ({ ...record, pages } as T) : data;
+}
+
 /**
  * Deletes one of the member's tweets optimistically: it disappears at once,
  * and comes back in its original position if the request fails, without
@@ -302,6 +351,13 @@ export function useDeleteTweet(member: TweetAuthorRef) {
     onMutate: async (tweetId) => {
       await queryClient.cancelQueries({ queryKey: pending });
       await queryClient.cancelQueries({ queryKey: timeline });
+      await queryClient.cancelQueries({ queryKey: ["profile"] });
+      const profileSnapshots = queryClient.getQueriesData({
+        queryKey: ["profile"],
+      });
+      queryClient.setQueriesData({ queryKey: ["profile"] }, (current) =>
+        withoutTweetPages(current, tweetId),
+      );
       const pendingTweets = queryClient.getQueryData<Tweet[]>(pending) ?? [];
       const pages =
         queryClient.getQueryData<InfiniteData<TimelinePage>>(timeline);
@@ -336,10 +392,7 @@ export function useDeleteTweet(member: TweetAuthorRef) {
           })),
         });
       }
-      if (pendingSlot === undefined && pageSlot === undefined) {
-        return undefined;
-      }
-      return { pageSlot, pendingSlot };
+      return { pageSlot, pendingSlot, profileSnapshots };
     },
     onError: (error, _tweetId, context) => {
       if (error instanceof ApiError && error.code === "NOT_FOUND") {
@@ -347,6 +400,9 @@ export function useDeleteTweet(member: TweetAuthorRef) {
       }
       if (context === undefined) {
         return;
+      }
+      for (const [queryKey, data] of context.profileSnapshots) {
+        queryClient.setQueryData(queryKey, data);
       }
       if (context.pendingSlot !== undefined) {
         queryClient.setQueryData<Tweet[]>(pending, (current = []) =>

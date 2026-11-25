@@ -21,6 +21,7 @@ import { formatCount, formatExactCount } from "../lib/format-count";
 import { usePublicProfile, useSession, useUpdateProfile } from "../lib/session";
 import { useHydrated } from "../lib/use-hydrated";
 
+import { ProfilePosts } from "./profile-posts";
 import { ProfileSkeleton } from "./skeletons";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
@@ -78,8 +79,9 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
   }
 
   const { profile } = profileQuery.data;
-  const isOwner =
-    hydrated && session.isSuccess && session.data?.user.id === profile.id;
+  const viewerId =
+    hydrated && session.isSuccess ? (session.data?.user.id ?? null) : null;
+  const isOwner = viewerId === profile.id;
 
   return (
     <article
@@ -133,6 +135,7 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
           </ul>
         </CardContent>
       </Card>
+      <ProfilePosts username={profile.username} viewerId={viewerId} />
       <p className="text-sm text-muted-foreground">
         Accounts and posts are public.
       </p>
