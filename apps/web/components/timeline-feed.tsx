@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutationState } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpIcon,
   ChevronDownIcon,
@@ -14,14 +14,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../lib/api-client";
 import { apiFormErrors } from "../lib/form-errors";
+import {
+  clearUndoWindows,
+  closeUndoWindow,
+  useUndoWindows,
+} from "../lib/post-undo";
 import { assembleTimeline, tweetsAheadOfPage } from "../lib/timeline-feed";
 import {
-  tweetCreateMutationKey,
   useDeleteTweet,
   useHomeTimeline,
   usePendingTweets,
 } from "../lib/tweets";
 
+import { PostUndo } from "./post-undo";
 import { TimelineSkeleton } from "./skeletons";
 import { TweetCard } from "./tweet-card";
 
@@ -29,7 +34,6 @@ import type { SessionUser } from "@twitter-clone/contracts";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 
 /** Why a delete failed, shown on that tweet's card. */
 interface DeleteFailure {
@@ -47,6 +51,9 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
   const pending = usePendingTweets(user.id);
   const timeline = useHomeTimeline(user.id);
   const deleteTweet = useDeleteTweet(member);
+  const queryClient = useQueryClient();
+  const undoWindows = useUndoWindows(user.id);
+  const [undoing, setUndoing] = useState<string | null>(null);
   const [deferNewPosts, setDeferNewPosts] = useState(false);
   const [failure, setFailure] = useState<DeleteFailure | null>(null);
   const sentinel = useRef<HTMLDivElement>(null);
@@ -66,14 +73,6 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
     !deferNewPosts,
   );
   const itemIds = items.map((tweet) => tweet.id).join("\n");
-  const posting = useMutationState({
-    filters: {
-      mutationKey: tweetCreateMutationKey(user.id),
-      status: "pending",
-    },
-  });
-  // While older pages are open, the new post waits on the banner instead.
-  const isPosting = posting.length > 0 && !deferNewPosts;
 
   const settled = timeline.isSuccess || timeline.isError;
   const [trackedIds, setTrackedIds] = useState<{
@@ -162,6 +161,34 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
     });
   }
 
+  // Leaving the timeline ends every undo window; the posts stay (AC-B01.7).
+  useEffect(
+    () => () => clearUndoWindows(queryClient, user.id),
+    [queryClient, user.id],
+  );
+
+  /** Undo a new post: delete it without the confirmation (AC-B01.6). */
+  function onUndo(tweetId: string) {
+    setFailure(null);
+    setUndoing(tweetId);
+    deleteTweet.mutate(tweetId, {
+      onError: (error) => {
+        if (error instanceof ApiError && error.code === "NOT_FOUND") {
+          closeUndoWindow(queryClient, user.id, tweetId);
+          return;
+        }
+        // The tweet stays, and the card's alert announces why (AC-B01.7).
+        setFailure({
+          message:
+            `We couldn't undo this post. ${apiFormErrors(error).form ?? ""}`.trim(),
+          tweetId,
+        });
+      },
+      onSettled: () => setUndoing(null),
+      onSuccess: () => closeUndoWindow(queryClient, user.id, tweetId),
+    });
+  }
+
   function showNewPosts() {
     setDeferNewPosts(false);
     if (typeof heading.current?.scrollIntoView === "function") {
@@ -223,7 +250,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         </div>
       ) : null}
 
-      {items.length === 0 && timeline.isSuccess && !isPosting ? (
+      {items.length === 0 && timeline.isSuccess ? (
         <div className="grid justify-items-start gap-3">
           <p>
             Your timeline is empty. Post a tweet above, or search for people and
@@ -239,8 +266,6 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         </div>
       ) : null}
 
-      {isPosting ? <PostingTweet /> : null}
-
       {items.length > 0 ? (
         <ol
           aria-labelledby="home-timeline-heading"
@@ -253,6 +278,18 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             >
               <TweetCard
                 failure={failure?.tweetId === tweet.id ? failure.message : null}
+                footer={
+                  undoWindows[tweet.id] === undefined ? null : (
+                    <PostUndo
+                      expiresAt={undoWindows[tweet.id] ?? 0}
+                      onExpire={() =>
+                        closeUndoWindow(queryClient, user.id, tweet.id)
+                      }
+                      onUndo={() => onUndo(tweet.id)}
+                      pending={undoing === tweet.id}
+                    />
+                  )
+                }
                 onDelete={onDelete}
                 tweet={tweet}
                 viewerId={user.id}
@@ -299,22 +336,5 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         <p role="status">You've reached the end of your timeline.</p>
       ) : null}
     </section>
-  );
-}
-
-function PostingTweet() {
-  return (
-    <p
-      className="flex min-h-24 items-center gap-3 rounded-xl border bg-card p-4 text-card-foreground"
-      role="status"
-    >
-      <Spinner
-        aria-hidden="true"
-        aria-label={undefined}
-        className="size-5 motion-reduce:animate-none"
-        role="presentation"
-      />
-      Posting your tweet…
-    </p>
   );
 }
