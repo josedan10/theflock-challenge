@@ -213,11 +213,8 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
           id="home-timeline-heading"
           ref={heading}
         >
-          Home timeline
+          Home
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Tweets from you and the people you follow, newest first.
-        </p>
       </div>
 
       {deferNewPosts && ahead.length > 0 ? (
