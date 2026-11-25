@@ -124,10 +124,33 @@ Never paste the contents of `.env`, cookies, authorization headers, or a full da
 
 ### Local demo data (SEED-01)
 
-After migrations, `pnpm stack:up` seeds 10 synthetic accounts with profiles, posts, follows, likes, threaded replies and notifications. To request 25 total demo accounts run `./scripts/setup.sh --seed-users 25`. The flag takes precedence over `SEED_USER_COUNT` in the shell or root `.env`; supported range: 10–100. No external services or background simulator are involved.
+After migrations, `pnpm stack:up` seeds 10 synthetic accounts with profiles, posts, follows, likes, threaded replies and notifications. To request 25 total demo accounts run `./scripts/setup.sh --seed-users 25`. The flag takes precedence over `SEED_USER_COUNT` in the shell or root `.env`; supported range: 10–100. No external services are involved, and the activity simulator below stays off unless you turn it on.
 
 Log in as `demo_1@example.test` (through `demo_N@example.test`) with the shared **local demo password** in the repository-root `.env.seed-password`. Setup generates it once with owner-only permissions. Never publish it or reuse it elsewhere. Search for `demo_` to inspect the profiles or open Home and Notifications while signed in.
 
-The activity simulator is still off. Its lines are already in `apps/api/scripts/activity-corpus`: 200 posts and replies, 30 of them with a picture. A `{mention}` in a line is a slot for a real `@username` when that simulator runs. Nothing in that folder is written to the database by setup.
-
 With a migrated local database, run `pnpm --filter @twitter-clone/api db:seed` to reseed without restarting. Reruns restore missing fixtures and refresh seeded names, bios, posts, and replies. Passwords stay as they are, and requesting fewer users does not remove any. A conflicting real username or email aborts the seed rather than taking over the account. Keep the password file as long as you retain the database. If another worktree shares that database, use its original password file or a separate local database. For a **full reset**, only if all local data is disposable, stop the stack and explicitly remove the Compose volume as described above, then rerun setup. That reset also erases non-demo accounts.
+
+### Local activity simulator (DEV-01)
+
+The simulator makes the local app feel used. Seeded demo accounts post and reply through the API, exactly as the web app does, so mentions, notifications, pictures and the live Home banner all behave as they would for real members. It never writes as a real account. It does mention real local members, and it replies to their posts as well as to the demo accounts'.
+
+It is **off by default**. Turn it on in the root `.env`:
+
+```bash
+ACTIVITY_SIMULATOR=true
+ACTIVITY_INTERVAL_SECONDS=30 # one action per interval; 15–3600
+```
+
+- **At startup:** `pnpm stack:up` starts the `activity` Compose service when the flag is `true`. Any value other than `true` or `false` stops setup before it changes anything.
+- **On demand:** `ACTIVITY_SIMULATOR=true pnpm activity` runs it in the foreground against the API on `http://localhost:4000`. Add `--once` for a single action.
+- **Stop:** `pnpm activity:stop` for the Compose service, or Ctrl+C in the foreground. An action in progress finishes first.
+- **Reset:** `pnpm activity:reset` deletes what the simulator posted, along with the replies, likes and notifications attached to it. It works from the list of tweet IDs the simulator keeps in `.data/activity-posts.txt`, so posts you wrote while signed in as a demo account stay. Uploaded picture files stay in the media folder but are no longer served.
+
+Lines come from `apps/api/scripts/activity-corpus`: 200 posts and replies, 30 of them with a picture. A `{mention}` slot is filled with another member's `@username`, and half the time a real local member is preferred when there is one. A reply to a corpus post uses one of that post's own replies; a reply to anything else uses a random corpus reply. Pictures need `UPLOADS_ENABLED=true` on the API; without it, the same posts go out as text.
+
+Safety limits:
+
+- It runs only with `NODE_ENV=development`.
+- It talks only to a local API (`localhost` or the Compose `api` service) and a local database (`localhost` or the Compose `postgres` service).
+- It acts once per interval, never more than once at a time. The 15-second floor keeps logins within the API's 5-per-minute budget.
+- Sessions stay in memory. Errors print only the action and the HTTP status.
