@@ -55,7 +55,7 @@ afterAll(async () => {
   if (storageDir !== undefined) {
     await rm(storageDir, { force: true, recursive: true });
   }
-});
+}, 30_000);
 
 /** Replays fixed draws; see plan.ts for the order they are used in. */
 function draws(...values: number[]): Random {
@@ -185,5 +185,7 @@ describe("DEV-01 activity simulator", () => {
     const [likes] = await database.sql<{ count: number }[]>`
       select count(*)::int as count from likes where tweet_id = ${graceTweet}`;
     expect(likes?.count).toBe(1);
-  });
+    // About ten real HTTP round trips, logins included: a time budget for a
+    // loaded machine, not a retry.
+  }, 60_000);
 });
