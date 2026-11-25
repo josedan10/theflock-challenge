@@ -6,7 +6,7 @@ import {
   startTestDatabase,
   type TestDatabase,
 } from "../../../tests/postgres.js";
-import { users } from "../../auth/infrastructure/auth.schema.js";
+import { sessions, users } from "../../auth/infrastructure/auth.schema.js";
 import { createDrizzleUserRepository } from "../../auth/infrastructure/drizzle-user-repository.js";
 import { follows } from "../../social/infrastructure/social.schema.js";
 
@@ -32,6 +32,8 @@ const members: [username: string, displayName: string][] = [
   ["percent", "100% Real"],
   ["slasher", "back\\slash"],
   ["ghost", "Ada Ghost"],
+  ["bobby", "Bobby'); DROP TABLE users;--"],
+  ["obrien", "O'Brien"],
 ];
 
 beforeAll(async () => {
@@ -121,5 +123,78 @@ describe("user search persistence", () => {
 
     expect(text).toContain("users_username_trgm_idx");
     expect(text).toContain("users_display_name_trgm_idx");
+  });
+
+  describe("user search SQL injection", () => {
+    // Each payload is passed exactly as the use case would (lowercased). Bound
+    // parameters keep it data: it can only match members whose names contain
+    // the same characters, and it can never change, read, or drop anything.
+    it.each([
+      ["a tautology", "' or '1'='1", []],
+      ["a quoted tautology after a name", "ada' or '1'='1", []],
+      ["a comment that drops the rest", "ada' --", []],
+      ["a stacked drop statement", "'; drop table users; --", []],
+      [
+        "a union read of credentials",
+        "x' union select email, password_hash, id, true from users --",
+        [],
+      ],
+      ["a wildcard tautology", "%' or 1=1 --", []],
+      ["an escaped quote", "\\'; select pg_sleep(5); --", []],
+      ["dollar quoting", "$$; drop table users; $$", []],
+      [
+        "a type cast escape",
+        "ada'::text || (select email from users limit 1) || '",
+        [],
+      ],
+      [
+        "a stored payload, matched literally",
+        "'); drop table users;--",
+        ["bobby"],
+      ],
+      ["an apostrophe in a real name", "o'brien", ["obrien"]],
+    ])("US-D01 AC-D01.4 treats %s as data", async (_case, text, expected) => {
+      const before = await database.db.$count(users);
+
+      const rows = await searcher.search({
+        limit: 30,
+        text,
+        viewerId: viewer(),
+      });
+
+      expect(rows.map((row) => row.username)).toEqual(expected);
+      for (const row of rows) {
+        expect(Object.keys(row).sort()).toEqual([
+          "displayName",
+          "followedByViewer",
+          "id",
+          "username",
+        ]);
+      }
+      await expect(database.db.$count(users)).resolves.toBe(before);
+      await expect(database.db.$count(sessions)).resolves.toBe(0);
+    });
+
+    it("US-D01 AC-D01.4 cannot be slowed by an injected sleep", async () => {
+      const started = Date.now();
+
+      await searcher.search({
+        limit: 30,
+        text: "' || pg_sleep(3) || '",
+        viewerId: viewer(),
+      });
+
+      expect(Date.now() - started).toBeLessThan(2_000);
+    });
+
+    it("US-D01 AC-D01.4 rejects a malformed viewer id before any rows are read", async () => {
+      await expect(
+        searcher.search({
+          limit: 30,
+          text: "ada",
+          viewerId: "x'::uuid or true --",
+        }),
+      ).rejects.toThrow();
+    });
   });
 });
