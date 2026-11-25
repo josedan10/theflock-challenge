@@ -155,7 +155,7 @@ How each action is chosen (constants in `apps/api/scripts/activity/plan.ts`):
 - **Nobody real is around:** demo accounts reply to each other 4 times in 10, post otherwise, and never like.
 - **Browser-test accounts** (`e2e_…`, created by `pnpm test:e2e` in the same database) are not people, so the simulator ignores them.
 
-Lines come from `apps/api/scripts/activity-corpus`: 200 posts and replies, 30 of them with a picture. A `{mention}` slot is filled with another member's `@username`, choosing a real local member 9 times in 10 when there is one. A reply to a corpus post uses one of that post's own replies; a reply to anything else uses a random corpus reply. Pictures need `UPLOADS_ENABLED=true` on the API; without it, the same posts go out as text.
+Lines come from `apps/api/scripts/activity-corpus`: 200 posts and replies, 30 of them with a picture. Any other post borrows one of those 30 pictures half the time, so about half of all new posts carry a picture. A `{mention}` slot is filled with another member's `@username`, choosing a real local member 9 times in 10 when there is one. A reply to a corpus post uses one of that post's own replies; a reply to anything else uses a random corpus reply. Pictures need `UPLOADS_ENABLED=true` on the API; without it, the same posts go out as text.
 
 Safety limits:
 
