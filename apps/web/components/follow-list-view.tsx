@@ -12,6 +12,7 @@ import Link from "next/link";
 import { ApiError, type FollowListDirection } from "../lib/api-client";
 import { useFollowList } from "../lib/follows";
 import { useSession } from "../lib/session";
+import { useHydrated } from "../lib/use-hydrated";
 
 import { FollowButton } from "./follow-button";
 import { FollowListSkeleton } from "./skeletons";
@@ -65,7 +66,9 @@ export function FollowListView({
 }: Readonly<{ direction: FollowListDirection; username: string }>) {
   const list = useFollowList(username, direction);
   const session = useSession();
-  const viewer = session.data?.user ?? null;
+  const hydrated = useHydrated();
+  // Follow controls depend on the session; keep the first render server-equal.
+  const viewer = hydrated ? (session.data?.user ?? null) : null;
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
   const text = copy[direction];
   const notFound =

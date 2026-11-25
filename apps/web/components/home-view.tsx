@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useSession } from "../lib/session";
+import { useHydrated } from "../lib/use-hydrated";
 
 import { HomeSkeleton } from "./skeletons";
 import { TimelineFeed } from "./timeline-feed";
@@ -30,6 +31,7 @@ import {
 export function HomeView() {
   const router = useRouter();
   const session = useSession();
+  const hydrated = useHydrated();
   // Logout leaves with a full page navigation (see AppHeader), so a null
   // session here always means the visitor is not signed in.
   const signedOut = session.isSuccess && session.data === null;
@@ -40,7 +42,9 @@ export function HomeView() {
     }
   }, [router, signedOut]);
 
-  if (session.isPending) {
+  // Until hydration ends, match the server HTML even if the header has
+  // already loaded the session.
+  if (!hydrated || session.isPending) {
     return <HomeSkeleton label="Loading your account…" />;
   }
   if (session.isError) {
