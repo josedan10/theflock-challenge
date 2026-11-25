@@ -47,7 +47,7 @@ See [the architecture](docs/technical/architecture.md) and [local setup](docs/SE
 - Node.js **22 LTS** and Corepack
 - Git
 
-Node 23 is not supported by the integration-test tooling. Confirm the active version with `node --version` before installing dependencies.
+Confirm the active version with `node --version` before installing dependencies. Node 22 LTS is the supported development runtime; Node 23.0–23.7 need the workspace `undici` patch to load Testcontainers and jsdom.
 
 ### 1. Install dependencies
 

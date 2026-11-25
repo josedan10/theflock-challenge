@@ -21,6 +21,11 @@ overrides:
   glob@>=9.0.0 <=14.0.1: 14.0.6
   minimatch@>=7.0.0 <11.0.1: 11.0.9
 
+patchedDependencies:
+  undici@8.13.1:
+    hash: c89ea35b278d0d470e131706622834f303f3ded8b245923ad91e384fde4e64cb
+    path: patches/undici@8.13.1.patch
+
 importers:
 
   .:
@@ -7820,7 +7825,7 @@ snapshots:
       parse5-parser-stream: 8.1.1
       saxes: 6.0.0
       tough-cookie: 6.1.0
-      undici: 8.13.1
+      undici: 8.13.1(patch_hash=c89ea35b278d0d470e131706622834f303f3ded8b245923ad91e384fde4e64cb)
       w3c-xmlserializer: 6.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
@@ -9015,7 +9020,7 @@ snapshots:
       ssh2: 1.17.0
       tar-fs: 3.1.4(bare-buffer@3.7.3)
       tmp: 0.2.7
-      undici: 8.13.1
+      undici: 8.13.1(patch_hash=c89ea35b278d0d470e131706622834f303f3ded8b245923ad91e384fde4e64cb)
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -9185,7 +9190,7 @@ snapshots:
 
   undici@7.30.2: {}
 
-  undici@8.13.1: {}
+  undici@8.13.1(patch_hash=c89ea35b278d0d470e131706622834f303f3ded8b245923ad91e384fde4e64cb): {}
 
   unicorn-magic@0.1.0: {}
 
