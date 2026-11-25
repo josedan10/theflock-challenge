@@ -130,7 +130,9 @@ const send = (
     cookies: extras.cookies ?? {},
     headers: extras.headers ?? {},
     method,
-    payload: extras.payload as object | undefined,
+    ...(extras.payload === undefined
+      ? {}
+      : { payload: extras.payload as object }),
     url: `/v1/tweets/${tweetId}/like`,
   });
 
