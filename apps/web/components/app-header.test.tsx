@@ -88,6 +88,26 @@ describe("AppHeader", () => {
     expect(bell).not.toHaveTextContent(/\d/);
   });
 
+  it("shows icons only on small screens while keeping every name", async () => {
+    renderWithSession(<AppHeader />, signedIn());
+
+    const controls = [
+      await screen.findByRole("link", { name: "Home" }),
+      screen.getByRole("link", { name: "Search" }),
+      screen.getByRole("link", { name: "Notifications" }),
+      screen.getByRole("link", { name: "Profile" }),
+      screen.getByRole("button", { name: "Log out" }),
+    ];
+    for (const control of controls) {
+      const word = control.querySelector("span.sr-only");
+      expect(word).toHaveClass("md:not-sr-only");
+      expect(control.querySelector("svg")).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+    }
+  });
+
   it("offers Log in and Create account to a signed-out visitor", async () => {
     pathname.mockReturnValue("/u/ada");
     renderWithSession(<AppHeader />);
