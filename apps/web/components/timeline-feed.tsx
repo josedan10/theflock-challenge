@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutationState } from "@tanstack/react-query";
 import {
   ArrowUpIcon,
   ChevronDownIcon,
@@ -16,7 +15,6 @@ import { ApiError } from "../lib/api-client";
 import { apiFormErrors } from "../lib/form-errors";
 import { assembleTimeline, tweetsAheadOfPage } from "../lib/timeline-feed";
 import {
-  tweetCreateMutationKey,
   useDeleteTweet,
   useHomeTimeline,
   usePendingTweets,
@@ -29,7 +27,6 @@ import type { SessionUser } from "@twitter-clone/contracts";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 
 /** Why a delete failed, shown on that tweet's card. */
 interface DeleteFailure {
@@ -66,14 +63,6 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
     !deferNewPosts,
   );
   const itemIds = items.map((tweet) => tweet.id).join("\n");
-  const posting = useMutationState({
-    filters: {
-      mutationKey: tweetCreateMutationKey(user.id),
-      status: "pending",
-    },
-  });
-  // While older pages are open, the new post waits on the banner instead.
-  const isPosting = posting.length > 0 && !deferNewPosts;
 
   const settled = timeline.isSuccess || timeline.isError;
   const [trackedIds, setTrackedIds] = useState<{
@@ -223,7 +212,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         </div>
       ) : null}
 
-      {items.length === 0 && timeline.isSuccess && !isPosting ? (
+      {items.length === 0 && timeline.isSuccess ? (
         <div className="grid justify-items-start gap-3">
           <p>
             Your timeline is empty. Post a tweet above, or search for people and
@@ -238,8 +227,6 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
           </Link>
         </div>
       ) : null}
-
-      {isPosting ? <PostingTweet /> : null}
 
       {items.length > 0 ? (
         <ol
@@ -299,22 +286,5 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
         <p role="status">You've reached the end of your timeline.</p>
       ) : null}
     </section>
-  );
-}
-
-function PostingTweet() {
-  return (
-    <p
-      className="flex min-h-24 items-center gap-3 rounded-xl border bg-card p-4 text-card-foreground"
-      role="status"
-    >
-      <Spinner
-        aria-hidden="true"
-        aria-label={undefined}
-        className="size-5 motion-reduce:animate-none"
-        role="presentation"
-      />
-      Posting your tweet…
-    </p>
   );
 }

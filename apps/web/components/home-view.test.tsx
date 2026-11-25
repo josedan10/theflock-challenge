@@ -265,7 +265,7 @@ describe("HomeView tweets", () => {
     ).toEqual(["fresh", "loaded", "older"]);
   });
 
-  it("AC-B01.4 holds a spinner in the feed, then animates the new tweet in", async () => {
+  it("AC-B01.5 shows no posting block in the feed, then animates the new tweet in", async () => {
     let finish: () => void = () => undefined;
     const apiClient = fakeApiClient({
       createTweet: vi.fn(
@@ -285,20 +285,21 @@ describe("HomeView tweets", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Post" }));
 
-    expect(await screen.findByText("Posting your tweet…")).toBeInTheDocument();
+    // The composer reports the pending post; the timeline adds no block.
+    expect(
+      await screen.findByRole("button", { name: /Posting/ }),
+    ).toBeDisabled();
+    expect(screen.queryByText("Posting your tweet…")).not.toBeInTheDocument();
     expect(
       screen.queryByText("hello", { selector: "article p" }),
     ).not.toBeInTheDocument();
 
     await act(async () => finish());
 
-    await waitFor(
-      () => {
-        const card = screen.getByText("hello", { selector: "article p" });
-        expect(card.closest("li")).toHaveClass("tweet-appear");
-      },
-      { timeout: 3_000 },
-    );
+    await waitFor(() => {
+      const card = screen.getByText("hello", { selector: "article p" });
+      expect(card.closest("li")).toHaveClass("tweet-appear");
+    });
     expect(screen.queryByText("Posting your tweet…")).not.toBeInTheDocument();
   });
 });

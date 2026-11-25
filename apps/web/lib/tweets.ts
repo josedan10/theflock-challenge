@@ -45,27 +45,6 @@ const pendingKey = (memberId: string) =>
 
 const profileKey = (username: string) => ["profile", username.toLowerCase()];
 
-/** How long a post keeps its spinner before the card may appear. */
-export const TWEET_POST_MINIMUM_MS = 700;
-
-/** Mutation key for a member's in-flight `POST /v1/tweets`. */
-export const tweetCreateMutationKey = (memberId: string) =>
-  ["tweet", "create", memberId] as const;
-
-/**
- * Waits out the rest of {@link TWEET_POST_MINIMUM_MS}. A fast response still
- * shows the spinner; a slow one is not held any longer.
- */
-export function waitForPostMinimum(startedAt: number): Promise<void> {
-  const remaining = TWEET_POST_MINIMUM_MS - (Date.now() - startedAt);
-  if (remaining <= 0) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve) => {
-    setTimeout(resolve, remaining);
-  });
-}
-
 export function usePendingTweets(memberId: string) {
   return useQuery({
     initialData: [] as Tweet[],
@@ -94,33 +73,22 @@ export function useTimelineItems(memberId: string) {
 }
 
 /**
- * Publishes a tweet. Not optimistic: the canonical card is added only after
- * the request and a short minimum spinner time, so a fast post does not pop
- * in before the loader is visible.
+ * Publishes a tweet. Not optimistic: the canonical card joins the timeline as
+ * soon as the API confirms it, with no artificial wait (AC-B01.5). The
+ * composer shows its own pending state meanwhile (AC-B01.4).
  */
 export function useCreateTweet(member: TweetAuthorRef, parentTweetId?: string) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: tweetCreateMutationKey(member.id),
-    mutationFn: async (input: CreateTweetRequest) => {
-      const started = Date.now();
-      try {
-        if (parentTweetId !== undefined) {
-          return await apiClient.createReply(
+    mutationFn: (input: CreateTweetRequest) =>
+      parentTweetId === undefined
+        ? apiClient.createTweet(input, sessionCsrfToken(queryClient))
+        : apiClient.createReply(
             parentTweetId,
             input,
             sessionCsrfToken(queryClient),
-          );
-        }
-        return await apiClient.createTweet(
-          input,
-          sessionCsrfToken(queryClient),
-        );
-      } finally {
-        await waitForPostMinimum(started);
-      }
-    },
+          ),
     onSuccess: ({ tweet }) => {
       if (parentTweetId === undefined) {
         queryClient.setQueryData<Tweet[]>(

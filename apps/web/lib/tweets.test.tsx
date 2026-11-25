@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   fakeApiClient,
@@ -9,46 +9,13 @@ import {
 
 import { ApiError } from "./api-client";
 import { SessionProvider, useSession } from "./session";
-import {
-  TWEET_POST_MINIMUM_MS,
-  useCreateTweet,
-  useDeleteTweet,
-  useTimelineItems,
-  waitForPostMinimum,
-} from "./tweets";
+import { useCreateTweet, useDeleteTweet, useTimelineItems } from "./tweets";
 
 import type { ApiClient } from "./api-client";
 import type { Tweet } from "@twitter-clone/contracts";
 import type { ReactNode } from "react";
 
 const member = { id: testSession.user.id, username: testSession.user.username };
-
-describe("waitForPostMinimum", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("returns immediately when the request already outlasted the spinner", async () => {
-    vi.useFakeTimers();
-    await expect(
-      waitForPostMinimum(Date.now() - TWEET_POST_MINIMUM_MS),
-    ).resolves.toBeUndefined();
-  });
-
-  it("waits out the rest of the spinner minimum", async () => {
-    vi.useFakeTimers();
-    let done = false;
-    const pending = waitForPostMinimum(Date.now()).then(() => {
-      done = true;
-    });
-
-    await vi.advanceTimersByTimeAsync(TWEET_POST_MINIMUM_MS - 1);
-    expect(done).toBe(false);
-    await vi.advanceTimersByTimeAsync(1);
-    await pending;
-    expect(done).toBe(true);
-  });
-});
 
 function renderTweets(apiClient: ApiClient) {
   const wrapper = ({ children }: { children: ReactNode }) => (
