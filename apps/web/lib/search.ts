@@ -24,10 +24,12 @@ export type SearchTextState =
 
 /**
  * Client-side copy of the API's rule (AC-D01.4): trimmed, then 2–50
- * characters counted as code points. Only `ready` text is ever sent.
+ * characters counted as code points. Only `ready` text is ever sent. One
+ * leading `@` is dropped first, since people type handles that way and
+ * usernames never contain it.
  */
 export function searchTextState(raw: string): SearchTextState {
-  const text = raw.trim();
+  const text = raw.trim().replace(/^@/, "").trim();
   const length = codePointLength(text);
   if (length === 0) {
     return { kind: "empty" };

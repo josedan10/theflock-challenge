@@ -25,6 +25,9 @@ describe("searchTextState", () => {
     ["  Ada  ", { kind: "ready", text: "Ada" }],
     ["a".repeat(50), { kind: "ready", text: "a".repeat(50) }],
     ["a".repeat(51), { kind: "too-long" }],
+    ["@ada", { kind: "ready", text: "ada" }],
+    [" @a", { kind: "too-short" }],
+    ["@", { kind: "empty" }],
   ])("US-D01 AC-D01.4 classifies %j", (raw, expected) => {
     expect(searchTextState(raw)).toEqual(expected);
   });
