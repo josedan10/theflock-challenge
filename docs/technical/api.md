@@ -47,7 +47,7 @@ Status semantics: `400` malformed cursor/request, `401` unauthenticated, `403` a
 | GET    | `/health/live`               |               no | Process liveness only                         |
 | GET    | `/health/ready`              | internal/limited | Dependency readiness, no secret details       |
 
-Follow and like responses return `{ state, count }`. Create tweet returns the complete card view model so the client does not invent timestamps/counts.
+Follow responses return `{ relationship: { following, followerCount } }`. Like responses will return `{ state, count }` in SOC-02. Create tweet returns the complete card view model so the client does not invent timestamps/counts.
 
 ## Registration (`POST /v1/auth/register`)
 
@@ -116,6 +116,36 @@ Bio is plain text. The API stores it and returns it as a JSON string; it does no
 | `422`  | Error envelope, `VALIDATION_ERROR`            | Invalid field or unknown property             |
 | `429`  | Error envelope, `RATE_LIMITED`, `Retry-After` | 20 attempts/minute per client address         |
 
+## Follow (`PUT /v1/users/:username/follow`, `DELETE /v1/users/:username/follow`)
+
+Both require a session and `X-CSRF-Token` (US-C01, SOCIAL-01). The follower is the session member; a body cannot name one, and an empty body is valid. The username is matched case-insensitively to the stored lowercase form. Unknown, malformed, and soft-deleted usernames all return `404 NOT_FOUND` ("That profile does not exist."), the same answer as a profile read.
+
+`200` (`followResponseSchema`), with `Cache-Control: no-store`:
+
+```json
+{
+  "relationship": {
+    "following": true,
+    "followerCount": 1
+  }
+}
+```
+
+`following` is the session member's relationship to the target after the command commits. `followerCount` is that target's follower count from committed rows (requirements rule 8). PUT inserts the edge when it is absent (`INSERT ... ON CONFLICT DO NOTHING` on the composite primary key). A repeat PUT stays `200`, keeps the original `created_at`, and does not increase the count. DELETE removes the edge when it is present. A repeat DELETE stays `200` with `following: false` and the current count. Unfollow is not `204`: the client needs the count to reconcile.
+
+Self-follow and self-unfollow return `422 VALIDATION_ERROR` with `fields.username` ("You cannot follow yourself.") and write nothing. The `follows` check `follower_id <> following_id` repeats that rule. A foreign-key failure, such as the target disappearing during the command, is the same `404` as an unknown username.
+
+| Status | Meaning                                                                                                   |
+| ------ | --------------------------------------------------------------------------------------------------------- |
+| `200`  | Relationship applied, or already in the requested state                                                   |
+| `401`  | Missing, unknown, expired, or revoked session                                                             |
+| `403`  | Missing or wrong CSRF token                                                                               |
+| `404`  | Unknown, malformed, or soft-deleted username                                                              |
+| `422`  | The member named themselves                                                                               |
+| `429`  | 60 attempts/minute per client address, with `Retry-After`; follow and unfollow each have their own budget |
+
+Following makes the target's existing tweets eligible for the follower's next home-timeline read (AC-C01.3). Unfollow removes that eligibility on the next read. Issued cursors are not rewritten. SOC-01 adds no migration: the `follows` table already exists. To roll the API back, stop serving these routes and leave the table in place.
+
 ## Tweets (`POST /v1/tweets`, `DELETE /v1/tweets/:id`)
 
 Both routes require a session and `X-CSRF-Token`. The author is always the session member; the body cannot name one.
@@ -156,7 +186,7 @@ Omit `cursor` on the first page. Pass the returned cursor unchanged for the next
 
 - Login/register: 5/minute per privacy-safe composite key, with measured tuning.
 - Profile updates: 20/minute per client address. Profile reads: 120/minute per client address.
-- Tweet creation: 20/minute/user; follows/likes: 60/minute/user.
+- Tweet creation: 20/minute per client address; follow and unfollow: 60/minute per client address, counted separately. Likes stay at 60/minute when SOC-02 adds them.
 - Reads: 120/minute/user/IP. Health checks are separately limited/allowlisted.
 
 Return `Retry-After`. Limits are defense-in-depth, not business quotas, and must not rely solely on attacker-controlled IP headers. The client address honours `X-Forwarded-For` only from proxies listed in `TRUST_PROXY` (addresses, CIDRs, or `loopback`/`linklocal`/`uniquelocal`); production behind Caddy must set it, or every client shares the proxy's budget.

@@ -2,6 +2,7 @@
 // (web) does not map `./auth.js` to `auth.ts`, while Vite and tsx accept both.
 export * from "./auth";
 export * from "./errors";
+export * from "./follow";
 export * from "./profile";
 export * from "./tweet";
 export * from "./timeline";

@@ -39,11 +39,33 @@ export function formAlert(page: Page) {
 /** Budget for a navigation that may trigger a first `next dev` route compile. */
 export const FIRST_VISIT_TIMEOUT_MS = 15_000;
 
+/**
+ * Scans the settled page. Entrance motion fades new cards in, and axe would
+ * otherwise measure that partial opacity as a contrast failure.
+ */
+async function waitForFiniteAnimations(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const pending = document.getAnimations().filter((animation) => {
+      const iterations = animation.effect?.getComputedTiming().iterations;
+      return iterations !== Infinity;
+    });
+    await Promise.all(
+      pending.map((animation) => animation.finished.catch(() => undefined)),
+    );
+  });
+}
+
 export async function expectNoSeriousA11yViolations(page: Page) {
+  await waitForFiniteAnimations(page);
   const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations.filter(
     (violation) =>
       violation.impact === "serious" || violation.impact === "critical",
   );
-  expect(serious.map((violation) => violation.id)).toEqual([]);
+  expect(
+    serious.map((violation) => ({
+      id: violation.id,
+      targets: violation.nodes.map((node) => node.target),
+    })),
+  ).toEqual([]);
 }

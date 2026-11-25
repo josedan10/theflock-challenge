@@ -111,4 +111,4 @@ For this light product, use normalized columns plus `pg_trgm` indexes on `userna
 - Large backfills are batched; new required columns use expand/backfill/validate/contract.
 - Migration names are timestamped and immutable. CI runs from empty and previous release schemas.
 
-FEED-01 adds empty `follows` and `likes` tables; it does not rewrite existing users or tweets. Apply before the API rollout. To roll back the API, leave these additive tables in place and forward-fix with a new migration; do not drop social data. Social write endpoints remain in SOC-01/02.
+FEED-01 adds empty `follows` and `likes` tables; it does not rewrite existing users or tweets. Apply before the API rollout. To roll back the API, leave these additive tables in place and forward-fix with a new migration; do not drop social data. SOC-01 serves follow and unfollow on the existing `follows` table and adds no migration. Like writes remain in SOC-02.
