@@ -19,6 +19,7 @@ import {
 } from "../lib/form-errors";
 import { usePublicProfile, useSession, useUpdateProfile } from "../lib/session";
 
+import { ProfileSkeleton } from "./skeletons";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
 
@@ -32,7 +33,6 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
 
 /** Public, responsive profile route for PROFILE-01 and US-A03. */
 export function ProfileView({ username }: Readonly<{ username: string }>) {
@@ -40,7 +40,7 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
   const session = useSession();
 
   if (profileQuery.isPending) {
-    return <ProfileStatus>Loading profile…</ProfileStatus>;
+    return <ProfileSkeleton label="Loading profile…" />;
   }
   if (profileQuery.isError) {
     const notFound =
@@ -190,15 +190,6 @@ function ProfileCount({
         )}
       </dd>
     </div>
-  );
-}
-
-function ProfileStatus({ children }: Readonly<{ children: string }>) {
-  return (
-    <p className="flex items-center gap-2 text-muted-foreground" role="status">
-      <Spinner aria-hidden="true" className="motion-reduce:animate-none" />
-      {children}
-    </p>
   );
 }
 

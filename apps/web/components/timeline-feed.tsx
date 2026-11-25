@@ -20,6 +20,7 @@ import {
   usePendingTweets,
 } from "../lib/tweets";
 
+import { TimelineSkeleton } from "./skeletons";
 import { TweetCard } from "./tweet-card";
 
 import type { SessionUser } from "@twitter-clone/contracts";
@@ -200,7 +201,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       ) : null}
 
       {timeline.isPending && items.length === 0 ? (
-        <LoadingOlder label="Loading your timeline…" />
+        <TimelineSkeleton label="Loading your timeline…" />
       ) : null}
 
       {showInitialError ? (
@@ -263,7 +264,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       {timeline.hasNextPage === true ? (
         <div className="grid justify-items-center gap-3">
           {timeline.isFetchingNextPage ? (
-            <LoadingOlder label="Loading older posts…" />
+            <TimelineSkeleton count={2} label="Loading older posts…" />
           ) : null}
           <Button
             disabled={timeline.isFetchingNextPage}
@@ -300,20 +301,6 @@ function PostingTweet() {
         role="presentation"
       />
       Posting your tweet…
-    </p>
-  );
-}
-
-function LoadingOlder({ label }: Readonly<{ label: string }>) {
-  return (
-    <p className="flex items-center gap-2 text-muted-foreground" role="status">
-      <Spinner
-        aria-hidden="true"
-        aria-label={undefined}
-        className="motion-reduce:animate-none"
-        role="presentation"
-      />
-      {label}
     </p>
   );
 }

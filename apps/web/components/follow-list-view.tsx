@@ -14,6 +14,7 @@ import { useFollowList } from "../lib/follows";
 import { useSession } from "../lib/session";
 
 import { FollowButton } from "./follow-button";
+import { FollowListSkeleton } from "./skeletons";
 
 import type { FollowListItem } from "@twitter-clone/contracts";
 
@@ -35,7 +36,6 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { Spinner } from "@/components/ui/spinner";
 
 const copy: Record<
   FollowListDirection,
@@ -102,7 +102,7 @@ export function FollowListView({
         </nav>
       </div>
 
-      {list.isPending ? <Loading label="Loading…" /> : null}
+      {list.isPending ? <FollowListSkeleton label="Loading people…" /> : null}
 
       {list.isError && !list.isFetchNextPageError ? (
         <div className="grid gap-4">
@@ -160,7 +160,9 @@ export function FollowListView({
 
       {list.hasNextPage === true ? (
         <div className="grid justify-items-center gap-3">
-          {list.isFetchingNextPage ? <Loading label="Loading more…" /> : null}
+          {list.isFetchingNextPage ? (
+            <FollowListSkeleton count={2} label="Loading more people…" />
+          ) : null}
           <Button
             disabled={list.isFetchingNextPage}
             onClick={() => void list.fetchNextPage()}
@@ -223,19 +225,5 @@ function MemberRow({
         </ItemActions>
       )}
     </Item>
-  );
-}
-
-function Loading({ label }: Readonly<{ label: string }>) {
-  return (
-    <p className="flex items-center gap-2 text-muted-foreground" role="status">
-      <Spinner
-        aria-hidden="true"
-        aria-label={undefined}
-        className="motion-reduce:animate-none"
-        role="presentation"
-      />
-      {label}
-    </p>
   );
 }
