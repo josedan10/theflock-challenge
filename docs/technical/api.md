@@ -47,7 +47,7 @@ Status semantics: `400` malformed cursor/request, `401` unauthenticated, `403` a
 | GET    | `/health/live`               |               no | Process liveness only                         |
 | GET    | `/health/ready`              | internal/limited | Dependency readiness, no secret details       |
 
-Follow responses return `{ relationship: { following, followerCount } }`. Like responses will return `{ state, count }` in SOC-02. Create tweet returns the complete card view model so the client does not invent timestamps/counts.
+Follow responses return `{ relationship: { following, followerCount } }`. Like responses return `{ like: { liked, likeCount } }`. Create tweet returns the complete card view model so the client does not invent timestamps/counts.
 
 ## Registration (`POST /v1/auth/register`)
 
@@ -146,6 +146,35 @@ Self-follow and self-unfollow return `422 VALIDATION_ERROR` with `fields.usernam
 
 Following makes the target's existing tweets eligible for the follower's next home-timeline read (AC-C01.3). Unfollow removes that eligibility on the next read. Issued cursors are not rewritten. SOC-01 adds no migration: the `follows` table already exists. To roll the API back, stop serving these routes and leave the table in place.
 
+## Like (`PUT /v1/tweets/:id/like`, `DELETE /v1/tweets/:id/like`)
+
+Both require a session and `X-CSRF-Token` (US-C02). The member is the session member; a body cannot name one, and an empty body is valid. Any member may like any tweet, including their own. Unknown, malformed, and deleted tweet ids all return `404 NOT_FOUND` ("That tweet does not exist."), the same answer as deleting a missing tweet.
+
+`200` (`likeResponseSchema`), with `Cache-Control: no-store`:
+
+```json
+{
+  "like": {
+    "liked": true,
+    "likeCount": 1
+  }
+}
+```
+
+`liked` is the session member's state for the tweet after the command commits. `likeCount` is that tweet's like count from committed rows (requirements rule 8), the same values a timeline card reports as `likedByViewer` and `likeCount`. PUT inserts the like when it is absent (`INSERT ... ON CONFLICT DO NOTHING` on the `(user_id, tweet_id)` primary key). A repeat PUT stays `200`, keeps the original `created_at`, and does not increase the count. DELETE removes the like when it is present; a repeat DELETE stays `200` with `liked: false` and the current count. Unlike is not `204`: the client needs the count to reconcile (AC-C02.2).
+
+Concurrency (AC-C02.4): there is no stored counter, so the count cannot drift or go negative; it is always `count(*)` of the rows. Each command share-locks the tweet row, so likers do not block each other while a concurrent tweet delete waits for them, then cascades their likes away. A like that arrives after the delete is a `404`. A foreign-key failure, such as the member disappearing during the command, is the same `404`.
+
+| Status | Meaning                                                                                               |
+| ------ | ----------------------------------------------------------------------------------------------------- |
+| `200`  | Like applied, or already in the requested state                                                       |
+| `401`  | Missing, unknown, expired, or revoked session                                                         |
+| `403`  | Missing or wrong CSRF token                                                                           |
+| `404`  | Unknown, malformed, or deleted tweet id                                                               |
+| `429`  | 60 attempts/minute per client address, with `Retry-After`; like and unlike each have their own budget |
+
+SOC-02 adds no migration: the `likes` table already exists. To roll the API back, stop serving these routes and leave the table in place.
+
 ## Tweets (`POST /v1/tweets`, `DELETE /v1/tweets/:id`)
 
 Both routes require a session and `X-CSRF-Token`. The author is always the session member; the body cannot name one.
@@ -186,7 +215,7 @@ Omit `cursor` on the first page. Pass the returned cursor unchanged for the next
 
 - Login/register: 5/minute per privacy-safe composite key, with measured tuning.
 - Profile updates: 20/minute per client address. Profile reads: 120/minute per client address.
-- Tweet creation: 20/minute per client address; follow and unfollow: 60/minute per client address, counted separately. Likes stay at 60/minute when SOC-02 adds them.
+- Tweet creation: 20/minute per client address; follow and unfollow: 60/minute per client address, counted separately; like and unlike: 60/minute per client address, counted separately.
 - Reads: 120/minute/user/IP. Health checks are separately limited/allowlisted.
 
 Return `Retry-After`. Limits are defense-in-depth, not business quotas, and must not rely solely on attacker-controlled IP headers. The client address honours `X-Forwarded-For` only from proxies listed in `TRUST_PROXY` (addresses, CIDRs, or `loopback`/`linklocal`/`uniquelocal`); production behind Caddy must set it, or every client shares the proxy's budget.
