@@ -6,7 +6,7 @@ import {
   TWEET_MAX_LENGTH,
 } from "@twitter-clone/contracts";
 import { CircleAlertIcon, SendIcon } from "lucide-react";
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useRef, useState } from "react";
 
 import { apiFormErrors, type FormErrors, NO_ERRORS } from "../lib/form-errors";
 import { type TweetAuthorRef, useCreateTweet } from "../lib/tweets";
@@ -56,6 +56,22 @@ export function TweetComposer({
   const fieldErrors = errors.fields.content ?? [];
   const invalid = over || fieldErrors.length > 0;
 
+  /**
+   * ⌘+Enter (macOS) or Ctrl+Enter sends, through the form's normal submit so
+   * the same validation and double-submit guard apply. Plain Enter keeps
+   * adding a new line, and a key that finishes an IME composition is ignored.
+   */
+  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key === "Enter" &&
+      (event.metaKey || event.ctrlKey) &&
+      !event.nativeEvent.isComposing
+    ) {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
+    }
+  }
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsed = createTweetRequestSchema.safeParse({ content });
@@ -104,18 +120,22 @@ export function TweetComposer({
               : "tweet-content-hint"
           }
           aria-invalid={invalid}
+          aria-keyshortcuts="Meta+Enter Control+Enter"
           id="tweet-content"
           name="content"
           onChange={(event) => {
             setContent(event.target.value);
             setPosted(false);
           }}
+          onKeyDown={onKeyDown}
           ref={textareaRef}
           rows={3}
           value={content}
         />
         <FieldDescription id="tweet-content-hint">
-          Up to {TWEET_MAX_LENGTH} characters.
+          Up to {TWEET_MAX_LENGTH} characters. Press <kbd>⌘</kbd>{" "}
+          <kbd>Enter</kbd> or <kbd>Ctrl</kbd> <kbd>Enter</kbd> to{" "}
+          {replying ? "reply" : "post"}.
         </FieldDescription>
         <FieldError
           errors={fieldErrors.map((message) => ({ message }))}
