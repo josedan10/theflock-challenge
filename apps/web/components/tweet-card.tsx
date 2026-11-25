@@ -96,7 +96,9 @@ export function TweetCard({
     // name; the time never wraps.
     <div
       className={cn(
-        "flex min-w-0 flex-1 gap-x-1 text-sm",
+        // w-0 + flex-1: a definite zero basis, so the unwrapped name line
+        // never widens the card (or the page) past the screen.
+        "flex w-0 min-w-0 flex-1 gap-x-1 text-sm",
         focus ? "flex-col" : "items-baseline",
       )}
     >
