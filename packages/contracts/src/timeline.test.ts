@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   TIMELINE_CURSOR_MAX_LENGTH,
   TIMELINE_DEFAULT_LIMIT,
+  TIMELINE_LIVE_CATCHUP_LIMIT,
+  TIMELINE_LIVE_EVENT,
   TIMELINE_MAX_LIMIT,
+  timelineLiveEventSchema,
   timelineQuerySchema,
 } from "./timeline";
 
@@ -27,5 +30,25 @@ describe("US-B03 AC-B03.4 timeline query", () => {
     { viewer: "another" },
   ])("rejects invalid input %j", (params) => {
     expect(timelineQuerySchema.safeParse(params).success).toBe(false);
+  });
+});
+
+describe("US-F01 live timeline event", () => {
+  it("AC-F01.1 names the event and accepts only a tweet id", () => {
+    expect(TIMELINE_LIVE_EVENT).toBe("timeline.tweet");
+    expect(TIMELINE_LIVE_CATCHUP_LIMIT).toBe(TIMELINE_MAX_LIMIT);
+    expect(
+      timelineLiveEventSchema.parse({
+        tweetId: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
+      }),
+    ).toEqual({ tweetId: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61" });
+  });
+
+  it.each([
+    { tweetId: "not-a-uuid" },
+    { tweetId: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61", content: "secret" },
+    {},
+  ])("rejects extra or invalid live payloads %j", (payload) => {
+    expect(timelineLiveEventSchema.safeParse(payload).success).toBe(false);
   });
 });
