@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
 
-import { ActivityApiError, logIn, postTweet } from "./api-client.js";
-import { planAction, type Random } from "./plan.js";
+import { ActivityApiError, likeTweet, logIn, postTweet } from "./api-client.js";
+import { planAction, type PlannedAction, type Random } from "./plan.js";
 import { readWorld } from "./store.js";
 
 import type { ApiSession } from "./api-client.js";
+import type { LedgerEntry } from "./ledger.js";
 import type { Sql } from "postgres";
 
 /** The corpus pictures are simple drawn scenes; a neutral description is accurate for all of them. */
@@ -16,13 +17,23 @@ export interface SimulatorDependencies {
   random: Random;
   sql: Sql;
   log: (line: string) => void;
-  /** Remembers a created tweet so reset can remove exactly what was simulated. */
-  record: (tweetId: string) => Promise<void>;
+  /** Remembers what was done so reset can undo exactly what was simulated. */
+  record: (entry: LedgerEntry) => Promise<void>;
 }
 
 export type ActivityOutcome =
   | { kind: "idle" }
-  | { kind: "post" | "reply"; tweetId: string; username: string };
+  | { kind: PlannedAction["kind"]; tweetId: string; username: string };
+
+async function pictureFor(name: string | null) {
+  if (name === null) {
+    return null;
+  }
+  const bytes = await readFile(
+    new URL(`../activity-corpus/images/${name}`, import.meta.url),
+  );
+  return { alt: CORPUS_IMAGE_ALT, bytes };
+}
 
 /**
  * One simulated action. Sessions are reused per account, so steady running
@@ -31,6 +42,7 @@ export type ActivityOutcome =
  */
 export function createSimulator(dependencies: SimulatorDependencies) {
   const sessions = new Map<string, ApiSession>();
+  const origin = dependencies.apiOrigin;
 
   async function sessionFor(username: string): Promise<ApiSession> {
     const existing = sessions.get(username);
@@ -38,12 +50,34 @@ export function createSimulator(dependencies: SimulatorDependencies) {
       return existing;
     }
     const session = await logIn(
-      dependencies.apiOrigin,
+      origin,
       `${username}@example.test`,
       dependencies.password,
     );
     sessions.set(username, session);
     return session;
+  }
+
+  async function perform(
+    action: PlannedAction,
+    session: ApiSession,
+  ): Promise<string> {
+    if (action.kind === "like") {
+      await likeTweet(origin, session, action.tweetId);
+      await dependencies.record({
+        kind: "like",
+        tweetId: action.tweetId,
+        userId: action.author.id,
+      });
+      return action.tweetId;
+    }
+    const tweetId = await postTweet(origin, session, {
+      content: action.content,
+      image: action.kind === "post" ? await pictureFor(action.image) : null,
+      parentTweetId: action.kind === "reply" ? action.parentTweetId : null,
+    });
+    await dependencies.record({ id: tweetId, kind: "tweet" });
+    return tweetId;
   }
 
   return async function act(): Promise<ActivityOutcome> {
@@ -56,32 +90,14 @@ export function createSimulator(dependencies: SimulatorDependencies) {
       return { kind: "idle" };
     }
     const username = action.author.username;
-    const image =
-      action.image === null
-        ? null
-        : {
-            alt: CORPUS_IMAGE_ALT,
-            bytes: await readFile(
-              new URL(
-                `../activity-corpus/images/${action.image}`,
-                import.meta.url,
-              ),
-            ),
-          };
     try {
-      const tweetId = await postTweet(
-        dependencies.apiOrigin,
-        await sessionFor(username),
-        {
-          content: action.content,
-          image,
-          parentTweetId: action.parentTweetId,
-        },
+      const tweetId = await perform(action, await sessionFor(username));
+      dependencies.log(
+        action.kind === "like"
+          ? `${username} liked a post.`
+          : `${username} added a ${action.kind}.`,
       );
-      await dependencies.record(tweetId);
-      const kind = action.parentTweetId === null ? "post" : "reply";
-      dependencies.log(`${username} added a ${kind}.`);
-      return { kind, tweetId, username };
+      return { kind: action.kind, tweetId, username };
     } catch (error) {
       if (error instanceof ActivityApiError && error.status === 401) {
         sessions.delete(username);

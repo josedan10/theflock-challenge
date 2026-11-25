@@ -56,7 +56,9 @@ async function run(mode: "loop" | "once" | "reset") {
     if (mode === "reset") {
       const removed = await resetActivity(sql, await ledger.read());
       await ledger.clear();
-      console.log(`Removed ${removed} simulated posts and replies.`);
+      console.log(
+        `Removed ${removed.tweets} simulated posts and replies, and ${removed.likes} likes.`,
+      );
       return;
     }
     if (config === null) {

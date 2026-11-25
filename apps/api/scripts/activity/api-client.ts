@@ -95,6 +95,20 @@ async function uploadPng(
   return grant.uploadId;
 }
 
+/** Likes a tweet. Liking it again is a no-op on the API. */
+export async function likeTweet(
+  origin: string,
+  session: ApiSession,
+  tweetId: string,
+): Promise<void> {
+  const response = await fetch(
+    `${origin}/v1/tweets/${encodeURIComponent(tweetId)}/like`,
+    { headers: authHeaders(session), method: "PUT" },
+  );
+  await expectStatus(response, "Like", 200);
+  await response.body?.cancel();
+}
+
 /**
  * Posts a tweet or reply through the public API, so mentions, notifications,
  * images and the live timeline behave as for a real member.

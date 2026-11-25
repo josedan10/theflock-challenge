@@ -13,10 +13,11 @@ import {
 import { activityCorpus } from "../activity-corpus/corpus.js";
 import { seedDemo } from "../demo-data.js";
 
-import { logIn, postTweet } from "./api-client.js";
+import { likeTweet, logIn, postTweet } from "./api-client.js";
 import { createSimulator } from "./simulator.js";
 import { resetActivity } from "./store.js";
 
+import type { LedgerEntry } from "./ledger.js";
 import type { Random } from "./plan.js";
 import type { FastifyInstance } from "fastify";
 
@@ -62,7 +63,7 @@ function draws(...values: number[]): Random {
   return () => values[index++] ?? 0;
 }
 
-const recorded: string[] = [];
+const recorded: LedgerEntry[] = [];
 
 function simulator(random: Random) {
   return createSimulator({
@@ -70,8 +71,8 @@ function simulator(random: Random) {
     log: () => undefined,
     password: PASSWORD,
     random,
-    record: async (tweetId) => {
-      recorded.push(tweetId);
+    record: async (entry) => {
+      recorded.push(entry);
     },
     sql: database.sql,
   });
@@ -108,54 +109,81 @@ describe("DEV-01 activity simulator", () => {
       await database.sql<{ id: string }[]>`select id from tweets`
     ).map((row) => row.id);
 
-    // demo_1, no reply, first corpus post (it has a picture).
-    const pictured = await simulator(draws(0, 0.9, 0))();
+    // demo_1, no like, no reply, first corpus post (it has a picture).
+    const pictured = await simulator(draws(0, 0.9, 0.9, 0))();
     expect(pictured).toMatchObject({ kind: "post", username: "demo_1" });
     const [media] = await database.sql<{ count: number }[]>`
       select count(*)::int as count from tweet_media`;
     expect(media?.count).toBe(1);
 
-    // demo_1, no reply, the "Saving a seat" line, real member, first of them.
+    // demo_1, no like, no reply, the "Saving a seat" line, real member first.
     const slot = activityCorpus.findIndex((line) =>
       line.text.startsWith("Saving a seat for {mention}"),
     );
-    const mention = await simulator(draws(0, 0.9, (slot + 0.5) / 120, 0, 0))();
+    const mention = await simulator(
+      draws(0, 0.9, 0.9, (slot + 0.5) / 120, 0, 0),
+    )();
     expect(mention.kind).toBe("post");
 
-    // demo_1 replies to the newest post it did not write: grace's.
-    const reply = await simulator(draws(0, 0, 0, 0, 0))();
+    // demo_1, no like, reply, to a real member: grace's post.
+    const reply = await simulator(draws(0, 0.5, 0, 0, 0, 0, 0))();
     expect(reply.kind).toBe("reply");
     const [parent] = await database.sql<{ parent: string }[]>`
       select parent_tweet_id as parent from tweets
       where id = ${reply.kind === "reply" ? reply.tweetId : ""}`;
     expect(parent?.parent).toBe(graceTweet);
 
+    // demo_1 likes grace's post.
+    const like = await simulator(draws(0, 0, 0))();
+    expect(like).toMatchObject({ kind: "like", tweetId: graceTweet });
+
     const received = await database.sql<{ type: string }[]>`
       select n.type from notifications n join users u on u.id = n.recipient_id
       where u.username = 'grace' order by n.type`;
-    expect(received.map((row) => row.type)).toEqual(["mention", "reply"]);
+    expect(received.map((row) => row.type)).toEqual([
+      "like",
+      "mention",
+      "reply",
+    ]);
 
-    // A developer posting by hand as a demo account is not simulated activity.
+    // A developer acting by hand as a demo account is not simulated activity.
     const session = await logIn(origin, "demo_2@example.test", PASSWORD);
     const handWritten = await postTweet(origin, session, {
       content: "Written by hand while logged in as demo_2.",
       image: null,
       parentTweetId: null,
     });
+    await likeTweet(origin, session, graceTweet);
 
-    expect(recorded).toHaveLength(3);
-    // A tampered list naming a real member's tweet removes nothing of theirs.
-    expect(await resetActivity(database.sql, [...recorded, graceTweet])).toBe(
-      3,
-    );
+    expect(recorded).toHaveLength(4);
+    const [grace] = await database.sql<{ id: string }[]>`
+      select id from users where username = 'grace'`;
+    // A tampered list naming a real member's own tweet and like removes nothing of theirs.
+    const removed = await resetActivity(database.sql, {
+      likes: [
+        ...recorded.flatMap((entry) => (entry.kind === "like" ? [entry] : [])),
+        { tweetId: graceTweet, userId: grace?.id ?? "" },
+      ],
+      tweetIds: [
+        ...recorded.flatMap((entry) =>
+          entry.kind === "tweet" ? [entry.id] : [],
+        ),
+        graceTweet,
+      ],
+    });
+    expect(removed).toEqual({ likes: 1, tweets: 3 });
     const after = await database.sql<{ id: string }[]>`
       select id from tweets order by id`;
     expect(after.map((row) => row.id)).toEqual(
       [...beforeIds, handWritten].sort(),
     );
-    const [left] = await database.sql<{ count: number }[]>`
-      select count(*)::int as count from notifications n
+    // Only demo_2's hand-given like and its notification remain for grace.
+    const left = await database.sql<{ type: string }[]>`
+      select n.type from notifications n
       join users u on u.id = n.recipient_id where u.username = 'grace'`;
-    expect(left?.count).toBe(0);
+    expect(left.map((row) => row.type)).toEqual(["like"]);
+    const [likes] = await database.sql<{ count: number }[]>`
+      select count(*)::int as count from likes where tweet_id = ${graceTweet}`;
+    expect(likes?.count).toBe(1);
   });
 });

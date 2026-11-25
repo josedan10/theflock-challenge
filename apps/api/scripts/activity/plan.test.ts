@@ -38,7 +38,7 @@ describe("DEV-01 activity plan", () => {
       author: demo1,
       content: line("post-001").text,
       image: "scene-01.png",
-      parentTweetId: null,
+      kind: "post",
     });
   });
 
@@ -70,24 +70,54 @@ describe("DEV-01 activity plan", () => {
       id: "t1",
     };
     const action = planAction({ ...world, recent: [posted] }, draws(0));
-    expect(action?.parentTweetId).toBe("t1");
+    expect(action).toMatchObject({ kind: "reply", parentTweetId: "t1" });
     const answers = activityCorpus.filter(
       (example) => example.parentId === "post-031",
     );
     expect(
       answers.map((example) => example.text.replace("{mention}", "@grace")),
-    ).toContain(action?.content);
-    expect(action?.image).toBeNull();
+    ).toContain(action?.kind === "reply" ? action.content : null);
   });
 
-  it("replies to a real member's own post and skips the author's posts", () => {
+  describe("leaning toward real members", () => {
     const mine = { authorId: demo1.id, content: "Mine", id: "m1" };
+    const demoPost = { authorId: demo2.id, content: "From demo_2", id: "d2p" };
     const theirs = { authorId: grace.id, content: "Hello world", id: "g1" };
-    const action = planAction(
-      { ...world, recent: [mine, theirs] },
-      draws(0, 0, 0),
-    );
-    expect(action?.author).toEqual(demo1);
-    expect(action?.parentTweetId).toBe("g1");
+
+    it("likes a real member's tweet", () => {
+      expect(
+        planAction({ ...world, recent: [mine, theirs] }, draws(0, 0, 0)),
+      ).toEqual({ author: demo1, kind: "like", tweetId: "g1" });
+    });
+
+    it("replies to a real member's tweet and skips the author's own", () => {
+      // demo_1, no like, reply, real target, first real tweet.
+      const action = planAction(
+        { ...world, recent: [mine, demoPost, theirs] },
+        draws(0, 0.5, 0, 0, 0, 0),
+      );
+      expect(action).toMatchObject({
+        author: demo1,
+        kind: "reply",
+        parentTweetId: "g1",
+      });
+    });
+
+    it("replies more often when a real member has posted", () => {
+      // The same 0.5 draw posts among demo accounts only, but replies to grace.
+      expect(
+        planAction({ ...world, recent: [demoPost] }, draws(0, 0.5, 0, 0))?.kind,
+      ).toBe("post");
+      expect(
+        planAction({ ...world, recent: [demoPost, theirs] }, draws(0, 0.5, 0.5))
+          ?.kind,
+      ).toBe("reply");
+    });
+
+    it("never likes when only demo accounts have posted", () => {
+      expect(
+        planAction({ ...world, recent: [demoPost] }, draws(0, 0, 0))?.kind,
+      ).toBe("reply");
+    });
   });
 });

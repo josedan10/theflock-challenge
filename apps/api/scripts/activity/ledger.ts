@@ -2,30 +2,60 @@ import { appendFile, mkdir, readFile, rm } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+import type { SimulatedLike } from "./store.js";
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const TWEET_LINE = new RegExp(`^(?:tweet )?(${UUID})$`);
+const LIKE_LINE = new RegExp(`^like (${UUID}) (${UUID})$`);
+
+/** Something the simulator did that reset should undo. */
+export type LedgerEntry =
+  { kind: "tweet"; id: string } | ({ kind: "like" } & SimulatedLike);
 
 /**
- * IDs of the tweets the simulator created, one per line. Reset deletes only
- * these, so posts a developer writes while logged in as a demo account stay.
+ * What the simulator created, one entry per line: `tweet <id>` or
+ * `like <user id> <tweet id>`. Reset undoes only these, so anything a
+ * developer does while logged in as a demo account stays.
  */
 export function createLedger(file: URL) {
   const path = fileURLToPath(file);
   return {
-    async record(tweetId: string): Promise<void> {
+    async record(entry: LedgerEntry): Promise<void> {
       await mkdir(dirname(path), { recursive: true });
-      await appendFile(path, `${tweetId}\n`, { mode: 0o600 });
+      const line =
+        entry.kind === "tweet"
+          ? `tweet ${entry.id}`
+          : `like ${entry.userId} ${entry.tweetId}`;
+      await appendFile(path, `${line}\n`, { mode: 0o600 });
     },
-    /** Well-formed IDs only; anything else in the file is ignored. */
-    async read(): Promise<string[]> {
+    /** Well-formed entries only; anything else in the file is ignored. */
+    async read(): Promise<{ tweetIds: string[]; likes: SimulatedLike[] }> {
+      let text: string;
       try {
-        const lines = (await readFile(path, "utf8")).split("\n");
-        return [...new Set(lines.filter((line) => UUID.test(line)))];
+        text = await readFile(path, "utf8");
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-          return [];
+          return { likes: [], tweetIds: [] };
         }
         throw error;
       }
+      const tweetIds = new Set<string>();
+      const likes = new Map<string, SimulatedLike>();
+      for (const line of text.split("\n")) {
+        const tweet = TWEET_LINE.exec(line);
+        if (tweet?.[1] !== undefined) {
+          tweetIds.add(tweet[1]);
+          continue;
+        }
+        const like = LIKE_LINE.exec(line);
+        if (like?.[1] !== undefined && like[2] !== undefined) {
+          likes.set(`${like[1]} ${like[2]}`, {
+            tweetId: like[2],
+            userId: like[1],
+          });
+        }
+      }
+      return { likes: [...likes.values()], tweetIds: [...tweetIds] };
     },
     async clear(): Promise<void> {
       await rm(path, { force: true });

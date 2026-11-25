@@ -16,19 +16,31 @@ afterEach(async () => {
   }
 });
 
-it("DEV-01 remembers simulated tweet IDs until reset clears them", async () => {
+const userId = "416b0bb3-5154-4ac6-9e33-3a58e76ce518";
+const empty = { likes: [], tweetIds: [] };
+
+it("DEV-01 remembers simulated tweets and likes until reset clears them", async () => {
   dir = await mkdtemp(join(tmpdir(), "activity-ledger-"));
   const file = pathToFileURL(join(dir, "nested", "posts.txt"));
   const ledger = createLedger(file);
 
-  expect(await ledger.read()).toEqual([]);
-  await ledger.record(id);
-  await ledger.record(id);
-  expect(await ledger.read()).toEqual([id]);
+  expect(await ledger.read()).toEqual(empty);
+  await ledger.record({ id, kind: "tweet" });
+  await ledger.record({ id, kind: "tweet" });
+  await ledger.record({ kind: "like", tweetId: id, userId });
+  await ledger.record({ kind: "like", tweetId: id, userId });
+  expect(await ledger.read()).toEqual({
+    likes: [{ tweetId: id, userId }],
+    tweetIds: [id],
+  });
 
-  await writeFile(file, `${id}\nnot-an-id\n'; drop table tweets;--\n`);
-  expect(await ledger.read()).toEqual([id]);
+  // Bare IDs from the first ledger format still count as tweets.
+  await writeFile(
+    file,
+    `${id}\nnot-an-id\nlike ${userId}\n'; drop table tweets;--\n`,
+  );
+  expect(await ledger.read()).toEqual({ likes: [], tweetIds: [id] });
 
   await ledger.clear();
-  expect(await ledger.read()).toEqual([]);
+  expect(await ledger.read()).toEqual(empty);
 });
