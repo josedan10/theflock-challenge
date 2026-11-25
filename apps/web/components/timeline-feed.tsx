@@ -6,7 +6,9 @@ import {
   ChevronDownIcon,
   CircleAlertIcon,
   RotateCwIcon,
+  SearchIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -26,7 +28,7 @@ import { TweetCard } from "./tweet-card";
 import type { SessionUser } from "@twitter-clone/contracts";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
 /** Why a delete failed, shown on that tweet's card. */
@@ -222,10 +224,19 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       ) : null}
 
       {items.length === 0 && timeline.isSuccess && !isPosting ? (
-        <p>
-          Your timeline is empty. Post a tweet above, or search for people and
-          follow them to see their posts here.
-        </p>
+        <div className="grid justify-items-start gap-3">
+          <p>
+            Your timeline is empty. Post a tweet above, or search for people and
+            follow them to see their posts here.
+          </p>
+          <Link
+            className={buttonVariants({ variant: "outline" })}
+            href="/search"
+          >
+            <SearchIcon aria-hidden="true" data-icon="inline-start" />
+            Find people
+          </Link>
+        </div>
       ) : null}
 
       {isPosting ? <PostingTweet /> : null}

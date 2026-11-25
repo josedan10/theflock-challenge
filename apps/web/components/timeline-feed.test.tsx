@@ -73,6 +73,10 @@ describe("TimelineFeed", () => {
     expect(
       screen.queryByRole("button", { name: "Load more" }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Find people" })).toHaveAttribute(
+      "href",
+      "/search",
+    );
   });
 
   it("AC-B03.3 dedupes the next page and then says the feed has ended", async () => {
