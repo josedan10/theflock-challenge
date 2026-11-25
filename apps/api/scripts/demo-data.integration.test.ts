@@ -35,8 +35,18 @@ it("SEED-01 AC-G01.2 populates linked demo content, grows additively and preserv
     replies: 15,
     likes: 15,
     follows: 15,
-    notifications: 30,
+    notifications: 60,
   });
+  const [gaps] = await db.sql`select
+    (select count(*)::int from follows f where not exists (
+      select 1 from notifications n
+      where n.type = 'follow' and n.actor_id = f.follower_id and n.recipient_id = f.following_id
+    )) follows,
+    (select count(*)::int from likes l where not exists (
+      select 1 from notifications n
+      where n.type = 'like' and n.actor_id = l.user_id and n.tweet_id = l.tweet_id
+    )) likes`;
+  expect(gaps).toEqual({ follows: 0, likes: 0 });
   const profiles = await db.sql<
     { username: string; display_name: string }[]
   >`select username, display_name from users where username in ('demo_1','demo_11') order by username`;
@@ -65,4 +75,4 @@ it("SEED-01 AC-G01.2 populates linked demo content, grows additively and preserv
   expect(
     await db.sql`select id from users where username='demo_16'`,
   ).toHaveLength(0);
-});
+}, 60_000);

@@ -312,6 +312,36 @@ export async function seedDemo(
         }),
       )
       .onConflictDoNothing({ target: notifications.dedupeKey });
+    // Follows and likes are written above without going through the social
+    // repositories, so the seed records the same notices those writes would.
+    // One insert, and the dedupe key keeps a rerun from repeating them.
+    await tx
+      .insert(notifications)
+      .values(
+        conversations.flatMap(({ actor, neighbor, post: liked }) => {
+          const follow = {
+            actorId: actor.id,
+            recipientId: neighbor.id,
+            type: "follow" as const,
+          };
+          const like = {
+            actorId: actor.id,
+            recipientId: neighbor.id,
+            tweetId: liked.id,
+            type: "like" as const,
+          };
+          return [follow, like].map((event) => ({
+            actorId: event.actorId,
+            createdAt: actor.createdAt,
+            dedupeKey: notificationDedupeKey(event),
+            id: uuidv7(),
+            recipientId: event.recipientId,
+            tweetId: event.type === "follow" ? null : event.tweetId,
+            type: event.type,
+          }));
+        }),
+      )
+      .onConflictDoNothing({ target: notifications.dedupeKey });
     const memberIds = new Map(
       members.map((member) => [member.username, member.id]),
     );
