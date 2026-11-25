@@ -109,6 +109,8 @@ The home feed reads one PostgreSQL snapshot. It unions the viewer ID with their 
 
 Continuation adds the strict tuple predicate `(created_at, id) < (cursor_time, cursor_id)`. The cursor signs a UTC timestamp with **six** fractional digits and the UUID; do not convert it to a JavaScript Date or look up the anchor tweet. A representative sparse-feed test runs `EXPLAIN (ANALYZE, BUFFERS)` on the production query.
 
+A profile post page is the same keyset for one `author_id`, including replies. It seeks `tweets_author_id_created_at_id_idx` directly. The cursor is scoped to that member. No new index or migration.
+
 ## Search
 
 SRC-01 migration `user_search_trigram` enables `pg_trgm` (a trusted extension: the database owner can create it without superuser) and adds GIN trigram indexes `users_username_trgm_idx` on `username` and `users_display_name_trgm_idx` on `lower(display_name)`. It only adds indexes; no rows change. Search escapes `%`, `_` and backslash and matches literal substrings with `LIKE ... ESCAPE '\'`; it ranks exact username, username prefix, display-name prefix, then other substrings, with the unique username as the tie-breaker. Trigram indexes serve text of three or more characters; two-character text is valid but may scan, which is acceptable at this product size. To roll back, drop the two indexes (leaving the extension is harmless). Re-evaluate full-text search only when requirements include bios/tweets or linguistic search.

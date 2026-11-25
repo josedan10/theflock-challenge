@@ -52,9 +52,11 @@
 ## 7. Profile followers/following
 
 1. Any viewer, including a logged-out visitor, opens `/u/:username`. The API reads `GET /v1/users/:username`.
-2. Counts link to paginated followers/following routes.
-3. List entries show identity and viewer relationship controls.
-4. Follow changes reconcile both the row and profile counts.
+2. The same page lists that member's tweets and replies, newest first, from `GET /v1/users/:username/tweets`. A reply appears on its author's profile. Deleted posts are absent. Cards match the rest of the app: reply, like, and delete-with-confirmation for the author.
+3. **Load more** requests the next cursor. Empty, error, and end-of-list states stay visible.
+4. Counts link to paginated followers/following routes.
+5. List entries show identity and viewer relationship controls.
+6. Follow changes reconcile both the row and profile counts.
 
 ## 8. Threaded replies
 
