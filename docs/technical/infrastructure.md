@@ -19,7 +19,7 @@ Never use production or personal data in local/test environments. Keep `.env` lo
 - Pin dependencies and base-image versions; do not add cloud-only services without an explicit product decision.
 - Health checks use `/health/live` and `/health/ready`.
 - API shutdown handles `SIGTERM`, stops accepting requests, drains in-flight work, and closes the database pool.
-- PostgreSQL data persists in the local named volume. `docker compose down -v` is destructive and must be clearly confirmed by the operator.
+- PostgreSQL data persists in the local named volume. `pnpm compose:destroy-data` is destructive and must be clearly confirmed by the operator.
 - Uploaded images must use a local storage adapter and be excluded from source control; local paths must not be treated as durable backups.
 
 ## Configuration and security

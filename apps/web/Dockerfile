@@ -21,7 +21,7 @@ ENV NODE_ENV=development
 COPY . .
 EXPOSE 3000
 # Same volume as the API image: install before dev so both see one lockfile.
-CMD pnpm install --frozen-lockfile && pnpm --filter @twitter-clone/web dev --hostname 0.0.0.0
+CMD pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm --filter @twitter-clone/web dev --hostname 0.0.0.0
 
 FROM dependencies AS build
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000

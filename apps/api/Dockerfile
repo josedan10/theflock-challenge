@@ -22,7 +22,11 @@ COPY . .
 EXPOSE 4000
 # The Compose node_modules volume hides the image install, so a dependency
 # added after that volume was created is missing until install runs there.
-CMD pnpm install --frozen-lockfile && pnpm --filter @twitter-clone/api dev
+# The build's store is a BuildKit cache that is not in the image, so the first
+# start must rebuild node_modules; with no TTY pnpm would abort instead of
+# asking. Compose gives every node_modules its own volume, so purging never
+# touches the host checkout.
+CMD pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm --filter @twitter-clone/api dev
 
 FROM dependencies AS build
 COPY . .

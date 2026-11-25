@@ -5,7 +5,7 @@
 # they are missing, applies only pending migrations, and recreates containers
 # only when their image or configuration changed.
 #
-# Usage: ./scripts/up.sh   (or: pnpm stack:up)
+# Usage: pnpm stack:up [--seed-users 10..100]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,7 +15,7 @@ step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 fail() { printf '\n\033[31m✗ %s\033[0m\n' "$1" >&2; exit 1; }
 
 if [[ $# -ne 0 && ( $# -ne 2 || "$1" != "--seed-users" ) ]]; then
-  fail "Usage: ./scripts/setup.sh [--seed-users 10..100]"
+  fail "Usage: pnpm stack:up [--seed-users 10..100]"
 fi
 seed_override="${2-}"
 
