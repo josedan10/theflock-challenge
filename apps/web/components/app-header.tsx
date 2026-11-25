@@ -1,6 +1,11 @@
 "use client";
 
-import { CircleAlertIcon } from "lucide-react";
+import {
+  CircleAlertIcon,
+  HouseIcon,
+  LogOutIcon,
+  UserRoundIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -62,6 +67,7 @@ export function AppHeader() {
                     active={pathname === "/home"}
                     render={<Link href="/home" />}
                   >
+                    <HouseIcon aria-hidden="true" />
                     Home
                   </NavigationMenuLink>
                 </NavigationMenuItem>
@@ -71,6 +77,7 @@ export function AppHeader() {
                     active={pathname === `/u/${user.username}`}
                     render={<Link href={`/u/${user.username}`} />}
                   >
+                    <UserRoundIcon aria-hidden="true" />
                     Profile
                   </NavigationMenuLink>
                 </NavigationMenuItem>
@@ -89,6 +96,7 @@ export function AppHeader() {
               type="button"
               variant="ghost"
             >
+              <LogOutIcon aria-hidden="true" data-icon="inline-start" />
               {logOut.isPending ? "Logging out…" : "Log out"}
             </Button>
           </div>
