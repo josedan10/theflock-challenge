@@ -6,6 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../lib/api-client";
@@ -301,5 +302,159 @@ describe("HomeView tweets", () => {
       expect(card.closest("li")).toHaveClass("tweet-appear");
     });
     expect(screen.queryByText("Posting your tweet…")).not.toBeInTheDocument();
+  });
+});
+
+describe("TWT-03 undo a new post", () => {
+  const fresh = { ...testTweet, content: "fresh post" };
+
+  async function post(text = "fresh post") {
+    fireEvent.change(
+      await screen.findByRole("textbox", { name: "What's happening?" }),
+      { target: { value: text } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Post" }));
+    return screen.findByText(text, { selector: "article p" });
+  }
+
+  const card = (text: string) =>
+    screen.getByText(text, { selector: "article p" }).closest("article");
+
+  it("AC-B01.6 undoes a new post without the delete confirmation", async () => {
+    const deleteTweet = vi.fn(async () => undefined);
+    renderWithSession(
+      <HomeView />,
+      fakeApiClient({
+        createTweet: vi.fn(async () => ({ tweet: fresh })),
+        deleteTweet,
+        me: vi.fn(async () => testSession),
+      }),
+    );
+    await post();
+
+    const article = card("fresh post") as HTMLElement;
+    expect(within(article).getByText(/Undo available for/)).toBeVisible();
+    await userEvent.click(
+      within(article).getByRole("button", { name: "Undo" }),
+    );
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByText("fresh post", { selector: "article p" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(deleteTweet).toHaveBeenCalledWith(fresh.id, testSession.csrfToken);
+  });
+
+  it("AC-B01.7 keeps the post and announces the error when Undo fails", async () => {
+    renderWithSession(
+      <HomeView />,
+      fakeApiClient({
+        createTweet: vi.fn(async () => ({ tweet: fresh })),
+        deleteTweet: vi.fn(async () => {
+          throw new ApiError(0, "NETWORK_ERROR", "Can't reach the server.");
+        }),
+        me: vi.fn(async () => testSession),
+      }),
+    );
+    await post();
+
+    await userEvent.click(
+      within(card("fresh post") as HTMLElement).getByRole("button", {
+        name: "Undo",
+      }),
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("We couldn't undo this post.");
+    expect(card("fresh post")).not.toBeNull();
+  });
+
+  it("AC-B01.6 removes Undo after 5 seconds, leaving the confirmed Delete", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderWithSession(
+        <HomeView />,
+        fakeApiClient({
+          createTweet: vi.fn(async () => ({ tweet: fresh })),
+          me: vi.fn(async () => testSession),
+        }),
+      );
+      await post();
+      const article = card("fresh post") as HTMLElement;
+      expect(
+        within(article).getByRole("button", { name: "Undo" }),
+      ).toBeVisible();
+
+      act(() => vi.advanceTimersByTime(5_000));
+
+      await waitFor(() =>
+        expect(
+          within(article).queryByRole("button", { name: "Undo" }),
+        ).not.toBeInTheDocument(),
+      );
+      expect(
+        within(article).getByRole("button", { name: "Delete tweet" }),
+      ).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("AC-B01.6 gives each new post its own window", async () => {
+    const createTweet = vi
+      .fn()
+      .mockResolvedValueOnce({ tweet: { ...fresh, content: "first" } })
+      .mockResolvedValueOnce({
+        tweet: {
+          ...fresh,
+          content: "second",
+          id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f99",
+        },
+      });
+    renderWithSession(
+      <HomeView />,
+      fakeApiClient({ createTweet, me: vi.fn(async () => testSession) }),
+    );
+
+    await post("first");
+    await post("second");
+
+    expect(screen.getAllByRole("button", { name: "Undo" })).toHaveLength(2);
+  });
+
+  it("AC-B01.7 ends the window when the member leaves the timeline", async () => {
+    function Page() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button onClick={() => setOpen(!open)} type="button">
+            Toggle home
+          </button>
+          {open ? <HomeView /> : null}
+        </>
+      );
+    }
+    renderWithSession(
+      <Page />,
+      fakeApiClient({
+        createTweet: vi.fn(async () => ({ tweet: fresh })),
+        getTimeline: vi.fn(async () => ({ items: [], nextCursor: null })),
+        me: vi.fn(async () => testSession),
+      }),
+    );
+    await post();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeVisible();
+
+    await userEvent.click(screen.getByRole("button", { name: "Toggle home" }));
+    await userEvent.click(screen.getByRole("button", { name: "Toggle home" }));
+
+    expect(
+      await screen.findByText("fresh post", { selector: "article p" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Undo" }),
+    ).not.toBeInTheDocument();
   });
 });

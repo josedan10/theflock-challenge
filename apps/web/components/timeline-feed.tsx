@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpIcon,
   ChevronDownIcon,
@@ -13,6 +14,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../lib/api-client";
 import { apiFormErrors } from "../lib/form-errors";
+import {
+  clearUndoWindows,
+  closeUndoWindow,
+  useUndoWindows,
+} from "../lib/post-undo";
 import { assembleTimeline, tweetsAheadOfPage } from "../lib/timeline-feed";
 import {
   useDeleteTweet,
@@ -20,6 +26,7 @@ import {
   usePendingTweets,
 } from "../lib/tweets";
 
+import { PostUndo } from "./post-undo";
 import { TimelineSkeleton } from "./skeletons";
 import { TweetCard } from "./tweet-card";
 
@@ -44,6 +51,9 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
   const pending = usePendingTweets(user.id);
   const timeline = useHomeTimeline(user.id);
   const deleteTweet = useDeleteTweet(member);
+  const queryClient = useQueryClient();
+  const undoWindows = useUndoWindows(user.id);
+  const [undoing, setUndoing] = useState<string | null>(null);
   const [deferNewPosts, setDeferNewPosts] = useState(false);
   const [failure, setFailure] = useState<DeleteFailure | null>(null);
   const sentinel = useRef<HTMLDivElement>(null);
@@ -151,6 +161,34 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
     });
   }
 
+  // Leaving the timeline ends every undo window; the posts stay (AC-B01.7).
+  useEffect(
+    () => () => clearUndoWindows(queryClient, user.id),
+    [queryClient, user.id],
+  );
+
+  /** Undo a new post: delete it without the confirmation (AC-B01.6). */
+  function onUndo(tweetId: string) {
+    setFailure(null);
+    setUndoing(tweetId);
+    deleteTweet.mutate(tweetId, {
+      onError: (error) => {
+        if (error instanceof ApiError && error.code === "NOT_FOUND") {
+          closeUndoWindow(queryClient, user.id, tweetId);
+          return;
+        }
+        // The tweet stays, and the card's alert announces why (AC-B01.7).
+        setFailure({
+          message:
+            `We couldn't undo this post. ${apiFormErrors(error).form ?? ""}`.trim(),
+          tweetId,
+        });
+      },
+      onSettled: () => setUndoing(null),
+      onSuccess: () => closeUndoWindow(queryClient, user.id, tweetId),
+    });
+  }
+
   function showNewPosts() {
     setDeferNewPosts(false);
     if (typeof heading.current?.scrollIntoView === "function") {
@@ -240,6 +278,18 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             >
               <TweetCard
                 failure={failure?.tweetId === tweet.id ? failure.message : null}
+                footer={
+                  undoWindows[tweet.id] === undefined ? null : (
+                    <PostUndo
+                      expiresAt={undoWindows[tweet.id] ?? 0}
+                      onExpire={() =>
+                        closeUndoWindow(queryClient, user.id, tweet.id)
+                      }
+                      onUndo={() => onUndo(tweet.id)}
+                      pending={undoing === tweet.id}
+                    />
+                  )
+                }
                 onDelete={onDelete}
                 tweet={tweet}
                 viewerId={user.id}

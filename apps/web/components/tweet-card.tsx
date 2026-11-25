@@ -2,7 +2,7 @@
 
 import { CircleAlertIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { compactTime } from "../lib/relative-time";
 import { cn } from "../lib/utils";
@@ -50,6 +50,8 @@ export interface TweetCardProps {
   onDelete?: (tweetId: string) => void;
   /** Why the last delete of this tweet failed; focuses its Delete button. */
   failure?: string | null;
+  /** Extra content under the actions, e.g. a new post's Undo countdown. */
+  footer?: ReactNode;
 }
 
 /**
@@ -62,6 +64,7 @@ export function TweetCard({
   connectAbove = false,
   connectBelow = false,
   failure = null,
+  footer = null,
   onDelete,
   onReply,
   replyingTo = null,
@@ -255,6 +258,7 @@ export function TweetCard({
         {replying}
         <p className="whitespace-pre-wrap break-words">{tweet.content}</p>
         <TweetActions onReply={onReply} tweet={tweet} viewerId={viewerId} />
+        {footer}
         {alert}
       </div>
     </article>
