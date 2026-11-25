@@ -13,6 +13,7 @@ import { SessionProvider, useSession } from "./session";
 import {
   useCreateTweet,
   useDeleteTweet,
+  useFreshReplies,
   useHomeTimeline,
   useTimelineItems,
   useTimelineLive,
@@ -71,6 +72,7 @@ function renderTweets(apiClient: ApiClient) {
     () => ({
       create: useCreateTweet(member),
       reply: useCreateTweet(member, "parent-id"),
+      fresh: useFreshReplies(member.id, "parent-id"),
       undo: useUndoWindows(member.id),
       remove: useDeleteTweet(member),
       posted: useTimelineItems(member.id),
@@ -130,7 +132,7 @@ describe("posted tweets", () => {
 });
 
 describe("undo windows for new posts", () => {
-  it("TWT-03 AC-B01.6 opens a window for a home post and none for a reply", async () => {
+  it("TWT-03 AC-B01.6 opens a window for a home post and for a reply", async () => {
     const apiClient = fakeApiClient({
       createReply: vi.fn(async () => ({ tweet: tweetWith("r1", "reply") })),
       createTweet: vi.fn(async () => ({ tweet: tweetWith("t1", "one") })),
@@ -143,11 +145,13 @@ describe("undo windows for new posts", () => {
     await act(() => result.current.reply.mutateAsync({ content: "reply" }));
 
     await waitFor(() =>
-      expect(Object.keys(result.current.undo)).toEqual(["t1"]),
+      expect(Object.keys(result.current.undo)).toEqual(["t1", "r1"]),
     );
     expect(result.current.undo.t1).toBeGreaterThanOrEqual(
       before + UNDO_WINDOW_MS,
     );
+    expect(result.current.fresh.map((tweet) => tweet.id)).toEqual(["r1"]);
+    expect(result.current.fresh[0]?.parentTweetId).toBe("parent-id");
   });
 });
 

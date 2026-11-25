@@ -27,6 +27,7 @@ import {
 import type { InfiniteData } from "@tanstack/react-query";
 import type {
   CreateTweetRequest,
+  ThreadItem,
   TimelinePage,
   Tweet,
 } from "@twitter-clone/contracts";
@@ -51,6 +52,61 @@ const pendingKey = (memberId: string) =>
   ["timeline", "pending", memberId] as const;
 
 const profileKey = (username: string) => ["profile", username.toLowerCase()];
+
+/**
+ * Replies posted in this visit, newest first, so Undo can sit under the composer.
+ * Not under `THREAD_KEY`: invalidating the thread would refetch this away.
+ */
+const freshReplyKey = (memberId: string, parentId: string) =>
+  ["thread-fresh", memberId, parentId] as const;
+
+/** Replies this member just posted on one tweet. Kept only in the query cache. */
+export function useFreshReplies(
+  memberId: string,
+  parentId: string,
+): ThreadItem[] {
+  return (
+    useQuery({
+      initialData: [] as ThreadItem[],
+      initialDataUpdatedAt: Date.now(),
+      queryFn: () => [] as ThreadItem[],
+      queryKey: freshReplyKey(memberId, parentId),
+      staleTime: Number.POSITIVE_INFINITY,
+    }).data ?? []
+  );
+}
+
+function rememberFreshReply(
+  queryClient: ReturnType<typeof useQueryClient>,
+  memberId: string,
+  parentId: string,
+  tweet: Tweet,
+): void {
+  const item: ThreadItem = { ...tweet, parentTweetId: parentId };
+  queryClient.setQueryData<ThreadItem[]>(
+    freshReplyKey(memberId, parentId),
+    (current = []) =>
+      current.some((entry) => entry.id === item.id)
+        ? current
+        : [item, ...current],
+  );
+}
+
+/** Drops a reply from the under-composer list after Undo or delete. */
+export function forgetFreshReply(
+  queryClient: ReturnType<typeof useQueryClient>,
+  memberId: string,
+  parentId: string,
+  tweetId: string,
+): void {
+  queryClient.setQueryData<ThreadItem[]>(
+    freshReplyKey(memberId, parentId),
+    (current = []) =>
+      current.some((entry) => entry.id === tweetId)
+        ? current.filter((entry) => entry.id !== tweetId)
+        : current,
+  );
+}
 
 export function usePendingTweets(memberId: string) {
   return useQuery({
@@ -203,14 +259,15 @@ export function useCreateTweet(member: TweetAuthorRef, parentTweetId?: string) {
             sessionCsrfToken(queryClient),
           ),
     onSuccess: ({ tweet }) => {
+      // Home posts and replies each get their own Undo window (AC-B01.6).
+      openUndoWindow(queryClient, member.id, tweet.id);
       if (parentTweetId === undefined) {
         queryClient.setQueryData<Tweet[]>(
           pendingKey(member.id),
           (pending = []) => dedupeTweets([tweet, ...pending]),
         );
-        // Each new home post gets its own Undo window (AC-B01.6).
-        openUndoWindow(queryClient, member.id, tweet.id);
       } else {
+        rememberFreshReply(queryClient, member.id, parentTweetId, tweet);
         void queryClient.invalidateQueries({ queryKey: THREAD_KEY });
         void queryClient.invalidateQueries({
           queryKey: homeTimelineKey(member.id),
