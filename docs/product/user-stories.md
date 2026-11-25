@@ -38,6 +38,9 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-B01.2:** Empty, whitespace-only, or over-limit content returns `422` and is not persisted.
 - **AC-B01.3:** An unauthenticated request returns `401`.
 - **AC-B01.4:** The UI shows remaining characters, prevents a second submit while pending, and exposes success/failure accessibly.
+- **AC-B01.5:** Given a successful create from the home composer, when the tweet joins the home timeline, then it uses the existing entrance animation and the timeline does not render a separate “Posting your tweet…” block. The response is not held back only to keep that block visible. Composer pending and failure behavior from AC-B01.4 stays.
+- **AC-B01.6:** Given that tweet was just created, when fewer than 5 seconds have passed, then the tweet shows a countdown line and an Undo action. Undo deletes that tweet without the delete confirmation. At 5 seconds the countdown and Undo go away, and later removal uses AC-B02.3. Each new home post has its own window. Replies are unchanged.
+- **AC-B01.7:** Given Undo fails, then the tweet remains and the error is announced. Leaving the timeline ends the window; the tweet stays posted. The countdown is understandable without motion and without announcing every remaining second.
 
 ### US-B02 Delete a tweet
 

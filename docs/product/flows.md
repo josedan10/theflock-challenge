@@ -7,10 +7,11 @@
 3. API repeats validation, normalizes identifiers, hashes the password, and creates user + session transactionally.
 4. Browser receives an HTTP-only session cookie and navigates to `/home`.
 5. Empty timeline explains how to search/follow and offers tweet composition.
-6. Member enters text; counter announces limits; submit creates the tweet.
-7. Tweet appears at the top using the canonical API response.
+6. Member enters text; counter announces limits; submit creates the tweet. The composer shows a pending state and blocks a second submit. The tweet is stored immediately; undo does not delay the request.
+7. The canonical tweet appears at the top of the home timeline with the entrance animation. The timeline does not show a separate “Posting your tweet…” block.
+8. For 5 seconds that tweet shows a countdown line and **Undo**. Undo deletes it without the usual delete confirmation. After 5 seconds, Undo is gone and deletion uses the normal confirmation. Leaving the page ends the window; the tweet remains.
 
-**Failure paths:** inline validation; duplicate identifier; rate limit with retry guidance; network retry that does not double-submit.
+**Failure paths:** inline validation; duplicate identifier; rate limit with retry guidance; network retry that does not double-submit; a failed undo keeps the tweet and announces the error.
 
 ## 2. Login → session validation → logout
 

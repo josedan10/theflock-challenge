@@ -35,7 +35,8 @@ After M3, profile UI work can proceed alongside M4. The project is local-only; p
 - Tweet create/delete, home timeline query, opaque cursor, composer/feed UI.
 - Query-plan fixture to catch N+1/unindexed regressions.
 - Browser tests for empty/error/end states and responsive widths.
-- **Exit:** US-B01–B03 pass; timeline p95 target passes baseline load test.
+- **Exit:** US-B01–B03 pass for AC-B01.1–AC-B01.4 and US-B02–B03; timeline p95 target passes baseline load test.
+- **Follow-up:** TWT-03 covers AC-B01.5–AC-B01.7 (TWEET-03). It is not part of the original M3 exit.
 
 ## M4 — Social graph
 
