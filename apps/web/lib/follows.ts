@@ -2,11 +2,13 @@
 
 import {
   type InfiniteData,
+  type QueryClient,
   useInfiniteQuery,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { userSearchKey } from "./search";
 import { sessionCsrfToken, useApiClient } from "./session";
 
 import type { FollowListDirection } from "./api-client";
@@ -14,6 +16,7 @@ import type {
   FollowListPage,
   FollowResponse,
   PublicProfileResponse,
+  UserSearchResponse,
 } from "@twitter-clone/contracts";
 
 /** Every cached follow list, for invalidation after a follow change. */
@@ -63,6 +66,31 @@ function markFollowed(
   };
 }
 
+/** Sets the viewer's relationship in every cached follow list and search. */
+function setFollowedEverywhere(
+  queryClient: QueryClient,
+  username: string,
+  following: boolean,
+): void {
+  queryClient.setQueriesData<InfiniteData<FollowListPage>>(
+    { queryKey: followListsKey },
+    (pages) => markFollowed(pages, username, following),
+  );
+  queryClient.setQueriesData<UserSearchResponse>(
+    { queryKey: userSearchKey },
+    (result) =>
+      result === undefined
+        ? result
+        : {
+            items: result.items.map((item) =>
+              item.user.username === username
+                ? { ...item, followedByViewer: following }
+                : item,
+            ),
+          },
+  );
+}
+
 export interface FollowTarget {
   username: string;
   /** The signed-in member, whose following count changes too. */
@@ -71,7 +99,7 @@ export interface FollowTarget {
 
 /**
  * Follows or unfollows a member optimistically (AC-C01.4): every cached list
- * row for them flips at once and flips back if the API rejects the change.
+ * and search row for them flips at once and flips back if the API rejects the change.
  * The target's follower count is then taken from the committed response, and
  * the viewer's profile, the lists and the home timeline are refetched, since
  * following changes which tweets the timeline may show (AC-C01.3).
@@ -88,16 +116,11 @@ export function useFollowMember({ username, viewerUsername }: FollowTarget) {
     },
     onMutate: async (follow) => {
       await queryClient.cancelQueries({ queryKey: followListsKey });
-      queryClient.setQueriesData<InfiniteData<FollowListPage>>(
-        { queryKey: followListsKey },
-        (pages) => markFollowed(pages, username, follow),
-      );
+      await queryClient.cancelQueries({ queryKey: userSearchKey });
+      setFollowedEverywhere(queryClient, username, follow);
     },
     onError: (_error, follow) => {
-      queryClient.setQueriesData<InfiniteData<FollowListPage>>(
-        { queryKey: followListsKey },
-        (pages) => markFollowed(pages, username, !follow),
-      );
+      setFollowedEverywhere(queryClient, username, !follow);
     },
     onSuccess: ({ relationship }) => {
       queryClient.setQueryData<PublicProfileResponse>(
@@ -115,6 +138,7 @@ export function useFollowMember({ username, viewerUsername }: FollowTarget) {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: followListsKey });
+      void queryClient.invalidateQueries({ queryKey: userSearchKey });
       void queryClient.invalidateQueries({
         queryKey: profileKey(viewerUsername),
       });
