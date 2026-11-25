@@ -15,6 +15,7 @@ export const MENTION_LIMIT = 10;
 const MENTION_PATTERN =
   /(?:^|[^A-Za-z0-9_])@([A-Za-z][A-Za-z0-9_]{2,29})(?![A-Za-z0-9_])/g;
 
+/** One slice of tweet text: unchanged words, or an @mention with its lowercased username. */
 export type MentionSpan =
   | { kind: "text"; text: string }
   | { kind: "mention"; text: string; username: string };
