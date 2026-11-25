@@ -11,6 +11,11 @@ const RECENT_DEMO_POSTS = 30;
  * simulator's own volume never pushes them out of reach.
  */
 const RECENT_REAL_TWEETS = 20;
+/**
+ * Throwaway accounts that `pnpm test:e2e` registers in the same local database
+ * (`e2e_…`). They are not people, so the simulator never engages with them.
+ */
+const BROWSER_TEST_USERNAMES = "e2e\\_%";
 /** How many members can be mentioned; newest first so new local accounts show up. */
 const MENTIONABLE_MEMBERS = 200;
 
@@ -43,16 +48,19 @@ export async function readWorld(sql: Sql): Promise<World> {
   const demoIds = actorIds.length > 0 ? actorIds : [demoUserId("")];
   const [members, demoPosts, realTweets] = await Promise.all([
     sql<{ id: string; username: string }[]>`
-      select id, username from users where deleted_at is null
+      select id, username from users
+      where deleted_at is null and username not like ${BROWSER_TEST_USERNAMES}
       order by created_at desc, id desc limit ${MENTIONABLE_MEMBERS}`,
     sql<TweetRow[]>`
       select id, author_id as "authorId", content from tweets
       where parent_tweet_id is null and author_id in ${sql(demoIds)}
       order by created_at desc, id desc limit ${RECENT_DEMO_POSTS}`,
     sql<TweetRow[]>`
-      select id, author_id as "authorId", content from tweets
-      where author_id not in ${sql(demoIds)}
-      order by created_at desc, id desc limit ${RECENT_REAL_TWEETS}`,
+      select t.id, t.author_id as "authorId", t.content from tweets t
+      join users u on u.id = t.author_id
+      where t.author_id not in ${sql(demoIds)}
+        and u.username not like ${BROWSER_TEST_USERNAMES}
+      order by t.created_at desc, t.id desc limit ${RECENT_REAL_TWEETS}`,
   ]);
   return {
     actors: actors.map(({ id, username }) => ({ id, username })),
