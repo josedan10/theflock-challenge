@@ -8,16 +8,15 @@ This yet-to-be-named product is a mobile-first social application for short post
 
 ## Chosen stack
 
-- **Web:** Next.js + React + TypeScript, deployed to Vercel
+- **Web:** Next.js + React + TypeScript, run locally
 - **Styling:** shadcn/ui components (Base UI, pinned CLI) on Tailwind CSS v4, with design tokens in `apps/web/app/styles.css`
 - **API:** Fastify + TypeScript, packaged as an OCI/Docker image
 - **Database:** PostgreSQL + Drizzle ORM/migrations
 - **Validation:** Zod schemas shared through a workspace package
 - **Tests:** Vitest, Testing Library, Supertest/light-my-request, Testcontainers, Playwright, axe
-- **Local/production containers:** Docker multi-stage builds and Docker Compose
-- **Production API:** the existing DigitalOcean Droplet behind Caddy, initially
+- **Local containers:** Docker and Docker Compose for the web, API, and PostgreSQL
 
-See [the architecture decision](docs/technical/architecture.md) and [deployment comparison](docs/technical/infrastructure.md).
+See [the architecture](docs/technical/architecture.md) and [local setup](docs/SETUP.md).
 
 ## Documentation map
 
@@ -28,7 +27,7 @@ See [the architecture decision](docs/technical/architecture.md) and [deployment 
 | [User flows](docs/product/flows.md)                                  | End-to-end journeys and failure paths                                |
 | [Workflow diagrams](docs/diagrams/README.md)                         | Interactive Archify diagrams for every required and optional feature |
 | [Roadmap](docs/roadmaps/product-roadmap.md)                          | Milestones, dependencies, and definition of done                     |
-| [Engineering workflow](docs/workflows/engineering.md)                | Branch, review, CI, migration, and release process                   |
+| [Engineering workflow](docs/workflows/engineering.md)                | Branch, review, CI, and migration process                            |
 | [Team skills](docs/skills/required-skills.md)                        | Competencies and ownership expectations                              |
 | [Architecture](docs/technical/architecture.md)                       | System boundaries and technical decisions                            |
 | [Database proposal](docs/technical/database-model.md)                | Tables, constraints, indexes, and queries                            |
@@ -114,10 +113,10 @@ For troubleshooting, browser-test installation, and quality-gate commands, see t
 
 ## Guiding principles
 
-1. Ship the required scope before bonus features.
+1. Build and verify features in the documented local environment.
 2. Keep the timeline chronological; do not introduce ranking.
 3. Enforce permissions and invariants in both the API and database.
-4. Prefer behavior coverage and production-like integration tests over superficial line coverage.
+4. Prefer behavior coverage and real PostgreSQL integration tests over superficial line coverage.
 5. Never commit secrets or use production data in local/test environments.
 
 ## License

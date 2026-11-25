@@ -101,7 +101,7 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-E01.3:** Above 1024 px timeline retains readable line length and secondary navigation may be shown.
 - **AC-E01.4:** Required flows are keyboard-completable, screen-reader-labelled, and pass automated axe checks with no serious/critical issue.
 
-## Bonus epics (after required release gate)
+## Planned feature epics
 
 - **US-F01 Real time:** new eligible tweets are announced without stealing focus; reconnection performs a cursor catch-up and avoids duplicates.
 - **US-F02 Image:** one JPEG/PNG/WebP, validated by decoded type/size/dimensions, uploads directly to object storage; inaccessible partial uploads are cleaned up.

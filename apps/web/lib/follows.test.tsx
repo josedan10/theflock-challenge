@@ -5,6 +5,7 @@ import { fakeApiClient, testSession } from "../components/test-utils";
 
 import { ApiError } from "./api-client";
 import { useFollowList, useFollowMember } from "./follows";
+import { useUserSearch } from "./search";
 import { SessionProvider, usePublicProfile, useSession } from "./session";
 
 import type { ApiClient } from "./api-client";
@@ -148,5 +149,51 @@ describe("follow member", () => {
     await waitFor(() => expect(view.result.current.follow.isError).toBe(true));
     expect(rows(view)[0]?.followedByViewer).toBe(true);
     expect(view.result.current.profile.data?.profile.followerCount).toBe(4);
+  });
+
+  it("US-D01 US-C01 AC-C01.4 flips search results too and rolls them back", async () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <SessionProvider apiClient={apiClient}>{children}</SessionProvider>
+    );
+    let reject: (error: Error) => void = () => undefined;
+    const apiClient = fakeApiClient({
+      follow: vi.fn(
+        () =>
+          new Promise<never>((_resolve, fail) => {
+            reject = fail;
+          }),
+      ),
+      me: vi.fn(async () => testSession),
+      searchUsers: vi.fn(async () => ({ items: [grace] })),
+    });
+    const view = renderHook(
+      () => ({
+        follow: useFollowMember({
+          username: "grace",
+          viewerUsername: testSession.user.username,
+        }),
+        search: useUserSearch("gra"),
+        session: useSession(),
+      }),
+      { wrapper },
+    );
+    await waitFor(() => {
+      expect(view.result.current.session.data).toEqual(testSession);
+      expect(view.result.current.search.isSuccess).toBe(true);
+    });
+
+    act(() => view.result.current.follow.mutate(true));
+    await waitFor(() =>
+      expect(view.result.current.search.data?.items[0]?.followedByViewer).toBe(
+        true,
+      ),
+    );
+    act(() => reject(new ApiError(0, "NETWORK_ERROR", "Offline.")));
+
+    await waitFor(() =>
+      expect(view.result.current.search.data?.items[0]?.followedByViewer).toBe(
+        false,
+      ),
+    );
   });
 });

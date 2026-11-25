@@ -19,6 +19,8 @@ import {
   type TimelinePage,
   timelinePageSchema,
   type UpdateProfileRequest,
+  type UserSearchResponse,
+  userSearchResponseSchema,
 } from "@twitter-clone/contracts";
 
 /** `NETWORK_ERROR` means the API could not be reached at all. */
@@ -73,6 +75,8 @@ export interface ApiClient {
     direction: FollowListDirection,
     cursor?: string,
   ): Promise<FollowListPage>;
+  /** People whose username or display name contains `text` (US-D01). */
+  searchUsers(text: string): Promise<UserSearchResponse>;
   /** Follows a member; resolves with the committed relationship and count. */
   follow(username: string, csrfToken: string): Promise<FollowResponse>;
   /** Unfollows a member; resolves with the committed relationship and count. */
@@ -224,6 +228,13 @@ export function createApiClient(
     },
     async register(input) {
       return session("/auth/register", input);
+    },
+    async searchUsers(text) {
+      const query = new URLSearchParams({ q: text }).toString();
+      const response = await request(`/users/search?${query}`, {
+        method: "GET",
+      });
+      return userSearchResponseSchema.parse(await response.json());
     },
     async unfollow(username, csrfToken) {
       const response = await request(

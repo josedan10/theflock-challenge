@@ -25,7 +25,7 @@
 3. **Browser:** Playwright on Chromium every PR; Firefox/WebKit on main/nightly.
 4. **Security:** SAST, dependency audit, Dockerfile lint, image vulnerability scan, SBOM.
 5. **Build:** web production build and immutable API image tagged with commit SHA.
-6. **Preview:** Vercel preview + isolated API/database when feasible; smoke test.
+6. **Local verification:** run the documented local stack and smoke-test affected user journeys.
 
 Failed/flaky tests block merge. Quarantine requires an owner, issue, reason, and expiry date.
 
@@ -34,17 +34,15 @@ Failed/flaky tests block merge. Quarantine requires an owner, issue, reason, and
 - Schema changes are forward-compatible: expand → migrate/backfill → switch reads/writes → contract later.
 - Never edit an applied migration. Generate a new migration.
 - CI applies every migration from zero and against a previous-version fixture.
-- Production migration is a separate one-shot task before application rollout; application containers never race to migrate on boot.
-- Take/verify a backup before destructive changes. Prefer forward fixes to risky down migrations.
+- Apply migrations through the documented local migration command; application containers never race to migrate on boot.
+- Preserve developer data before destructive local changes. Prefer forward fixes to risky down migrations.
 
-## Release workflow
+## Local delivery workflow
 
-1. Promote the exact tested image digest from staging.
-2. Verify backup, migration plan, secrets, capacity, and rollback image.
-3. Run migration job; deploy API with health-gated rolling replacement.
-4. Deploy/promote web on Vercel.
-5. Run smoke tests and watch error/latency/auth metrics for 15 minutes.
-6. Record release SHA/image digest and close or roll back.
+1. Run the required quality gates and relevant real-PostgreSQL tests.
+2. Verify migrations from an empty database and the prior schema fixture.
+3. Start the local Compose stack and smoke-test changed flows.
+4. Record commands, outcomes, migration impact, and remaining risks in the change summary.
 
 ## API and security review checklist
 
