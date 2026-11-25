@@ -41,7 +41,7 @@ Targets are ratchets: CI may raise them but cannot lower them without an approve
 
 ### Browser E2E (Playwright)
 
-Required journeys: register/login/logout, create/delete tweet, follow and see timeline, like/unlike, lists, search, pagination, unauthorized redirects. Run Chromium on PR; Chromium/Firefox/WebKit on main/nightly. Test 375×812, 768×1024, and 1440×900.
+Required journeys: register/login/logout, create/delete tweet, follow and see timeline, like/unlike, lists, search, pagination, live timeline without focus steal, unauthorized redirects. Run Chromium on PR; Chromium/Firefox/WebKit on main/nightly. Test 375×812, 768×1024, and 1440×900.
 
 ### Accessibility/visual
 

@@ -15,15 +15,11 @@
       "label": "API and SSE"
     },
     {
-      "id": "async",
-      "label": "Async Delivery"
-    },
-    {
       "id": "db",
       "label": "PostgreSQL"
     }
   ],
-  "mainPath": ["action", "transaction", "outbox", "worker", "sse", "refresh"],
+  "mainPath": ["action", "transaction", "sse", "refresh"],
   "nodes": [
     {
       "id": "action",
@@ -37,7 +33,7 @@
     {
       "id": "refresh",
       "lane": "web",
-      "col": 5,
+      "col": 4,
       "type": "frontend",
       "label": "Refetch Authority",
       "sublabel": "dedupe + announce",
@@ -49,52 +45,34 @@
       "col": 1,
       "type": "backend",
       "label": "Domain Transaction",
-      "sublabel": "write state + event",
+      "sublabel": "write state + notify",
       "width": 150
     },
     {
       "id": "sse",
       "lane": "api",
-      "col": 4,
+      "col": 3,
       "type": "messagebus",
       "label": "SSE Event",
-      "sublabel": "IDs, not full entities",
-      "width": 150
-    },
-    {
-      "id": "outbox",
-      "lane": "async",
-      "col": 2,
-      "type": "messagebus",
-      "label": "Outbox Event",
-      "sublabel": "durable and deduped",
-      "width": 150
-    },
-    {
-      "id": "worker",
-      "lane": "async",
-      "col": 3,
-      "type": "backend",
-      "label": "Delivery Worker",
-      "sublabel": "retry with backoff",
+      "sublabel": "tweet IDs only",
       "width": 150
     },
     {
       "id": "catchup",
-      "lane": "async",
-      "col": 5,
+      "lane": "api",
+      "col": 4,
       "type": "messagebus",
       "label": "Cursor Catch-Up",
-      "sublabel": "after reconnect",
+      "sublabel": "Last-Event-ID",
       "width": 150
     },
     {
-      "id": "events",
+      "id": "tweets",
       "lane": "db",
       "col": 2,
       "type": "database",
-      "label": "Outbox + Notifications",
-      "sublabel": "same commit",
+      "label": "Tweets + Notifications",
+      "sublabel": "durable log",
       "width": 150
     }
   ],
@@ -106,26 +84,14 @@
     },
     {
       "from": "transaction",
-      "to": "outbox",
-      "label": "commit event",
-      "role": "main"
-    },
-    {
-      "from": "outbox",
-      "to": "events",
-      "label": "durable record",
+      "to": "tweets",
+      "label": "commit",
       "role": "branch"
     },
     {
-      "from": "outbox",
-      "to": "worker",
-      "label": "claim",
-      "role": "main"
-    },
-    {
-      "from": "worker",
+      "from": "transaction",
       "to": "sse",
-      "label": "publish",
+      "label": "in-process fan-out",
       "role": "main"
     },
     {
@@ -143,8 +109,14 @@
     },
     {
       "from": "catchup",
+      "to": "tweets",
+      "label": "newer than cursor",
+      "role": "branch"
+    },
+    {
+      "from": "catchup",
       "to": "refresh",
-      "label": "missed cursor",
+      "label": "missed ids",
       "role": "return"
     }
   ]

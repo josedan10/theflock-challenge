@@ -46,6 +46,7 @@ Status semantics: `400` malformed cursor/request, `401` unauthenticated, `403` a
 | PUT    | `/tweets/:id/like`              |              yes | Idempotently like                             |
 | DELETE | `/tweets/:id/like`              |              yes | Idempotently unlike                           |
 | GET    | `/timeline?cursor=&limit=`      |              yes | Home timeline                                 |
+| GET    | `/timeline/stream`              |              yes | SSE live tweet ids for the home timeline      |
 | GET    | `/notifications?cursor=&limit=` |              yes | The member's notifications                    |
 | GET    | `/notifications/unread-count`   |              yes | Unread badge count                            |
 | POST   | `/notifications/read`           |              yes | Mark ids or all read                          |
@@ -248,6 +249,18 @@ Requires a live session; no CSRF token is needed for this read. Returns `200 { i
 
 Omit `cursor` on the first page. Pass the returned cursor unchanged for the next page; `null` means the end. A cursor is signed and bound to its viewer. The strict keyset survives deletion of its anchor and does not shift under newer inserts; following changes take effect on the next request. `limit` defaults to 20; positive decimal integers above 30 are clamped to 30. Invalid, unknown or repeated parameters and bad or cross-viewer cursors return `400 MALFORMED_REQUEST`. Missing, expired or revoked sessions return `401 UNAUTHENTICATED`. The read limit is 120 per minute per client address. Rotating `SESSION_SECRET` invalidates outstanding cursors; restart pagination without one.
 
+## Live home timeline (`GET /v1/timeline/stream`)
+
+LIVE-01 / US-F01. Same session cookie as other member reads; no CSRF token (this is not a mutation). Response `200` is `text/event-stream` with `Cache-Control: no-store`. Each event:
+
+- `event`: `timeline.tweet`
+- `data`: `{ "tweetId": "<uuid>" }` only — never tweet text, authors, or counts
+- `id`: a signed live cursor bound to this viewer (not a pagination cursor)
+
+The browser's EventSource reconnects with `Last-Event-ID`. The server then emits at most 30 missed eligible tweet ids, oldest of that window first, and resumes live events. A tampered, foreign, or pagination cursor used as `Last-Event-ID` does not fail the stream (EventSource would otherwise retry that header forever) and never expands eligibility. Unauthenticated opens are `401`. Opening the stream is limited to 30 attempts per minute per client address. At most eight connections per member are kept; a ninth evicts the oldest.
+
+Clients refetch `GET /v1/timeline` for authoritative cards, merge by tweet id, and must not move keyboard focus. Delivery is in-process after the tweet commits; the tweets table is the durable log. No outbox table.
+
 ## Sessions and CSRF
 
 - Protected routes use the `requireSession` pre-handler. Missing, unknown, expired, and revoked sessions all get the same `401`.
@@ -269,7 +282,7 @@ Notifications are created by follow, like and reply in the same transaction as t
 - Login/register: 5/minute per privacy-safe composite key, with measured tuning.
 - Profile updates: 20/minute per client address. Profile reads and followers/following reads: 120/minute per client address. People search: 60/minute per client address.
 - Tweet creation: 20/minute per client address; follow and unfollow: 60/minute per client address, counted separately; like and unlike: 60/minute per client address, counted separately.
-- Reads: 120/minute/user/IP. Health checks are separately limited/allowlisted.
+- Reads: 120/minute/user/IP. Opening the live timeline stream: 30/minute per client address. Health checks are separately limited/allowlisted.
 
 Return `Retry-After`. Limits are defense-in-depth, not business quotas, and must not rely solely on attacker-controlled IP headers. The client address honours `X-Forwarded-For` only from proxies listed in `TRUST_PROXY` (addresses, CIDRs, or `loopback`/`linklocal`/`uniquelocal`); production behind Caddy must set it, or every client shares the proxy's budget.
 

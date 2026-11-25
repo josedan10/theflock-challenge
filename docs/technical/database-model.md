@@ -97,7 +97,7 @@ Migration `notifications` adds `notifications(id, recipient_id, actor_id, type, 
 ## Optional tables (create only in bonus milestones)
 
 - `tweet_media(tweet_id PK/FK, object_key UNIQUE, mime_type, byte_size, width, height, status, created_at)`.
-- `outbox_events(id, aggregate_type, aggregate_id, event_type, payload jsonb, created_at, published_at)`: only if live delivery (LIVE-01) needs to publish events outside the database.
+- `outbox_events(id, aggregate_type, aggregate_id, event_type, payload jsonb, created_at, published_at)`: not used. LIVE-01 publishes in-process after commit and recovers missed events from `tweets` on SSE reconnect.
 
 ## Timeline query shape
 
