@@ -25,10 +25,11 @@ export interface BuildAppOptions {
   auth?: AuthModuleOptions;
   corsOrigin: string;
   logger?: boolean;
-  /** Overrides for profile read and update budgets. Defaults are the API starting points. */
+  /** Overrides for profile read, update and search budgets. Defaults are the API starting points. */
   profileRateLimit?: {
     read?: ProfileRateLimit;
     write?: ProfileRateLimit;
+    search?: ProfileRateLimit;
   };
   readinessCheck?: () => Promise<boolean>;
   /** Proxies allowed to set `X-Forwarded-For`; see `TRUST_PROXY`. */
@@ -110,6 +111,9 @@ export async function buildApp(
         ...(options.profileRateLimit?.write === undefined
           ? {}
           : { writeRateLimit: options.profileRateLimit.write }),
+        ...(options.profileRateLimit?.search === undefined
+          ? {}
+          : { searchRateLimit: options.profileRateLimit.search }),
       }),
       { prefix: "/v1" },
     );
