@@ -11,6 +11,11 @@ export const ACTIVITY_INTERVAL_SECONDS = {
   min: 15,
 } as const;
 
+/** A setting the simulator refuses. The message names the setting and is safe to print. */
+export class ActivitySettingsError extends Error {
+  override name = "ActivitySettingsError";
+}
+
 export interface ActivityConfig {
   apiOrigin: string;
   intervalMs: number;
@@ -20,18 +25,22 @@ export interface ActivityConfig {
  * Reads the simulator's feature flag and limits. Returns null when the flag
  * is off, which is the default.
  *
- * @throws {Error} When the flag is on with an unsafe or malformed setting.
+ * @throws {ActivitySettingsError} When the flag is on with an unsafe or malformed setting.
  */
 export function activityConfig(env: NodeJS.ProcessEnv): ActivityConfig | null {
   const flag = env.ACTIVITY_SIMULATOR ?? "false";
   if (flag !== "true" && flag !== "false") {
-    throw new Error("ACTIVITY_SIMULATOR must be true or false.");
+    throw new ActivitySettingsError(
+      "ACTIVITY_SIMULATOR must be true or false.",
+    );
   }
   if (flag === "false") {
     return null;
   }
   if ((env.NODE_ENV ?? "development") !== "development") {
-    throw new Error("The activity simulator only runs in development.");
+    throw new ActivitySettingsError(
+      "The activity simulator only runs in development.",
+    );
   }
   const rawInterval =
     env.ACTIVITY_INTERVAL_SECONDS ?? String(ACTIVITY_INTERVAL_SECONDS.default);
@@ -42,7 +51,7 @@ export function activityConfig(env: NodeJS.ProcessEnv): ActivityConfig | null {
     !(seconds >= ACTIVITY_INTERVAL_SECONDS.min) ||
     seconds > ACTIVITY_INTERVAL_SECONDS.max
   ) {
-    throw new Error(
+    throw new ActivitySettingsError(
       `ACTIVITY_INTERVAL_SECONDS must be an integer from ${ACTIVITY_INTERVAL_SECONDS.min} to ${ACTIVITY_INTERVAL_SECONDS.max}.`,
     );
   }
@@ -57,7 +66,7 @@ export function activityConfig(env: NodeJS.ProcessEnv): ActivityConfig | null {
     api.username !== "" ||
     api.password !== ""
   ) {
-    throw new Error(
+    throw new ActivitySettingsError(
       "ACTIVITY_API_URL must be a local http origin, such as http://localhost:4000.",
     );
   }
