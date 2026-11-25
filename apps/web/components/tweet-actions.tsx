@@ -22,7 +22,7 @@ const plural = (count: number, one: string, many: string) =>
 function Count({ value }: Readonly<{ value: number }>) {
   return (
     <span aria-hidden="true" className="min-w-4 tabular-nums">
-      {value === 0 ? "" : formatCount(value)}
+      {value > 0 ? formatCount(value) : ""}
     </span>
   );
 }
