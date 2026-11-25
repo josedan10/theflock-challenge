@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AtSignIcon,
   BellIcon,
   CheckCheckIcon,
   ChevronDownIcon,
@@ -55,6 +56,11 @@ const copy = {
   reply: {
     action: "replied to your tweet",
     Icon: MessageCircleIcon,
+    tone: "text-sky-600 dark:text-sky-400",
+  },
+  mention: {
+    action: "mentioned you",
+    Icon: AtSignIcon,
     tone: "text-sky-600 dark:text-sky-400",
   },
 } as const;

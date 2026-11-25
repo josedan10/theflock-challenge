@@ -55,10 +55,6 @@ export function tweetsAheadOfPage(
 }
 
 /**
- * The list the member sees. `showAhead` is false once they have asked for an
- * older page: newer posts then wait on the banner instead of jumping the list.
- */
-/**
  * Authoritative first-page cards that belong above the currently loaded page,
  * merged with tweets already waiting, first copy wins (AC-F01.3).
  */
@@ -73,6 +69,34 @@ export function mergeLiveTweets(
   ]);
 }
 
+/**
+ * New posts wait on the banner when the reader has left the top of the feed
+ * or has opened an older page (AC-F01.2). At the top, they prepend.
+ */
+export function holdLivePosts(input: {
+  pinnedToTop: boolean;
+  readingOlderPage: boolean;
+}): boolean {
+  return input.readingOlderPage || !input.pinnedToTop;
+}
+
+/**
+ * Ids that should wait on the banner. Tweets already shown at the top stay
+ * in the list when the reader scrolls away; only ones that arrive while
+ * holding are kept back.
+ */
+export function livePostIdsToHold(
+  aheadIds: readonly string[],
+  shownIds: ReadonlySet<string>,
+  hold: boolean,
+): string[] {
+  if (!hold) {
+    return [];
+  }
+  return aheadIds.filter((id) => !shownIds.has(id));
+}
+
+/** The list the member sees. `showAhead` is false while `holdLivePosts` is set. */
 export function assembleTimeline(
   pending: readonly Tweet[],
   pages: readonly { items: readonly Tweet[] }[] | undefined,

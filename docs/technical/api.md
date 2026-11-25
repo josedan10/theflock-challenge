@@ -282,11 +282,11 @@ Clients refetch `GET /v1/timeline` for authoritative cards, merge by tweet id, a
 
 All three routes belong to the session member (NOT-01) and answer `Cache-Control: no-store`; no session is `401`.
 
-- `GET /v1/notifications?cursor=&limit=` → `notificationPageSchema`: newest first by `(created_at, id)`. Each item has `type` (`follow`, `like`, `reply`), the actor's public fields, `tweet` (`{ id, content }` of the liked tweet or the new reply; `null` for a follow), `createdAt` and `read`. Cursor and limit follow the timeline rules; the cursor is signed under a notifications label and bound to the member, so another member's or a tampered cursor is `400 MALFORMED_REQUEST`, as is any invalid parameter. Notifications from soft-deleted actors are hidden.
+- `GET /v1/notifications?cursor=&limit=` → `notificationPageSchema`: newest first by `(created_at, id)`. Each item has `type` (`follow`, `like`, `reply`, `mention`), the actor's public fields, `tweet` (`{ id, content }` of the liked tweet, the new reply, or the mentioning post; `null` for a follow), `createdAt` and `read`. Cursor and limit follow the timeline rules; the cursor is signed under a notifications label and bound to the member, so another member's or a tampered cursor is `400 MALFORMED_REQUEST`, as is any invalid parameter. Notifications from soft-deleted actors are hidden.
 - `GET /v1/notifications/unread-count` → `{ "unreadCount": 3 }` from committed rows.
 - `POST /v1/notifications/read` with `{ "ids": [uuid, …] }` (1–50) or `{ "all": true }` requires `X-CSRF-Token` (`403` without it) and answers `200 { "unreadCount": n }` after commit. Only the member's own notifications change: other members' ids are ignored, never revealed. `all` marks what arrived up to the request. An invalid body is `422`.
 
-Notifications are created by follow, like and reply in the same transaction as the action, deduplicated by a unique key, and never for a member's own action. Rate limits per client address: list 120/minute, count 240/minute (the badge polls it), mark-read 60/minute.
+Notifications are created by follow, like, reply, and @mention in the same transaction as the action, deduplicated by a unique key, and never for a member's own action. A mention matches `@username` (the stored username rule, any case) when `@` is not part of an email address. Unknown and deleted usernames are ignored. At most 10 distinct members are notified per tweet. The create response does not say who was notified. Rate limits per client address: list 120/minute, count 240/minute (the badge polls it), mark-read 60/minute.
 
 ## Rate-limit starting points
 

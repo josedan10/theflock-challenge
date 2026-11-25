@@ -106,7 +106,8 @@ it("NOT-01 upgrades a populated database and enforces notification rules", async
   await expect(insert({ actorId: ada })).rejects.toMatchObject({
     cause: { code: "23514" },
   });
-  await expect(insert({ type: "mention" })).rejects.toMatchObject({
+  await insert({ dedupeKey: "mention:tweet:ada", type: "mention" });
+  await expect(insert({ type: "quote" })).rejects.toMatchObject({
     cause: { code: "23514" },
   });
   await expect(insert({ type: "follow" })).rejects.toMatchObject({

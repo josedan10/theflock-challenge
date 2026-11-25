@@ -29,6 +29,7 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-A03.1:** Profile shows placeholder/avatar, display name, `@username`, bio, tweet/follower/following counts.
 - **AC-A03.2:** Unknown username returns a real `404` state, not a blank profile.
 - **AC-A03.3:** Bio is escaped and cannot inject markup/script.
+- **AC-A03.4:** The profile lists that member's tweets and replies, newest first (`created_at DESC, id DESC`) and cursor-paginated. A reply appears on its author's profile. Deleted tweets and replies do not appear.
 
 ## Epic B — Tweets and timeline
 
@@ -39,7 +40,7 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-B01.3:** An unauthenticated request returns `401`.
 - **AC-B01.4:** The UI shows remaining characters, prevents a second submit while pending, and exposes success/failure accessibly.
 - **AC-B01.5:** Given a successful create from the home composer, when the tweet joins the home timeline, then it uses the existing entrance animation and the timeline does not render a separate “Posting your tweet…” block. The response is not held back only to keep that block visible. Composer pending and failure behavior from AC-B01.4 stays.
-- **AC-B01.6:** Given that tweet was just created, when fewer than 5 seconds have passed, then the tweet shows a countdown line and an Undo action. Undo deletes that tweet without the delete confirmation. At 5 seconds the countdown and Undo go away, and later removal uses AC-B02.3. Each new home post has its own window. Replies are unchanged.
+- **AC-B01.6:** Given that tweet was just created, when fewer than 5 seconds have passed, then the tweet shows a countdown line and an Undo action. Undo deletes that tweet without the delete confirmation. At 5 seconds the countdown and Undo go away, and later removal uses AC-B02.3. Each new home post has its own window. A just-posted reply shows the same countdown and Undo on its card directly under the composer, above older replies, so Undo is on screen without searching the thread. After the window it joins the replies in their normal order. Leaving the home timeline or that thread ends the windows opened there; the tweets stay posted.
 - **AC-B01.7:** Given Undo fails, then the tweet remains and the error is announced. Leaving the timeline ends the window; the tweet stays posted. The countdown is understandable without motion and without announcing every remaining second.
 
 ### US-B02 Delete a tweet
@@ -64,6 +65,15 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-B04.4:** Only a reply's author can delete that reply. Deleting a tweet removes its full descendant subtree, regardless of reply authorship; deletion is atomic from the API's perspective.
 - **AC-B04.5:** Thread navigation, reply composition, loading, empty, error, and pagination states are keyboard accessible and clearly announced.
 - **AC-B04.6:** Invalid content, missing parent, unauthenticated writes, and rate limits return safe errors and do not create replies.
+
+### US-B05 Mention a member
+
+**As a member, I want to mention someone with @username so that they are notified and can open the post.**
+
+- **AC-B05.1:** Given a tweet or reply contains @username, when it commits, then that member is notified once. Matching ignores case. Repeating the same handle notifies once. The author is not notified. An unknown or deleted username does not fail the post and creates no notification. At most 10 members are notified; any further handles stay as text.
+- **AC-B05.2:** An email address is not a mention. A reply notifies its parent author with a reply and, separately, each mentioned member with a mention. Deleting the tweet removes those notifications.
+- **AC-B05.3:** While composing, typing @ offers matching people and inserts the chosen @username. A mention in a tweet links to that profile. The notification reads “mentioned you” and opens the tweet.
+- **Abuse:** The create response does not list who was notified. Handles are matched with the username rule and looked up with a parameterized query. The cap of 10 limits notification fan-out.
 
 ## Epic C — Social graph
 
@@ -111,7 +121,7 @@ The scenarios use Given/When/Then language so they can become executable API or 
 **As a member, I want new eligible tweets to appear without refreshing so that I do not miss posts while I am on the home timeline.**
 
 - **AC-F01.1:** Given a member has a live home-timeline stream, when an eligible tweet commits (the member's own or a followed author's), then the server sends an SSE event named `timeline.tweet` whose data is that tweet's id only.
-- **AC-F01.2:** Given that event, the home UI loads authoritative cards and offers the tweet without moving keyboard focus. If the member has already asked for an older page, a banner is shown instead of prepending into the list they are reading.
+- **AC-F01.2:** Given that event, the home UI loads authoritative cards and offers the tweet without moving keyboard focus. At the top of the feed the tweet is prepended. If the top of the feed is off screen, or the member has already asked for an older page, a **Show N new posts** banner stays in view and the tweet waits there instead of being inserted into the part of the list they are reading.
 - **AC-F01.3:** Given the stream reconnects with `Last-Event-ID`, the server emits missed eligible tweet ids (at most 30) and the client does not render the same tweet twice.
 - **AC-F01.4:** An unauthenticated stream request is `401`. Tweets from authors the viewer does not follow (except the viewer) are not emitted. A tampered or other-viewer's `Last-Event-ID` does not leak another member's events.
 - **AC-F01.5:** Opening the stream is rate limited per client address.
@@ -128,6 +138,12 @@ One image per tweet, including a reply. Text is still required (US-B01). JPEG, P
 - **AC-F02.4:** Given a tweet with an image, when it appears on the home timeline or a thread, then the image is shown with an empty text alternative.
 - **AC-F02.5:** Given the author deletes the tweet, when the delete commits, then the image metadata and stored object are removed. Expired uploads that were never attached are removed too.
 - **US-F03 Notifications:** follow and like events create deduplicated recipient notifications; self-actions do not; read state is user-specific and paginated.
+
+### US-G01 Explore a populated local environment (SEED-01)
+
+- **AC-G01.1:** Local setup creates 10 sign-in-ready demo members by default. A developer can request 10–100 total with a script flag or environment setting.
+- **AC-G01.2:** Members have posts, replies, follows, likes and notifications. Reruns can grow the dataset without duplicating records, removing data or taking over an existing account.
+- **AC-G01.3:** Seeding targets a local development database only. The generated demo password stays outside version control, container images and logs.
 
 ## Cross-cutting acceptance criteria
 

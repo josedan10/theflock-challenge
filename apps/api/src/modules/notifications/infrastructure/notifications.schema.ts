@@ -17,7 +17,7 @@ const timestamptz = (name: string) =>
 
 /**
  * In-app notifications (NOT-01). One row per recipient-facing event, written
- * in the same transaction as the follow, like or reply that causes it.
+ * in the same transaction as the follow, like, reply, or mention that causes it.
  *
  * `dedupe_key` is unique, so repeating an action (re-like, re-follow, a retry)
  * never notifies twice. The checks repeat the application rules: nobody is
@@ -47,7 +47,7 @@ export const notifications = pgTable(
   (table) => [
     check(
       "notifications_type_check",
-      sql`${table.type} in ('follow', 'like', 'reply')`,
+      sql`${table.type} in ('follow', 'like', 'reply', 'mention')`,
     ),
     check(
       "notifications_not_self_check",

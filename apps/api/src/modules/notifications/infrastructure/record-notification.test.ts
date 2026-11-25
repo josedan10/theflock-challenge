@@ -20,6 +20,17 @@ describe("notificationDedupeKey", () => {
     ).toBe("like:a:t");
   });
 
+  it("US-B05 keys a mention by the tweet and the person named", () => {
+    expect(
+      notificationDedupeKey({
+        actorId: "a",
+        recipientId: "r",
+        tweetId: "t",
+        type: "mention",
+      }),
+    ).toBe("mention:t:r");
+  });
+
   it("NOT-01 keys a reply by the reply itself", () => {
     expect(
       notificationDedupeKey({

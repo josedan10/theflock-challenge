@@ -4,16 +4,19 @@ import { notifications } from "./notifications.schema.js";
 
 import type { DatabaseExecutor } from "../../../platform/database/client.js";
 
-/** A follow, like or reply that someone else should hear about. */
+/** A follow, like, reply, or mention that someone else should hear about. */
 export type NotificationEvent =
   | { type: "follow"; actorId: string; recipientId: string }
   | { type: "like"; actorId: string; recipientId: string; tweetId: string }
   /** `tweetId` is the new reply, so deleting the reply removes the notice. */
-  | { type: "reply"; actorId: string; recipientId: string; tweetId: string };
+  | { type: "reply"; actorId: string; recipientId: string; tweetId: string }
+  /** `tweetId` is the post that contains the @mention. */
+  | { type: "mention"; actorId: string; recipientId: string; tweetId: string };
 
 /**
  * One key per meaningful event: a member liking a tweet notifies once however
  * often they unlike and like again; a follow likewise; each reply once.
+ * Each mentioned member is notified once per tweet.
  */
 export function notificationDedupeKey(event: NotificationEvent): string {
   switch (event.type) {
@@ -23,6 +26,8 @@ export function notificationDedupeKey(event: NotificationEvent): string {
       return `like:${event.actorId}:${event.tweetId}`;
     case "reply":
       return `reply:${event.tweetId}`;
+    case "mention":
+      return `mention:${event.tweetId}:${event.recipientId}`;
   }
 }
 

@@ -35,6 +35,20 @@ describe("TweetCard content", () => {
     expect(screen.getByText(/hi\s+there/)).toHaveClass("whitespace-pre-wrap");
   });
 
+  it("US-B05 links an @mention to that profile", () => {
+    renderWithSession(
+      <TweetCard
+        tweet={{ ...testTweet, content: "Hello @Grace!" }}
+        viewerId={null}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "@Grace" })).toHaveAttribute(
+      "href",
+      "/u/grace",
+    );
+  });
+
   it("US-F02 AC-F02.4 shows the image description as the text alternative", () => {
     renderWithSession(
       <TweetCard

@@ -20,6 +20,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **AUTH-04:** Registration/login UI and Playwright flows.
 - [x] **PRO-01:** Profile read/update API and authorization tests (US-A03).
 - [x] **PRO-02:** Responsive profile UI, placeholder avatar, counts, accessibility tests.
+- [ ] **PRO-03:** Show a member's tweets and replies on their profile, newest first, with cursor pagination and the same card behavior as the rest of the app. A reply appears on its author's profile. Deleted posts disappear (PROFILE-03, US-A03, AC-A03.4).
 
 ## Tweets/timeline
 
@@ -27,7 +28,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **TWT-02:** Composer/card components and optimistic/error behavior.
 - [x] **FEED-01:** Keyset timeline SQL, indexes, cursor signing/validation, integration and explain-plan tests.
 - [x] **FEED-02:** Infinite feed with deduplication, retry/end/empty states and Playwright tests.
-- [x] **TWT-03:** Home-timeline posting shows the new tweet with the entrance animation only (no “Posting your tweet…” block, and no artificial wait to keep that block on screen). For 5 seconds after create, that tweet shows a countdown line and Undo, which deletes it without the usual confirmation. Then Undo disappears and AC-B02.3 applies (TWEET-03, US-B01, AC-B01.5–AC-B01.7). Replies stay as they are.
+- [x] **TWT-03:** Home-timeline posting shows the new tweet with the entrance animation only (no “Posting your tweet…” block, and no artificial wait to keep that block on screen). For 5 seconds after create, that tweet shows a countdown line and Undo, which deletes it without the usual confirmation. Then Undo disappears and AC-B02.3 applies (TWEET-03, US-B01, AC-B01.5–AC-B01.7). A new reply shows the same countdown on its thread card.
 
 ## Social/search
 
@@ -43,11 +44,12 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **NOT-01:** In-app notifications for relevant social activity, with deduplication, read state, pagination, and accessible UI.
 - [x] **LIVE-01:** Live timeline updates with reconnect/catch-up behavior and duplicate suppression.
 - [x] **IMG-01:** Tweet image uploads with validation, ownership, safe storage lifecycle, and accessible rendering.
+- [x] **MEN-01:** Mention members with @username in a tweet or reply. Notify up to 10 existing members once; skip the author and unknown handles. Suggest people while typing @, link mentions to profiles, and show a notification (TWEET-04, US-B05).
 
 ## Local development experience
 
-- [ ] **SEED-01:** Provide a repeatable full local seed environment with at least 10 users by default; allow a user-specified user count through build configuration or a `setup.sh`/seed-script flag. Keep generated credentials local-only and document how to inspect/reset seeded data.
-- [ ] **DEV-01:** Add an opt-in local activity simulator that periodically creates tweets and replies between seeded/fake accounts and real local users. It must be disabled by default and controllable at startup or through an environment feature flag; bound activity rate and make it safe to stop/reset.
+- [x] **SEED-01:** Provide a repeatable full local seed environment with at least 10 users by default; allow a user-specified user count through build configuration or a `setup.sh`/seed-script flag. Keep generated credentials local-only and document how to inspect/reset seeded data.
+- [ ] **DEV-01:** Add an opt-in local activity simulator that periodically creates tweets and replies between seeded/fake accounts and real local users. It must be disabled by default and controllable at startup or through an environment feature flag; bound activity rate and make it safe to stop/reset. Draw posts from `apps/api/scripts/activity-corpus` (200 examples, some with images). Replace `{mention}` with a real @username when a line is posted.
 
 ## Local quality gates
 

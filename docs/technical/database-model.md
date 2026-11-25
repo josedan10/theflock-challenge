@@ -87,9 +87,9 @@ Composite PK `(user_id, tweet_id)`; index `(tweet_id, created_at DESC, user_id)`
 
 Migration `notifications` adds `notifications(id, recipient_id, actor_id, type, tweet_id nullable, dedupe_key UNIQUE, read_at, created_at)`.
 
-- `type` is `follow`, `like` or `reply`; a check requires `tweet_id` for likes and replies only (the liked tweet, or the new reply) and another forbids `actor_id = recipient_id`.
-- `dedupe_key` is `follow:{actor}:{recipient}`, `like:{actor}:{tweet}` or `reply:{reply}`; inserts use `ON CONFLICT DO NOTHING`, so repeats and concurrent retries notify once.
-- Rows are written by the follow, like and reply commands in their own transaction. This gives the outbox's guarantee (no notification without its action, none lost) without a relay worker; a separate outbox is only worth adding if live delivery has to publish outside PostgreSQL.
+- `type` is `follow`, `like`, `reply`, or `mention`. Migration `20261125162954_mention_notifications` widens the type check. A check requires `tweet_id` for likes, replies, and mentions (the liked tweet, the new reply, or the mentioning post) and another forbids `actor_id = recipient_id`.
+- `dedupe_key` is `follow:{actor}:{recipient}`, `like:{actor}:{tweet}`, `reply:{reply}`, or `mention:{tweet}:{recipient}`; inserts use `ON CONFLICT DO NOTHING`, so repeats and concurrent retries notify once.
+- Rows are written by the follow, like, reply, and mention commands in their own transaction. To roll a mention deploy back, stop writing `mention` rows and restore the previous type check after deleting those rows. The table can stay. This gives the outbox's guarantee (no notification without its action, none lost) without a relay worker; a separate outbox is only worth adding if live delivery has to publish outside PostgreSQL.
 - Foreign keys cascade from the recipient, the actor and the tweet, so deleting a tweet or reply removes its notifications.
 - `notifications_recipient_created_id_idx (recipient_id, created_at DESC, id DESC)` serves the page; the partial `notifications_recipient_unread_idx (recipient_id) WHERE read_at IS NULL` serves the badge count.
 - Rollback: stop serving the routes and the writes; the table is additive and can stay.

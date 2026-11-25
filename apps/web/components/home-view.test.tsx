@@ -264,6 +264,76 @@ describe("HomeView tweets", () => {
     ).toEqual(["fresh", "loaded", "older"]);
   });
 
+  it("AC-F01.2 holds a new post behind a banner when the top of the feed is off screen", async () => {
+    class AwayFromTop implements IntersectionObserver {
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly thresholds = [];
+      constructor(private readonly callback: IntersectionObserverCallback) {}
+      observe(): void {
+        this.callback(
+          [{ isIntersecting: false } as IntersectionObserverEntry],
+          this,
+        );
+      }
+      disconnect(): void {
+        // The effect drops the observer; nothing else needs releasing.
+      }
+      takeRecords(): IntersectionObserverEntry[] {
+        return [];
+      }
+      unobserve(): void {
+        // Observation ends with disconnect.
+      }
+    }
+    vi.stubGlobal("IntersectionObserver", AwayFromTop);
+    const loaded = {
+      ...testTweet,
+      content: "loaded",
+      createdAt: "2026-11-24T12:00:00.000Z",
+      id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f62",
+    };
+    const fresh = {
+      ...testTweet,
+      content: "fresh",
+      createdAt: "2026-11-24T14:00:00.000Z",
+      id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f64",
+    };
+    const apiClient = fakeApiClient({
+      createTweet: vi.fn(async () => ({ tweet: fresh })),
+      getTimeline: vi.fn(async () => ({ items: [loaded], nextCursor: null })),
+      me: vi.fn(async () => testSession),
+    });
+    try {
+      renderWithSession(<HomeView />, apiClient);
+      const user = userEvent.setup();
+      expect(
+        await screen.findByText("loaded", { selector: "article p" }),
+      ).toBeInTheDocument();
+
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "What's happening?" }),
+        { target: { value: "fresh" } },
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Post" }));
+
+      const banner = await screen.findByRole("button", {
+        name: "Show 1 new post",
+      });
+      expect(banner.closest("p")).toHaveClass("sticky");
+      expect(
+        screen.queryByText("fresh", { selector: "article p" }),
+      ).not.toBeInTheDocument();
+      await user.click(banner);
+
+      expect(
+        screen.getByText("fresh", { selector: "article p" }),
+      ).toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("AC-B01.5 shows no posting block in the feed, then animates the new tweet in", async () => {
     let finish: () => void = () => undefined;
     const apiClient = fakeApiClient({

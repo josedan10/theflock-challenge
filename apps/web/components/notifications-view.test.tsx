@@ -76,6 +76,24 @@ describe("NotificationsView", () => {
     expect(screen.getByText("You're all caught up.")).toBeVisible();
   });
 
+  it("US-B05 says when someone mentioned you and opens that tweet", async () => {
+    renderWithSession(
+      <NotificationsView />,
+      signedIn({
+        getNotifications: vi.fn(async () => ({
+          items: [notice("a4", "mention")],
+          nextCursor: null,
+        })),
+        getUnreadCount: vi.fn(async () => ({ unreadCount: 1 })),
+      }),
+    );
+
+    const link = await screen.findByRole("link", {
+      name: /Grace mentioned you/,
+    });
+    expect(link).toHaveAttribute("href", `/tweets/${tweet.id}`);
+  });
+
   it("NOT-01 marks a notification read when it is opened", async () => {
     const markNotificationsRead = vi.fn(async () => ({ unreadCount: 0 }));
     renderWithSession(

@@ -30,6 +30,7 @@ describe("notification contract", () => {
         { ...base, tweet: null, type: "follow" },
         { ...base, tweet, type: "like" },
         { ...base, read: true, tweet, type: "reply" },
+        { ...base, tweet, type: "mention" },
       ],
       nextCursor: null,
     };
@@ -38,7 +39,7 @@ describe("notification contract", () => {
   });
 
   it.each([
-    ["an unknown type", { ...base, tweet: null, type: "mention" }],
+    ["an unknown type", { ...base, tweet: null, type: "quote" }],
     [
       "an extra field",
       { ...base, email: "x@y.z", tweet: null, type: "follow" },

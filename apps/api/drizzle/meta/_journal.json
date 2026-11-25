@@ -57,6 +57,13 @@
       "when": 1795621004457,
       "tag": "20261125153644_optional_image_alt",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795624194555,
+      "tag": "20261125162954_mention_notifications",
+      "breakpoints": true
     }
   ]
 }

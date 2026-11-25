@@ -366,3 +366,79 @@ describe("TweetComposer image", () => {
     expect(document.querySelector("img")).toBeNull();
   });
 });
+
+describe("TweetComposer mentions", () => {
+  it("US-B05 inserts the person chosen from an @ suggestion", async () => {
+    const searchUsers = vi.fn<ApiClient["searchUsers"]>(async () => ({
+      items: [
+        {
+          followedByViewer: false,
+          isViewer: false,
+          user: {
+            avatarUrl: null,
+            displayName: "Grace Hopper",
+            id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f62",
+            username: "grace",
+          },
+        },
+      ],
+    }));
+    await renderComposer(signedIn({ searchUsers }));
+
+    fireEvent.change(textbox(), { target: { value: "Hello @gr" } });
+    fireEvent.select(textbox(), {
+      target: { selectionStart: "Hello @gr".length },
+    });
+
+    const option = await screen.findByRole("option", { name: /Grace Hopper/ });
+    expect(textbox()).not.toHaveAttribute("aria-expanded");
+    expect(textbox()).toHaveAttribute("aria-controls", "tweet-mentions");
+    expect(textbox()).toHaveAttribute(
+      "aria-activedescendant",
+      "tweet-mention-0",
+    );
+    expect(searchUsers).toHaveBeenCalledWith("gr");
+    fireEvent.mouseDown(option);
+
+    expect(textbox()).toHaveValue("Hello @grace ");
+  });
+
+  it("US-B05 hides the mention list after posting until @ is typed again", async () => {
+    const searchUsers = vi.fn<ApiClient["searchUsers"]>(async () => ({
+      items: [
+        {
+          followedByViewer: false,
+          isViewer: false,
+          user: {
+            avatarUrl: null,
+            displayName: "Grace Hopper",
+            id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f62",
+            username: "grace",
+          },
+        },
+      ],
+    }));
+    await renderComposer(signedIn({ searchUsers }));
+    const mention = "Hello @gr";
+    fireEvent.change(textbox(), {
+      target: { selectionStart: mention.length, value: mention },
+    });
+    expect(
+      await screen.findByRole("listbox", { name: "Mention someone" }),
+    ).toBeVisible();
+
+    fireEvent.submit(textbox().closest("form") as HTMLFormElement);
+
+    expect(await screen.findByText("Posted.")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("listbox", { name: "Mention someone" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(textbox(), {
+      target: { selectionStart: 3, value: "@gr" },
+    });
+    expect(
+      await screen.findByRole("listbox", { name: "Mention someone" }),
+    ).toBeVisible();
+  });
+});

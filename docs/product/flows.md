@@ -59,10 +59,11 @@
 ## 8. Threaded replies
 
 1. Any visitor opens a tweet's thread; the parent and nested descendants are public.
-2. A signed-in member replies to the selected tweet or to any reply. The API validates the parent and derives the author from the session.
-3. The thread displays replies in deterministic parent-before-child order and fetches bounded pages without duplicating entries.
-4. A reply author may delete their own reply. Deleting any tweet removes all descendants, including replies by other users.
-5. Show confirmation before deletion and reconcile thread views after success; errors preserve the visible content and offer retry.
+2. A signed-in member replies to the selected tweet or to any reply. The API validates the parent and derives the author from the session. The reply is stored immediately; undo does not delay the request.
+3. For 5 seconds the new reply appears directly under the composer, above older replies, with a countdown line and **Undo**. Undo deletes it without the usual delete confirmation. After 5 seconds, Undo is gone, the reply joins the thread in its normal place, and later deletion uses the normal confirmation. Leaving the thread ends the window; the reply remains.
+4. The thread displays replies in deterministic parent-before-child order and fetches bounded pages without duplicating entries.
+5. A reply author may delete their own reply. Deleting any tweet removes all descendants, including replies by other users.
+6. Show confirmation before deletion and reconcile thread views after success; errors preserve the visible content and offer retry. A failed undo keeps the reply and announces the error.
 
 **Implementation caveat:** synchronous recursive deletion is an intentional local-challenge simplification. On a large thread it can cause expensive fan-out deletes and long transactions/locks; do not carry this design into a production-scale service without redesigning deletion.
 
@@ -78,7 +79,7 @@
 
 1. A signed-in member on `/home` opens `GET /v1/timeline/stream` (SSE) with the session cookie. No CSRF token: this is a read.
 2. After a tweet by the member or someone they follow commits, the API writes an SSE event whose `id` is a signed cursor and whose `data` is `{ "tweetId" }`. Tweet text never goes on the stream.
-3. The browser refetches `GET /v1/timeline` and merges new cards the same way as a post from this visit. At the top of the feed they prepend with the entrance animation; while reading older pages, a **Show N new posts** banner waits instead of jumping the list. Focus stays where it was.
+3. The browser refetches `GET /v1/timeline` and merges new cards the same way as a post from this visit. At the top of the feed they prepend with the entrance animation. When the top of the feed is off screen, or the member is reading an older page, a **Show N new posts** banner stays in view and those cards wait there instead of jumping the list. Focus stays where it was.
 4. EventSource reconnects with `Last-Event-ID`. The API replays at most 30 missed eligible ids, newest first, then resumes live events. The client drops ids it already has.
 5. Disconnects, other authors' tweets, and a bad `Last-Event-ID` never expand what that member is allowed to see. Duplicate delivery is suppressed by tweet id.
 

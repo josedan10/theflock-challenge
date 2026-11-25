@@ -5,12 +5,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "db:generate": "drizzle-kit generate",
+    "db:seed": "node --env-file-if-exists=../../.env --import tsx scripts/seed-local.ts",
     "db:migrate": "drizzle-kit migrate",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint . --no-error-on-unmatched-pattern",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.check.json"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.5",
