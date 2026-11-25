@@ -18,7 +18,7 @@ test("US-B01 posts a tweet with ⌘/Ctrl+Enter while Enter adds a new line", asy
 
   await expect(
     page
-      .getByRole("list", { name: "Home timeline" })
+      .getByRole("list", { name: "Home", exact: true })
       .getByRole("article")
       .filter({ hasText: "then sent" }),
   ).toBeVisible({ timeout: FIRST_VISIT_TIMEOUT_MS });

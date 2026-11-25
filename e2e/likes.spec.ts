@@ -17,7 +17,7 @@ test("US-C02 AC-C02.2 likes and unlikes a tweet from its heart, and the count su
     .fill("Heart me");
   await page.getByRole("button", { name: "Post", exact: true }).click();
   const card = page
-    .getByRole("list", { name: "Home timeline" })
+    .getByRole("list", { name: "Home", exact: true })
     .getByRole("article")
     .filter({ hasText: "Heart me" });
   await expect(card).toBeVisible({ timeout: FIRST_VISIT_TIMEOUT_MS });
@@ -29,7 +29,7 @@ test("US-C02 AC-C02.2 likes and unlikes a tweet from its heart, and the count su
 
   await page.reload();
   const reloaded = page
-    .getByRole("list", { name: "Home timeline" })
+    .getByRole("list", { name: "Home", exact: true })
     .getByRole("article")
     .filter({ hasText: "Heart me" });
   await expect(
