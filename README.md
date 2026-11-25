@@ -6,7 +6,7 @@ This yet-to-be-named product is a mobile-first social application for short post
 
 **Active development.** The containerized Next.js, Fastify, and PostgreSQL foundation is implemented. Authentication and its automated test coverage are currently under development.
 
-Local setup includes 10 demo accounts and sample conversations. Use `./scripts/setup.sh --seed-users 25` for a larger dataset; see [local demo data](docs/SETUP.md#local-demo-data-seed-01) for sign-in and reset instructions.
+Local setup includes 10 demo accounts and sample conversations. Use `pnpm stack:up --seed-users 25` for a larger dataset; see [local demo data](docs/SETUP.md#local-demo-data-seed-01) for sign-in and reset instructions.
 
 ### See it live
 
@@ -92,23 +92,26 @@ Copy the generated value into `SESSION_SECRET` in `.env`, replacing `replace_me_
 Validate Docker, Node, Compose, and every required variable:
 
 ```bash
-./scripts/doctor.sh
+pnpm stack:doctor
 ```
 
 Do not continue until the doctor reports `0 error(s)`.
 
-### 3. Start PostgreSQL and migrate
+### 3. Start PostgreSQL, migrate and seed
 
 ```bash
-docker compose --profile dev up -d postgres
+pnpm db:up
 pnpm db:migrate
+pnpm db:seed
 ```
 
 ### 4. Start the web and API containers
 
 ```bash
-docker compose --profile dev up --build
+pnpm compose:up
 ```
+
+Once Corepack is enabled, `pnpm stack:up` does all of the above in one go: it creates `.env` with a generated secret if missing, runs the doctor, installs dependencies, migrates, seeds, and starts the stack. It is safe to re-run.
 
 Once the services are healthy, open:
 
@@ -116,11 +119,12 @@ Once the services are healthy, open:
 - API readiness: <http://localhost:4000/health/ready>
 - API liveness: <http://localhost:4000/health/live>
 
-Verify the running services from another terminal:
+Verify the running services:
 
 ```bash
-curl --fail http://localhost:4000/health/ready
-docker compose ps
+pnpm api:health
+pnpm compose:ps
+pnpm compose:logs
 ```
 
 If a default port is occupied, change `WEB_PORT`, `API_PORT`, or `POSTGRES_PORT` in `.env`. When changing the web or API port, also update the corresponding URLs and `CORS_ORIGIN`.
@@ -128,10 +132,10 @@ If a default port is occupied, change `WEB_PORT`, `API_PORT`, or `POSTGRES_PORT`
 ### Stop the project
 
 ```bash
-docker compose down
+pnpm compose:down
 ```
 
-This preserves the PostgreSQL volume. To deliberately delete all local database data, run `docker compose down -v` instead.
+This preserves the PostgreSQL volume. To deliberately delete all local database data, run `pnpm compose:destroy-data` instead.
 
 For troubleshooting, browser-test installation, and quality-gate commands, see the complete [setup guide](docs/SETUP.md).
 
