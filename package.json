@@ -8,6 +8,7 @@
     "pnpm": ">=10 <11"
   },
   "scripts": {
+    "activity": "pnpm --filter @twitter-clone/api activity",
     "build": "turbo run build",
     "compose:down": "docker compose --profile dev down",
     "compose:logs": "docker compose --profile dev logs -f",
