@@ -42,3 +42,43 @@ export interface FollowRepository {
    */
   unfollow(input: UnfollowWrite): Promise<FollowRelationship>;
 }
+
+/** Committed like state used to reconcile a like button. */
+export interface LikeState {
+  tweetId: string;
+  liked: boolean;
+  /** The tweet's like count from rows committed in this command. */
+  likeCount: number;
+}
+
+export interface LikeWrite {
+  memberId: string;
+  tweetId: string;
+  /** Clock instant for a newly inserted like. A repeat like keeps the original. */
+  now: Date;
+}
+
+export interface UnlikeWrite {
+  memberId: string;
+  tweetId: string;
+}
+
+export interface LikeRepository {
+  /**
+   * Inserts the like when it is absent.
+   *
+   * The composite primary key makes a concurrent or repeated insert a no-op.
+   * The returned count includes this command's row.
+   *
+   * @throws {LikeTargetNotFoundError} When the tweet does not exist.
+   */
+  like(input: LikeWrite): Promise<LikeState>;
+  /**
+   * Removes the like when it is present.
+   *
+   * A second unlike of the same pair leaves the count unchanged.
+   *
+   * @throws {LikeTargetNotFoundError} When the tweet does not exist.
+   */
+  unlike(input: UnlikeWrite): Promise<LikeState>;
+}

@@ -3,6 +3,7 @@
 export * from "./auth";
 export * from "./errors";
 export * from "./follow";
+export * from "./like";
 export * from "./profile";
 export * from "./tweet";
 export * from "./timeline";
