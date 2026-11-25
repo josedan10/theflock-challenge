@@ -34,7 +34,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **SOC-02:** Like repository/API with canonical count response and concurrency tests.
 - [x] **SOC-03:** Cursor-paginated follower/following API and UI.
 - [x] **SRC-01:** Escaped, indexed user search with ranking and integration tests.
-- [ ] **SRC-02:** Search UI with debounce, minimum length, empty/error states.
+- [x] **SRC-02:** Search UI with debounce, minimum length, empty/error states.
 
 ## Release hardening
 
