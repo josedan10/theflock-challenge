@@ -8,6 +8,27 @@ This yet-to-be-named product is a mobile-first social application for short post
 
 Local setup includes 10 demo accounts and sample conversations. Use `./scripts/setup.sh --seed-users 25` for a larger dataset; see [local demo data](docs/SETUP.md#local-demo-data-seed-01) for sign-in and reset instructions.
 
+### See it live
+
+With `ACTIVITY_SIMULATOR=true` in `.env`, the demo accounts keep posting, replying and liking while you use the app ([how to run, stop and reset it](docs/SETUP.md#local-activity-simulator-dev-01)). They favour real accounts: they reply to your posts, like them and mention you, so your Notifications fill up as well.
+
+Home only shows live posts from people you follow. Register your own account, then follow some or all of these accounts, at `http://localhost:3000/u/<username>` or through Search:
+
+| Username  | Name         | Posts about                         |
+| --------- | ------------ | ----------------------------------- |
+| `demo_1`  | Maya Chen    | Film photos from the walk to work   |
+| `demo_2`  | Andre Brooks | Weeknight cooking                   |
+| `demo_3`  | Priya Nair   | Early ridge trails                  |
+| `demo_4`  | Jonah Okeke  | Bands in small rooms                |
+| `demo_5`  | Elena Varga  | A Tuesday book club                 |
+| `demo_6`  | Samir Rahman | Balcony gardening                   |
+| `demo_7`  | Nora Silva   | Thursday board games                |
+| `demo_8`  | Luis Ibarra  | Cycling the river path              |
+| `demo_9`  | Hana Park    | Coffee beans and kettles            |
+| `demo_10` | Owen Doyle   | Sketching people waiting for things |
+
+A larger seed adds `demo_11` onward, which reuse these voices in other parts of town.
+
 ## Chosen stack
 
 - **Web:** Next.js + React + TypeScript, run locally

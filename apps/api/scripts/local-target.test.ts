@@ -20,3 +20,12 @@ it("SEED-01 AC-G01.3 rejects remote targets, overrides and non-development envir
   }
   expect(() => localTarget(local, "production")).toThrow();
 });
+
+it("DEV-01 accepts a named Compose database host only when asked", () => {
+  const compose = "postgresql://demo@postgres:5432/demo";
+  expect(() => localTarget(compose)).toThrow();
+  expect(localTarget(compose, "development", ["postgres"])).toMatchObject({
+    host: "postgres",
+  });
+  expect(() => localTarget(compose, "production", ["postgres"])).toThrow();
+});

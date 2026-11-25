@@ -1,14 +1,25 @@
-/** Accept only simple loopback PostgreSQL URLs; query parameters must not override the host. */
+/** Hostnames that resolve to this machine. */
+export const LOOPBACK_HOSTS: readonly string[] = [
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+];
+
+/**
+ * Accept only simple loopback PostgreSQL URLs; query parameters must not override the host.
+ * `composeHosts` adds Compose service names for tools that run inside the dev network.
+ */
 export function localTarget(
   rawUrl: string | undefined,
   environment = "development",
+  composeHosts: readonly string[] = [],
 ) {
   const url = URL.parse(rawUrl ?? "");
   if (
     environment !== "development" ||
     !url ||
     !["postgres:", "postgresql:"].includes(url.protocol) ||
-    !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) ||
+    ![...LOOPBACK_HOSTS, ...composeHosts].includes(url.hostname) ||
     url.search ||
     !url.pathname.slice(1)
   ) {
