@@ -8,6 +8,7 @@ export * from "./like";
 export * from "./mentions";
 export * from "./notification";
 export * from "./profile";
+export * from "./profile-posts";
 export * from "./search";
 export * from "./tweet";
 export * from "./timeline";
