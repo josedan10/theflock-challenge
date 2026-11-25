@@ -59,6 +59,17 @@ export const users = pgTable(
       "users_password_hash_argon2id_check",
       sql`${table.passwordHash} LIKE '$argon2id$%'`,
     ),
+    // People search (US-D01): trigram indexes serve case-insensitive
+    // substring matches of three or more characters. Usernames are stored
+    // lowercase; display names are matched through lower().
+    index("users_username_trgm_idx").using(
+      "gin",
+      sql`${table.username} gin_trgm_ops`,
+    ),
+    index("users_display_name_trgm_idx").using(
+      "gin",
+      sql`lower(${table.displayName}) gin_trgm_ops`,
+    ),
   ],
 );
 

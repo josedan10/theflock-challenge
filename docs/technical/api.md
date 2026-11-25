@@ -146,6 +146,16 @@ Self-follow and self-unfollow return `422 VALIDATION_ERROR` with `fields.usernam
 
 Following makes the target's existing tweets eligible for the follower's next home-timeline read (AC-C01.3). Unfollow removes that eligibility on the next read. Issued cursors are not rewritten. SOC-01 adds no migration: the `follows` table already exists. To roll the API back, stop serving these routes and leave the table in place.
 
+## People search (`GET /v1/users/search?q=&limit=`)
+
+Members only (US-D01): no session is `401`. `q` is trimmed and must be 2–50 characters counted as code points; shorter, longer, blank, or NUL-containing text, an invalid `limit`, or an unknown parameter is `422 VALIDATION_ERROR` with the field named (AC-D01.4). `limit` defaults to 20 and is capped at 30. Results are capped, not paginated (AC-D01.3).
+
+Matching is case-insensitive over username and display name, and literal: `%`, `_` and `\` are escaped and match only themselves. Order (AC-D01.2): exact username, username prefix, display-name prefix, then any other substring; ties order by username, so results are deterministic. Soft-deleted members never match.
+
+`200` (`userSearchResponseSchema`), `Cache-Control: no-store`. Items have the follow-list row shape: public `user` fields plus `followedByViewer` and `isViewer`. Email, password hashes and storage keys are never selected. The search text is not logged (request logs record only the route template). Searches allow 60 per minute per client address.
+
+The username `search` is reserved at registration, because `/v1/users/search` would otherwise hide that member's profile.
+
 ## Followers and following (`GET /v1/users/:username/followers`, `GET /v1/users/:username/following`)
 
 Public reads (US-C03). A session is optional: an active `sid` cookie adds the viewer's relationship to each row, and a missing, expired or revoked one is treated as signed out, never `401`. The username is matched case-insensitively. Unknown, malformed and soft-deleted usernames return `404 NOT_FOUND` ("That profile does not exist.").
@@ -242,7 +252,7 @@ Omit `cursor` on the first page. Pass the returned cursor unchanged for the next
 ## Rate-limit starting points
 
 - Login/register: 5/minute per privacy-safe composite key, with measured tuning.
-- Profile updates: 20/minute per client address. Profile reads and followers/following reads: 120/minute per client address.
+- Profile updates: 20/minute per client address. Profile reads and followers/following reads: 120/minute per client address. People search: 60/minute per client address.
 - Tweet creation: 20/minute per client address; follow and unfollow: 60/minute per client address, counted separately; like and unlike: 60/minute per client address, counted separately.
 - Reads: 120/minute/user/IP. Health checks are separately limited/allowlisted.
 

@@ -32,3 +32,9 @@ export function profileRateLimitConfig(
     timeWindow: limit.timeWindowMs,
   };
 }
+
+/** API starting point for people search: each query is a pattern scan. */
+export const DEFAULT_USER_SEARCH_RATE_LIMIT: ProfileRateLimit = {
+  max: 60,
+  timeWindowMs: 60_000,
+};

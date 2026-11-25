@@ -55,13 +55,22 @@ export const emailSchema = z
   .max(EMAIL_MAX_LENGTH, "Must be at most 254 characters.")
   .pipe(z.email("Must be a valid email address."));
 
+/**
+ * Usernames that would collide with a static route under `/v1/users/`, so
+ * their profile could never be read: `/v1/users/search` is people search.
+ */
+export const RESERVED_USERNAMES: ReadonlySet<string> = new Set(["search"]);
+
 export const usernameSchema = z
   .string()
   .trim()
   .regex(
     USERNAME_PATTERN,
     "Must be 3–30 characters: a letter followed by letters, digits, or underscores.",
-  );
+  )
+  .refine((value) => !RESERVED_USERNAMES.has(normalizeUsername(value)), {
+    message: "That username is reserved. Choose another.",
+  });
 
 /**
  * Registration password policy. Never trimmed: whitespace is part of the secret.

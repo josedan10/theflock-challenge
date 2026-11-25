@@ -6,5 +6,6 @@ export * from "./follow";
 export * from "./follow-list";
 export * from "./like";
 export * from "./profile";
+export * from "./search";
 export * from "./tweet";
 export * from "./timeline";
