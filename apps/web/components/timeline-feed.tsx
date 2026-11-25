@@ -36,10 +36,24 @@ import { PostUndo } from "./post-undo";
 import { TimelineSkeleton } from "./skeletons";
 import { TweetCard } from "./tweet-card";
 
-import type { SessionUser } from "@twitter-clone/contracts";
+import type {
+  SessionUser,
+  TimelineItem,
+  TimelineReplyContext,
+  Tweet,
+} from "@twitter-clone/contracts";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
+
+/** Parent excerpt when this card came from the timeline; a fresh post has none. */
+function replyContextOf(tweet: Tweet): TimelineReplyContext | null {
+  if (!("replyingTo" in tweet)) {
+    return null;
+  }
+  const context = (tweet as TimelineItem).replyingTo;
+  return context ?? null;
+}
 
 /** Why a delete failed, shown on that tweet's card. */
 interface DeleteFailure {
@@ -328,6 +342,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             >
               <TweetCard
                 failure={failure?.tweetId === tweet.id ? failure.message : null}
+                replyContext={replyContextOf(tweet)}
                 footer={
                   undoWindows[tweet.id] === undefined ? null : (
                     <PostUndo

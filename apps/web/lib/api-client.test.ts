@@ -290,12 +290,13 @@ describe("API client", () => {
     });
 
     it("US-B03 AC-B03.3 reads the first page with credentials and no CSRF header", async () => {
+      const card = { ...tweet, replyingTo: null };
       const { client, fetchImpl } = clientReturning(
-        jsonResponse(200, { items: [tweet], nextCursor: null }),
+        jsonResponse(200, { items: [card], nextCursor: null }),
       );
 
       await expect(client.getTimeline()).resolves.toEqual({
-        items: [tweet],
+        items: [card],
         nextCursor: null,
       });
       expect(fetchImpl).toHaveBeenCalledWith("http://api.test/v1/timeline", {

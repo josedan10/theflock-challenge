@@ -114,16 +114,16 @@ export function assembleTimeline(
  * newer than it; `known` are the ids in that list when it was removed, so a
  * tweet posted later (not in `known`) stays newer than the restored one.
  */
-export interface TweetSlot {
+export interface TweetSlot<T extends Tweet = Tweet> {
   above: ReadonlySet<string>;
   known: ReadonlySet<string>;
-  tweet: Tweet;
+  tweet: T;
 }
 
-export function tweetSlot(
-  tweets: readonly Tweet[],
+export function tweetSlot<T extends Tweet>(
+  tweets: readonly T[],
   tweetId: string,
-): TweetSlot | undefined {
+): TweetSlot<T> | undefined {
   const index = tweets.findIndex((tweet) => tweet.id === tweetId);
   if (index < 0) {
     return undefined;
@@ -131,15 +131,15 @@ export function tweetSlot(
   return {
     above: new Set(tweets.slice(0, index).map((tweet) => tweet.id)),
     known: new Set(tweets.map((tweet) => tweet.id)),
-    tweet: tweets[index] as Tweet,
+    tweet: tweets[index] as T,
   };
 }
 
 /** Inserts `slot.tweet` unless that id is already present. */
-export function restoreTweet(
-  tweets: readonly Tweet[],
-  slot: TweetSlot,
-): Tweet[] {
+export function restoreTweet<T extends Tweet>(
+  tweets: readonly T[],
+  slot: TweetSlot<T>,
+): T[] {
   if (tweets.some((tweet) => tweet.id === slot.tweet.id)) {
     return [...tweets];
   }

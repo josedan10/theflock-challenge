@@ -64,6 +64,15 @@ export interface TweetCardProps {
   connectBelow?: boolean;
   /** Shown as "Replying to @username" when the parent is not right above. */
   replyingTo?: string | null;
+  /**
+   * Parent excerpt for a reply that stands alone in the home timeline.
+   * Null for a root tweet.
+   */
+  replyContext?: {
+    content: string;
+    id: string;
+    username: string | null;
+  } | null;
   /** Replaces the bubble's thread link, e.g. to focus the reply box. */
   onReply?: () => void;
   onDelete?: (tweetId: string) => void;
@@ -86,6 +95,7 @@ export function TweetCard({
   footer = null,
   onDelete,
   onReply,
+  replyContext = null,
   replyingTo = null,
   tweet,
   variant = "card",
@@ -192,6 +202,30 @@ export function TweetCard({
     </AlertDialog>
   ) : null;
 
+  const context =
+    replyContext === null ? null : (
+      <Link
+        className="grid gap-0.5 rounded-lg border bg-muted/50 px-3 py-2 text-sm no-underline hover:bg-muted"
+        href={`/tweets/${replyContext.id}`}
+      >
+        <span className="text-muted-foreground">
+          {replyContext.username === null ? (
+            "Replying to a deleted account"
+          ) : (
+            <>
+              Replying to{" "}
+              <span className="text-sky-700 dark:text-sky-400">
+                @{replyContext.username}
+              </span>
+            </>
+          )}
+        </span>
+        <span className="line-clamp-2 whitespace-pre-wrap break-words text-foreground">
+          {replyContext.content}
+        </span>
+      </Link>
+    );
+
   const replying =
     replyingTo === null ? null : (
       <p className="text-sm text-muted-foreground">
@@ -277,6 +311,7 @@ export function TweetCard({
           {deleteControl}
         </div>
         {replying}
+        {context}
         <TweetText
           className="whitespace-pre-wrap break-words"
           content={tweet.content}

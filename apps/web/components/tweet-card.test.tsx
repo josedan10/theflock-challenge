@@ -258,4 +258,27 @@ describe("TweetCard actions", () => {
       "/u/grace",
     );
   });
+
+  it("US-B04 shows the parent excerpt when a reply stands alone", () => {
+    renderWithSession(
+      <TweetCard
+        replyContext={{
+          content: "Fog sat in the valley until nine.",
+          id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f62",
+          username: "grace",
+        }}
+        tweet={testTweet}
+        viewerId={null}
+      />,
+    );
+
+    const context = screen.getByRole("link", {
+      name: /Replying to @grace/,
+    });
+    expect(context).toHaveAttribute(
+      "href",
+      "/tweets/0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f62",
+    );
+    expect(context).toHaveTextContent("Fog sat in the valley until nine.");
+  });
 });
