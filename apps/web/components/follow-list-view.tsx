@@ -1,6 +1,12 @@
 "use client";
 
-import { CircleAlertIcon, UsersRoundIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ChevronDownIcon,
+  CircleAlertIcon,
+  RotateCwIcon,
+  UsersRoundIcon,
+} from "lucide-react";
 import Link from "next/link";
 
 import { ApiError, type FollowListDirection } from "../lib/api-client";
@@ -69,10 +75,11 @@ export function FollowListView({
     <section aria-labelledby="follow-list-heading" className="grid gap-4">
       <div className="grid gap-3">
         <Link
-          className="text-sm text-muted-foreground"
+          className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground"
           href={`/u/${encodeURIComponent(username)}`}
         >
-          ← Back to @{username}
+          <ArrowLeftIcon aria-hidden="true" className="size-4" />
+          Back to @{username}
         </Link>
         <h1 className="text-2xl font-bold" id="follow-list-heading">
           {text.title}
@@ -113,6 +120,7 @@ export function FollowListView({
               type="button"
               variant="outline"
             >
+              <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
               Try again
             </Button>
           )}
@@ -159,6 +167,11 @@ export function FollowListView({
             type="button"
             variant="outline"
           >
+            {list.isFetchNextPageError ? (
+              <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
+            ) : (
+              <ChevronDownIcon aria-hidden="true" data-icon="inline-start" />
+            )}
             {list.isFetchNextPageError ? "Try again" : "Load more"}
           </Button>
         </div>
