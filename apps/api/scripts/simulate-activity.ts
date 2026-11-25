@@ -7,6 +7,7 @@ import {
   activityConfig,
   ActivitySettingsError,
   COMPOSE_DATABASE_HOST,
+  nextIntervalMs,
 } from "./activity/config.js";
 import { createLedger } from "./activity/ledger.js";
 import { createSimulator } from "./activity/simulator.js";
@@ -78,7 +79,7 @@ async function run(mode: "loop" | "once" | "reset") {
       return;
     }
     console.log(
-      `Activity simulator on: one action every ${config.intervalMs / 1000}s. Ctrl+C stops it.`,
+      `Activity simulator on: one action every ${config.minIntervalMs / 1000}–${config.maxIntervalMs / 1000}s. Ctrl+C stops it.`,
     );
     await new Promise<void>((resolve) => {
       let timer: NodeJS.Timeout | undefined;
@@ -100,9 +101,12 @@ async function run(mode: "loop" | "once" | "reset") {
         }
         // Schedule after the action finishes so slow actions never overlap.
         if (!stopping) {
-          timer = setTimeout(() => {
-            current = tick();
-          }, config.intervalMs);
+          timer = setTimeout(
+            () => {
+              current = tick();
+            },
+            nextIntervalMs(config, Math.random),
+          );
         }
       };
       current = tick();

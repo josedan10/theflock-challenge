@@ -4,11 +4,15 @@ import { LOOPBACK_HOSTS } from "../local-target.js";
 export const COMPOSE_API_HOST = "api";
 export const COMPOSE_DATABASE_HOST = "postgres";
 
-/** Seconds between actions. The floor keeps logins under the API's 5/minute budget. */
+/**
+ * Seconds between actions: each gap is random between the configured minimum
+ * and maximum. The floor keeps logins under the API's 5/minute budget.
+ */
 export const ACTIVITY_INTERVAL_SECONDS = {
-  default: 30,
-  max: 3600,
-  min: 15,
+  defaultMax: 40,
+  defaultMin: 15,
+  floor: 15,
+  ceiling: 3600,
 } as const;
 
 /** A setting the simulator refuses. The message names the setting and is safe to print. */
@@ -18,7 +22,29 @@ export class ActivitySettingsError extends Error {
 
 export interface ActivityConfig {
   apiOrigin: string;
-  intervalMs: number;
+  /** Shortest and longest gap between two actions. */
+  minIntervalMs: number;
+  maxIntervalMs: number;
+}
+
+function seconds(name: string, raw: string): number {
+  const { ceiling, floor } = ACTIVITY_INTERVAL_SECONDS;
+  const value = /^[1-9][0-9]{0,3}$/.test(raw) ? Number(raw) : Number.NaN;
+  if (!(value >= floor) || value > ceiling) {
+    throw new ActivitySettingsError(
+      `${name} must be an integer from ${floor} to ${ceiling}.`,
+    );
+  }
+  return value;
+}
+
+/** A random gap between the configured minimum and maximum. */
+export function nextIntervalMs(
+  config: Pick<ActivityConfig, "maxIntervalMs" | "minIntervalMs">,
+  random: () => number,
+): number {
+  const span = config.maxIntervalMs - config.minIntervalMs;
+  return config.minIntervalMs + Math.round(random() * span);
 }
 
 /**
@@ -42,17 +68,19 @@ export function activityConfig(env: NodeJS.ProcessEnv): ActivityConfig | null {
       "The activity simulator only runs in development.",
     );
   }
-  const rawInterval =
-    env.ACTIVITY_INTERVAL_SECONDS ?? String(ACTIVITY_INTERVAL_SECONDS.default);
-  const seconds = /^[1-9][0-9]{0,3}$/.test(rawInterval)
-    ? Number(rawInterval)
-    : Number.NaN;
-  if (
-    !(seconds >= ACTIVITY_INTERVAL_SECONDS.min) ||
-    seconds > ACTIVITY_INTERVAL_SECONDS.max
-  ) {
+  const min = seconds(
+    "ACTIVITY_MIN_INTERVAL_SECONDS",
+    env.ACTIVITY_MIN_INTERVAL_SECONDS ??
+      String(ACTIVITY_INTERVAL_SECONDS.defaultMin),
+  );
+  const max = seconds(
+    "ACTIVITY_MAX_INTERVAL_SECONDS",
+    env.ACTIVITY_MAX_INTERVAL_SECONDS ??
+      String(ACTIVITY_INTERVAL_SECONDS.defaultMax),
+  );
+  if (min > max) {
     throw new ActivitySettingsError(
-      `ACTIVITY_INTERVAL_SECONDS must be an integer from ${ACTIVITY_INTERVAL_SECONDS.min} to ${ACTIVITY_INTERVAL_SECONDS.max}.`,
+      "ACTIVITY_MIN_INTERVAL_SECONDS must not be greater than ACTIVITY_MAX_INTERVAL_SECONDS.",
     );
   }
   const api = URL.parse(env.ACTIVITY_API_URL ?? "http://localhost:4000");
@@ -70,5 +98,9 @@ export function activityConfig(env: NodeJS.ProcessEnv): ActivityConfig | null {
       "ACTIVITY_API_URL must be a local http origin, such as http://localhost:4000.",
     );
   }
-  return { apiOrigin: api.origin, intervalMs: seconds * 1000 };
+  return {
+    apiOrigin: api.origin,
+    maxIntervalMs: max * 1000,
+    minIntervalMs: min * 1000,
+  };
 }
