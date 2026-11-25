@@ -132,7 +132,9 @@ With a migrated local database, run `pnpm --filter @twitter-clone/api db:seed` t
 
 ### Local activity simulator (DEV-01)
 
-The simulator makes the local app feel used. Seeded demo accounts post and reply through the API, exactly as the web app does, so mentions, notifications, pictures and the live Home banner all behave as they would for real members. It never writes as a real account. It does mention real local members, and it replies to their posts as well as to the demo accounts'.
+The simulator makes the local app feel used. Seeded demo accounts post, reply and like through the API, exactly as the web app does, so mentions, notifications, pictures and the live Home banner all behave as they would for real members. It never acts as a real account, but it is aimed at them: once a real member has posted, demo accounts reply to and like that member's posts more than each other's.
+
+To watch it live, follow the demo accounts listed in the [README](../README.md#see-it-live). Home only streams posts from people you follow.
 
 It is **off by default**. Turn it on in the root `.env`:
 
@@ -142,11 +144,18 @@ ACTIVITY_INTERVAL_SECONDS=30 # one action per interval; 15–3600
 ```
 
 - **At startup:** `pnpm stack:up` starts the `activity` Compose service when the flag is `true`. Any value other than `true` or `false` stops setup before it changes anything.
-- **On demand:** `ACTIVITY_SIMULATOR=true pnpm activity` runs it in the foreground against the API on `http://localhost:4000`. Add `--once` for a single action.
+- **On demand:** `ACTIVITY_SIMULATOR=true pnpm activity` runs it in the foreground against the API on `http://localhost:4000`. Add `--once` for a single action. Each `--once` run logs in again, so more than five in a minute hit the API's login limit (HTTP 429); the long-running mode reuses its sessions.
 - **Stop:** `pnpm activity:stop` for the Compose service, or Ctrl+C in the foreground. An action in progress finishes first.
-- **Reset:** `pnpm activity:reset` deletes what the simulator posted, along with the replies, likes and notifications attached to it. It works from the list of tweet IDs the simulator keeps in `.data/activity-posts.txt`, so posts you wrote while signed in as a demo account stay. Uploaded picture files stay in the media folder but are no longer served.
+- **Reset:** `pnpm activity:reset` deletes what the simulator posted, along with the replies, likes and notifications attached to it, and takes back the likes it gave, with their notifications. It works from the list the simulator keeps in `.data/activity-posts.txt`, so anything you did while signed in as a demo account stays. Uploaded picture files stay in the media folder but are no longer served.
 
-Lines come from `apps/api/scripts/activity-corpus`: 200 posts and replies, 30 of them with a picture. A `{mention}` slot is filled with another member's `@username`, and half the time a real local member is preferred when there is one. A reply to a corpus post uses one of that post's own replies; a reply to anything else uses a random corpus reply. Pictures need `UPLOADS_ENABLED=true` on the API; without it, the same posts go out as text.
+How each action is chosen, when a real member has posted recently (their 20 latest posts and replies are considered):
+
+- 1 in 4 actions likes one of those posts.
+- Of the rest, 6 in 10 are replies, and 8 in 10 of those go to a real member.
+- The others are new posts.
+- When no real member has posted, demo accounts reply to each other 4 times in 10 and never like.
+
+Lines come from `apps/api/scripts/activity-corpus`: 200 posts and replies, 30 of them with a picture. A `{mention}` slot is filled with another member's `@username`, choosing a real local member 8 times in 10 when there is one. A reply to a corpus post uses one of that post's own replies; a reply to anything else uses a random corpus reply. Pictures need `UPLOADS_ENABLED=true` on the API; without it, the same posts go out as text.
 
 Safety limits:
 
