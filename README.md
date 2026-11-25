@@ -1,10 +1,19 @@
-# Twitter Clone (working title)
+# Twitter Clone
 
-This yet-to-be-named product is a mobile-first social application for short posts, follows, likes, user search, and chronological timelines.
+A mobile-first social application for short posts, follows, likes, user search, and chronological timelines.
 
 ## Status
 
-**Active development.** The containerized Next.js, Fastify, and PostgreSQL foundation is implemented. Authentication and its automated test coverage are currently under development.
+**Complete.** Every planned feature is implemented and covered by unit, integration and browser tests, and the whole app runs locally with Docker Compose:
+
+- Accounts: registration, login and logout, and editable profiles that list a member's posts and replies.
+- Posting: tweets with an optional image, delete, and a short undo window after posting.
+- Social: follow and unfollow, likes, and follower and following lists.
+- Home timeline: newest first, infinite scroll, and live updates from the people you follow.
+- Conversations: nested reply threads and `@username` mentions.
+- Notifications for follows, likes, replies and mentions, with read state.
+- User search.
+- Local tooling: seeded demo accounts and an optional activity simulator.
 
 Local setup includes 10 demo accounts and sample conversations. Use `pnpm stack:up --seed-users 25` for a larger dataset; see [local demo data](docs/SETUP.md#local-demo-data-seed-01) for sign-in and reset instructions.
 
