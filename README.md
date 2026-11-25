@@ -6,6 +6,8 @@ This yet-to-be-named product is a mobile-first social application for short post
 
 **Active development.** The containerized Next.js, Fastify, and PostgreSQL foundation is implemented. Authentication and its automated test coverage are currently under development.
 
+Local setup includes 10 demo accounts and sample conversations. Use `./scripts/setup.sh --seed-users 25` for a larger dataset; see [local demo data](docs/SETUP.md#local-demo-data-seed-01) for sign-in and reset instructions.
+
 ## Chosen stack
 
 - **Web:** Next.js + React + TypeScript, run locally

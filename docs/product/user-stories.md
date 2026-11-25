@@ -118,6 +118,12 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **US-F02 Image:** one JPEG/PNG/WebP, validated by decoded type/size/dimensions, uploads directly to object storage; inaccessible partial uploads are cleaned up.
 - **US-F03 Notifications:** follow and like events create deduplicated recipient notifications; self-actions do not; read state is user-specific and paginated.
 
+### US-G01 Explore a populated local environment (SEED-01)
+
+- **AC-G01.1:** Local setup creates 10 sign-in-ready demo members by default. A developer can request 10–100 total with a script flag or environment setting.
+- **AC-G01.2:** Members have posts, replies, follows, likes and notifications. Reruns can grow the dataset without duplicating records, removing data or taking over an existing account.
+- **AC-G01.3:** Seeding targets a local development database only. The generated demo password stays outside version control, container images and logs.
+
 ## Cross-cutting acceptance criteria
 
 - Every error response follows the documented error envelope and includes a request ID.

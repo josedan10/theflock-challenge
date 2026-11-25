@@ -68,7 +68,7 @@ The doctor test uses stubbed prerequisites to verify both success and missing-se
 
 These commands are the tested local setup contract:
 
-**Quick start:** `pnpm stack:up` (or `./scripts/setup.sh`) runs the steps below in order. It creates `.env` with a generated `SESSION_SECRET` if the file is missing, runs the doctor, installs dependencies, starts PostgreSQL, applies migrations, then starts and health-checks the API and web app. It is safe to re-run.
+**Quick start:** `pnpm stack:up` (or `./scripts/setup.sh`) runs the steps below in order. It creates `.env` with a generated `SESSION_SECRET` if the file is missing, runs the doctor, installs dependencies, starts PostgreSQL, applies migrations, seeds the local demo, then starts and health-checks the API and web app. It is safe to re-run.
 
 Shortcuts: `pnpm compose:up`, `pnpm compose:down`, `pnpm compose:ps`, `pnpm compose:logs`, and `pnpm db:up` (PostgreSQL only).
 
@@ -77,6 +77,7 @@ Manual steps:
 ```bash
 docker compose --profile dev up -d postgres
 pnpm db:migrate
+pnpm --filter @twitter-clone/api db:seed
 docker compose --profile dev up --build
 curl --fail http://localhost:4000/health/ready
 ```
@@ -120,3 +121,11 @@ docker compose logs --tail=100 api postgres
 ```
 
 Never paste the contents of `.env`, cookies, authorization headers, or a full database URL into an issue.
+
+### Local demo data (SEED-01)
+
+After migrations, `pnpm stack:up` seeds 10 synthetic accounts with profiles, posts, follows, likes, threaded replies and notifications. To request 25 total demo accounts run `./scripts/setup.sh --seed-users 25`. The flag takes precedence over `SEED_USER_COUNT` in the shell or root `.env`; supported range: 10–100. No external services or background simulator are involved.
+
+Log in as `demo_1@example.test` (through `demo_N@example.test`) with the shared **local demo password** in the repository-root `.env.seed-password`. Setup generates it once with owner-only permissions. Never publish it or reuse it elsewhere. Search for `demo_` to inspect the profiles or open Home and Notifications while signed in.
+
+With a migrated local database, run `pnpm --filter @twitter-clone/api db:seed` to reseed without restarting. Reruns restore missing fixtures and leave existing records/passwords intact; requesting fewer users does not remove any. A conflicting real username or email aborts the seed rather than taking over the account. Keep the password file as long as you retain the database. If another worktree shares that database, use its original password file or a separate local database. For a **full reset**, only if all local data is disposable, stop the stack and explicitly remove the Compose volume as described above, then rerun setup. That reset also erases non-demo accounts.

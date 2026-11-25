@@ -46,7 +46,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 
 ## Local development experience
 
-- [ ] **SEED-01:** Provide a repeatable full local seed environment with at least 10 users by default; allow a user-specified user count through build configuration or a `setup.sh`/seed-script flag. Keep generated credentials local-only and document how to inspect/reset seeded data.
+- [x] **SEED-01:** Provide a repeatable full local seed environment with at least 10 users by default; allow a user-specified user count through build configuration or a `setup.sh`/seed-script flag. Keep generated credentials local-only and document how to inspect/reset seeded data.
 - [ ] **DEV-01:** Add an opt-in local activity simulator that periodically creates tweets and replies between seeded/fake accounts and real local users. It must be disabled by default and controllable at startup or through an environment feature flag; bound activity rate and make it safe to stop/reset.
 
 ## Local quality gates
