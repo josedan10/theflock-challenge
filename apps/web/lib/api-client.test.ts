@@ -440,4 +440,34 @@ describe("THR-01 client", () => {
       );
     },
   );
+
+  describe("likes", () => {
+    it("US-C02 AC-C02.1 likes by encoded id with the CSRF token", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { like: { likeCount: 3, liked: true } }),
+      );
+
+      await expect(client.like("a/b", "csrf-token")).resolves.toEqual({
+        like: { likeCount: 3, liked: true },
+      });
+      expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/tweets/a%2Fb/like",
+      );
+      expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+        headers: { "x-csrf-token": "csrf-token" },
+        method: "PUT",
+      });
+    });
+
+    it("US-C02 AC-C02.1 unlikes with DELETE", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { like: { likeCount: 2, liked: false } }),
+      );
+
+      await expect(client.unlike("t1", "csrf-token")).resolves.toEqual({
+        like: { likeCount: 2, liked: false },
+      });
+      expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ method: "DELETE" });
+    });
+  });
 });

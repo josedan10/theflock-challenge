@@ -53,7 +53,9 @@ function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     logIn: vi.fn(async () => session),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
+    like: vi.fn(async () => ({ like: { likeCount: 1, liked: true } })),
     register: vi.fn(async () => session),
+    unlike: vi.fn(async () => ({ like: { likeCount: 0, liked: false } })),
     unfollow: vi.fn(async () => {
       throw new Error("not used");
     }),

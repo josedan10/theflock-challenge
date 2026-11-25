@@ -62,7 +62,9 @@ export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
     getTimeline: vi.fn(async () => ({ items: [], nextCursor: null })),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
+    like: vi.fn(async () => ({ like: { likeCount: 1, liked: true } })),
     register: vi.fn(async () => testSession),
+    unlike: vi.fn(async () => ({ like: { likeCount: 0, liked: false } })),
     unfollow: vi.fn(async () => ({
       relationship: { followerCount: 0, following: false },
     })),

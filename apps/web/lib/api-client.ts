@@ -10,6 +10,8 @@ import {
   followListPageSchema,
   type FollowResponse,
   followResponseSchema,
+  type LikeResponse,
+  likeResponseSchema,
   type LoginRequest,
   type PublicProfileResponse,
   publicProfileResponseSchema,
@@ -60,6 +62,10 @@ export interface ApiClient {
     csrfToken: string,
   ): Promise<CreateTweetResponse>;
   getThread(id: string, cursor?: string): Promise<ThreadPage>;
+  /** Likes a tweet; resolves with the committed state and count (US-C02). */
+  like(tweetId: string, csrfToken: string): Promise<LikeResponse>;
+  /** Removes the member's like; resolves with the committed state and count. */
+  unlike(tweetId: string, csrfToken: string): Promise<LikeResponse>;
   /** Deletes the signed-in member's own tweet. */
   deleteTweet(tweetId: string, csrfToken: string): Promise<void>;
   /**
@@ -205,6 +211,13 @@ export function createApiClient(
       const response = await request(`/timeline${query}`, { method: "GET" });
       return timelinePageSchema.parse(await response.json());
     },
+    async like(tweetId, csrfToken) {
+      const response = await request(
+        `/tweets/${encodeURIComponent(tweetId)}/like`,
+        { csrfToken, method: "PUT" },
+      );
+      return likeResponseSchema.parse(await response.json());
+    },
     async logIn(input) {
       return session("/auth/login", input);
     },
@@ -224,6 +237,13 @@ export function createApiClient(
     },
     async register(input) {
       return session("/auth/register", input);
+    },
+    async unlike(tweetId, csrfToken) {
+      const response = await request(
+        `/tweets/${encodeURIComponent(tweetId)}/like`,
+        { csrfToken, method: "DELETE" },
+      );
+      return likeResponseSchema.parse(await response.json());
     },
     async unfollow(username, csrfToken) {
       const response = await request(
