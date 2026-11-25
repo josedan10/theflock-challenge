@@ -45,6 +45,10 @@ seed_count="${seed_override:-$(env_value SEED_USER_COUNT 10)}"
 if [[ ! "$seed_count" =~ ^([1-9][0-9]|100)$ || ( $# -eq 2 && -z "$seed_override" ) ]]; then
   fail "Seed user count must be an integer from 10 to 100."
 fi
+activity="$(env_value ACTIVITY_SIMULATOR false)"
+if [[ "$activity" != "true" && "$activity" != "false" ]]; then
+  fail "ACTIVITY_SIMULATOR must be true or false."
+fi
 
 # 3. Host dependencies, needed for migrations (drizzle-kit runs on the host).
 if [ ! -d node_modules ]; then
@@ -71,6 +75,13 @@ step "Verifying"
 curl --fail --silent --show-error "http://localhost:${API_PORT_VALUE}/health/ready" >/dev/null \
   || fail "API is not ready; inspect it with: pnpm compose:logs"
 docker compose ps
+
+# 6. Optional local activity (DEV-01). Off unless ACTIVITY_SIMULATOR=true.
+if [ "$activity" = "true" ]; then
+  step "Starting the activity simulator"
+  ACTIVITY_SIMULATOR=true docker compose --profile dev --profile activity up -d --build activity
+  echo "  Demo accounts post every $(env_value ACTIVITY_INTERVAL_SECONDS 30)s. Stop: pnpm activity:stop"
+fi
 
 printf '\n\033[32m✓ Stack is up\033[0m\n'
 printf '  Web:  http://localhost:%s\n' "$WEB_PORT_VALUE"

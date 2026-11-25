@@ -25,3 +25,17 @@ grep -Fxq -- '--filter @twitter-clone/api db:seed:25' "$SEED_LOG"
 : > "$SEED_LOG"
 if "$tmp/scripts/setup.sh" --seed-users 9 >/dev/null 2>&1; then exit 1; fi
 test ! -s "$SEED_LOG"
+# DEV-01: the activity simulator starts only when the flag is exactly true.
+cat > "$tmp/bin/docker" <<'STUB'
+#!/usr/bin/env bash
+echo "docker $*" >> "$SEED_LOG"
+STUB
+unset ACTIVITY_SIMULATOR
+: > "$SEED_LOG"
+"$tmp/scripts/setup.sh" >/dev/null
+if grep -q -- '--profile activity' "$SEED_LOG"; then exit 1; fi
+ACTIVITY_SIMULATOR=true "$tmp/scripts/setup.sh" >/dev/null
+grep -Fxq -- 'docker compose --profile dev --profile activity up -d --build activity' "$SEED_LOG"
+: > "$SEED_LOG"
+if ACTIVITY_SIMULATOR=yes "$tmp/scripts/setup.sh" >/dev/null 2>&1; then exit 1; fi
+test ! -s "$SEED_LOG"
