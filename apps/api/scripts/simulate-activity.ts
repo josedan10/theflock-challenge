@@ -8,11 +8,16 @@ import {
   ActivitySettingsError,
   COMPOSE_DATABASE_HOST,
 } from "./activity/config.js";
+import { createLedger } from "./activity/ledger.js";
 import { createSimulator } from "./activity/simulator.js";
 import { resetActivity } from "./activity/store.js";
 import { localTarget } from "./local-target.js";
 
 const passwordFile = new URL("../../../.env.seed-password", import.meta.url);
+/** Git-ignored, and shared with the Compose service through the workspace mount. */
+const ledger = createLedger(
+  new URL("../../../.data/activity-posts.txt", import.meta.url),
+);
 const usage = "Usage: pnpm activity [--once | --reset]";
 
 function describe(error: unknown): string {
@@ -49,7 +54,8 @@ async function run(mode: "loop" | "once" | "reset") {
   const sql = postgres(localDatabase());
   try {
     if (mode === "reset") {
-      const removed = await resetActivity(sql);
+      const removed = await resetActivity(sql, await ledger.read());
+      await ledger.clear();
       console.log(`Removed ${removed} simulated posts and replies.`);
       return;
     }
@@ -62,6 +68,7 @@ async function run(mode: "loop" | "once" | "reset") {
       log: (line) => console.log(line),
       password,
       random: Math.random,
+      record: ledger.record,
       sql,
     });
     if (mode === "once") {

@@ -13,6 +13,7 @@ import {
 import { activityCorpus } from "../activity-corpus/corpus.js";
 import { seedDemo } from "../demo-data.js";
 
+import { logIn, postTweet } from "./api-client.js";
 import { createSimulator } from "./simulator.js";
 import { resetActivity } from "./store.js";
 
@@ -61,12 +62,17 @@ function draws(...values: number[]): Random {
   return () => values[index++] ?? 0;
 }
 
+const recorded: string[] = [];
+
 function simulator(random: Random) {
   return createSimulator({
     apiOrigin: origin,
     log: () => undefined,
     password: PASSWORD,
     random,
+    record: async (tweetId) => {
+      recorded.push(tweetId);
+    },
     sql: database.sql,
   });
 }
@@ -98,8 +104,9 @@ async function registerGrace(): Promise<string> {
 describe("DEV-01 activity simulator", () => {
   it("posts as demo accounts through the API, reaches real members, and resets", async () => {
     const graceTweet = await registerGrace();
-    const before = await database.sql<{ count: number }[]>`
-      select count(*)::int as count from tweets`;
+    const beforeIds = (
+      await database.sql<{ id: string }[]>`select id from tweets`
+    ).map((row) => row.id);
 
     // demo_1, no reply, first corpus post (it has a picture).
     const pictured = await simulator(draws(0, 0.9, 0))();
@@ -128,10 +135,24 @@ describe("DEV-01 activity simulator", () => {
       where u.username = 'grace' order by n.type`;
     expect(received.map((row) => row.type)).toEqual(["mention", "reply"]);
 
-    expect(await resetActivity(database.sql)).toBe(3);
-    const after = await database.sql<{ count: number }[]>`
-      select count(*)::int as count from tweets`;
-    expect(after).toEqual(before);
+    // A developer posting by hand as a demo account is not simulated activity.
+    const session = await logIn(origin, "demo_2@example.test", PASSWORD);
+    const handWritten = await postTweet(origin, session, {
+      content: "Written by hand while logged in as demo_2.",
+      image: null,
+      parentTweetId: null,
+    });
+
+    expect(recorded).toHaveLength(3);
+    // A tampered list naming a real member's tweet removes nothing of theirs.
+    expect(await resetActivity(database.sql, [...recorded, graceTweet])).toBe(
+      3,
+    );
+    const after = await database.sql<{ id: string }[]>`
+      select id from tweets order by id`;
+    expect(after.map((row) => row.id)).toEqual(
+      [...beforeIds, handWritten].sort(),
+    );
     const [left] = await database.sql<{ count: number }[]>`
       select count(*)::int as count from notifications n
       join users u on u.id = n.recipient_id where u.username = 'grace'`;

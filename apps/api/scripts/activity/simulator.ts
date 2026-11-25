@@ -16,6 +16,8 @@ export interface SimulatorDependencies {
   random: Random;
   sql: Sql;
   log: (line: string) => void;
+  /** Remembers a created tweet so reset can remove exactly what was simulated. */
+  record: (tweetId: string) => Promise<void>;
 }
 
 export type ActivityOutcome =
@@ -76,6 +78,7 @@ export function createSimulator(dependencies: SimulatorDependencies) {
           parentTweetId: action.parentTweetId,
         },
       );
+      await dependencies.record(tweetId);
       const kind = action.parentTweetId === null ? "post" : "reply";
       dependencies.log(`${username} added a ${kind}.`);
       return { kind, tweetId, username };

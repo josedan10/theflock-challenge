@@ -41,21 +41,24 @@ export async function readWorld(sql: Sql): Promise<World> {
 }
 
 /**
- * Deletes what the simulator wrote: tweets by seeded accounts that the API
- * created (UUIDv7), not the seed's fixed rows (UUIDv5). Replies, likes and
- * notifications on them go with them by cascade. Real members' own posts stay.
- * Image bytes stay on disk but are no longer served once the tweet is gone.
+ * Deletes the simulator's own tweets, given the IDs it recorded. A listed ID
+ * is removed only while a seeded account wrote it, so a stale or edited list
+ * cannot remove a real member's post. Replies, likes and notifications on
+ * them go by cascade. Image bytes stay on disk but are no longer served.
  *
- * @returns The number of top-level tweets and replies removed directly.
+ * @returns The number of tweets removed directly.
  */
-export async function resetActivity(sql: Sql): Promise<number> {
+export async function resetActivity(
+  sql: Sql,
+  tweetIds: readonly string[],
+): Promise<number> {
   const actors = await demoAccounts(sql);
-  if (actors.length === 0) {
+  if (actors.length === 0 || tweetIds.length === 0) {
     return 0;
   }
   const removed = await sql`
     delete from tweets
-    where author_id in ${sql(actors.map((actor) => actor.id))}
-      and substring(id::text from 15 for 1) = '7'`;
+    where id in ${sql(tweetIds)}
+      and author_id in ${sql(actors.map((actor) => actor.id))}`;
   return removed.count;
 }
