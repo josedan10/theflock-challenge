@@ -21,3 +21,7 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"doctor tests passed"* ]]
 }
+@test "SEED-01 AC-G01.1 setup seeds by default and accepts only a bounded override" {
+  run bash "$ROOT/scripts/test-seed-setup.sh"
+  [ "$status" -eq 0 ]
+}

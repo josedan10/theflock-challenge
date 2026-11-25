@@ -14,6 +14,11 @@ cd "$ROOT"
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 fail() { printf '\n\033[31m✗ %s\033[0m\n' "$1" >&2; exit 1; }
 
+if [[ $# -ne 0 && ( $# -ne 2 || "$1" != "--seed-users" ) ]]; then
+  fail "Usage: ./scripts/setup.sh [--seed-users 10..100]"
+fi
+seed_override="${2-}"
+
 # 1. Environment file: create it once from the template with a real secret.
 if [ ! -f .env ]; then
   step "Creating .env from .env.example"
@@ -36,6 +41,11 @@ env_value() {
 API_PORT_VALUE="$(env_value API_PORT 4000)"
 WEB_PORT_VALUE="$(env_value WEB_PORT 3000)"
 
+seed_count="${seed_override:-$(env_value SEED_USER_COUNT 10)}"
+if [[ ! "$seed_count" =~ ^([1-9][0-9]|100)$ || ( $# -eq 2 && -z "$seed_override" ) ]]; then
+  fail "Seed user count must be an integer from 10 to 100."
+fi
+
 # 3. Host dependencies, needed for migrations (drizzle-kit runs on the host).
 if [ ! -d node_modules ]; then
   step "Installing dependencies"
@@ -49,6 +59,9 @@ docker compose --profile dev up -d --wait postgres
 
 step "Applying database migrations"
 pnpm db:migrate
+
+step "Seeding local demo data"
+SEED_USER_COUNT="$seed_count" pnpm --filter @twitter-clone/api db:seed
 
 # 5. Everything else. --wait returns once health checks pass.
 step "Building and starting the API and web app"
