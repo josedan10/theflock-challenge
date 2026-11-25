@@ -55,6 +55,7 @@ describe("registration contract", () => {
     ["contains a hyphen", "ada-l"],
     ["contains non-ASCII", "adá"],
     ["too long", `a${"b".repeat(30)}`],
+    ["is reserved for a route", "Search"],
   ])("US-A01 AC-A01.3 rejects a username that %s", (_case, username) => {
     expect(fieldErrors({ ...validRegistration, username })).toHaveProperty(
       "username",
