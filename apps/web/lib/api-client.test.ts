@@ -393,6 +393,43 @@ describe("API client", () => {
       );
     });
   });
+
+  describe("people search", () => {
+    it("US-D01 AC-D01.4 sends the text encoded so wildcards and quotes stay literal", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { items: [] }),
+      );
+
+      await expect(client.searchUsers("50% o'b&x=1")).resolves.toEqual({
+        items: [],
+      });
+      expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/users/search?q=50%25+o%27b%26x%3D1",
+      );
+      expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+        credentials: "include",
+        method: "GET",
+      });
+    });
+
+    it("US-D01 surfaces a validation error as an ApiError", async () => {
+      const { client } = clientReturning(
+        jsonResponse(422, {
+          error: {
+            code: "VALIDATION_ERROR",
+            fields: { q: ["Enter at least 2 characters."] },
+            message: "Some fields are invalid.",
+            requestId: "req-1",
+          },
+        }),
+      );
+
+      await expect(client.searchUsers("a")).rejects.toMatchObject({
+        code: "VALIDATION_ERROR",
+        fields: { q: ["Enter at least 2 characters."] },
+      });
+    });
+  });
 });
 
 describe("THR-01 client", () => {
