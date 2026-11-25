@@ -80,7 +80,7 @@ docker compose ps
 if [ "$activity" = "true" ]; then
   step "Starting the activity simulator"
   ACTIVITY_SIMULATOR=true docker compose --profile dev --profile activity up -d --build activity
-  echo "  Demo accounts post every $(env_value ACTIVITY_INTERVAL_SECONDS 30)s. Stop: pnpm activity:stop"
+  echo "  Demo accounts act every $(env_value ACTIVITY_MIN_INTERVAL_SECONDS 15)–$(env_value ACTIVITY_MAX_INTERVAL_SECONDS 40)s. Stop: pnpm activity:stop"
 fi
 
 printf '\n\033[32m✓ Stack is up\033[0m\n'
