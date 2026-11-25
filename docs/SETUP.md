@@ -143,7 +143,7 @@ ACTIVITY_MIN_INTERVAL_SECONDS=15 # shortest gap between actions; 15–3600
 ACTIVITY_MAX_INTERVAL_SECONDS=40 # longest gap; each gap is random in between
 ```
 
-- **At startup:** `pnpm stack:up` starts the `activity` Compose service when the flag is `true`. Any value other than `true` or `false` stops setup before it changes anything.
+- **At startup:** `pnpm stack:up` starts the `activity` Compose service when the flag is `true`. `pnpm compose:up` does not start it; run `pnpm activity:start` afterwards. Any value other than `true` or `false` stops setup before it changes anything.
 - **On demand:** `ACTIVITY_SIMULATOR=true pnpm activity` runs it in the foreground against the API on `http://localhost:4000`. Add `--once` for a single action. Each `--once` run logs in again, so more than five in a minute hit the API's login limit (HTTP 429); the long-running mode reuses its sessions.
 - **Stop:** `pnpm activity:stop` for the Compose service, or Ctrl+C in the foreground. An action in progress finishes first.
 - **Reset:** `pnpm activity:reset` deletes what the simulator posted, along with the replies, likes and notifications attached to it, and takes back the likes it gave, with their notifications. It works from the list the simulator keeps in `.data/activity-posts.txt`, so anything you did while signed in as a demo account stays. Uploaded picture files stay in the media folder but are no longer served.
