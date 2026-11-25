@@ -7,7 +7,7 @@ This guide covers the supported local development stack only. There is no produc
 - Start and health-check: `pnpm stack:up`.
 - Inspect services: `pnpm compose:ps`; inspect logs: `pnpm compose:logs`.
 - Stop while preserving local database data: `pnpm compose:down`.
-- Reset local data only with explicit intent: `docker compose down -v` (destructive).
+- Reset local data only with explicit intent: `pnpm compose:destroy-data` (destructive).
 - Run migrations: `pnpm db:migrate`.
 
 Use `docs/SETUP.md` for prerequisites, environment setup, and verification commands. Do not paste `.env`, cookies, tokens, or database credentials into issue reports.
@@ -18,7 +18,7 @@ Before deliberately deleting a developer database, export any data that must be 
 
 ## Troubleshooting
 
-1. Run `./scripts/doctor.sh` and inspect `docker compose ps`.
+1. Run `pnpm stack:doctor` and inspect `pnpm compose:ps`.
 2. Check API and PostgreSQL logs by request ID; redact credentials and personal data before sharing.
 3. Verify the configured local ports are available and `DATABASE_URL` points to the Compose PostgreSQL service.
 4. Restart the affected local service after correcting configuration; avoid deleting the database volume unless reset is intended.
