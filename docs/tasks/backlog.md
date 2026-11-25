@@ -20,6 +20,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **AUTH-04:** Registration/login UI and Playwright flows.
 - [x] **PRO-01:** Profile read/update API and authorization tests (US-A03).
 - [x] **PRO-02:** Responsive profile UI, placeholder avatar, counts, accessibility tests.
+- [ ] **PRO-03:** Show a member's tweets and replies on their profile, newest first, with cursor pagination and the same card behavior as the rest of the app. A reply appears on its author's profile. Deleted posts disappear (PROFILE-03, US-A03, AC-A03.4).
 
 ## Tweets/timeline
 

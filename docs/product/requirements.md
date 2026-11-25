@@ -32,6 +32,7 @@ The application (working title: **Twitter Clone**) is a deliberately small Twitt
 | AUTH-03    | Protect all write actions and private/member routes                                                                | Must     |
 | PROFILE-01 | Show username, display name, bio, avatar placeholder, follower/following counts                                    | Must     |
 | PROFILE-02 | Edit own display name, bio, and supported profile fields                                                           | Should   |
+| PROFILE-03 | List a member's tweets and replies on their profile, newest first                                                  | Must     |
 | TWEET-01   | Create a plain-text tweet of 1–280 Unicode characters                                                              | Must     |
 | TWEET-02   | Delete only one's own tweet                                                                                        | Must     |
 | TWEET-03   | After a home-timeline post, show the tweet with its entrance animation and a 5-second undo; no posting placeholder | Should   |

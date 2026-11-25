@@ -29,6 +29,7 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-A03.1:** Profile shows placeholder/avatar, display name, `@username`, bio, tweet/follower/following counts.
 - **AC-A03.2:** Unknown username returns a real `404` state, not a blank profile.
 - **AC-A03.3:** Bio is escaped and cannot inject markup/script.
+- **AC-A03.4:** The profile lists that member's tweets and replies, newest first (`created_at DESC, id DESC`) and cursor-paginated. A reply appears on its author's profile. Deleted tweets and replies do not appear.
 
 ## Epic B — Tweets and timeline
 
