@@ -1,6 +1,7 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { users } from "../../auth/infrastructure/auth.schema.js";
+import { recordNotification } from "../../notifications/infrastructure/record-notification.js";
 import { TweetNotFoundError } from "../domain/errors.js";
 
 import { tweets } from "./tweets.schema.js";
@@ -30,12 +31,13 @@ export function createDrizzleTweetRepository(db: Database): TweetRepository {
   return {
     async create(tweet): Promise<TweetCard> {
       return db.transaction(async (tx) => {
+        let parentAuthorId: string | null = null;
         if (tweet.parentTweetId !== undefined) {
           // The same transaction verifies visibility and locks parent and author
           // against deletion until the new reply and its ancestor index commit.
           await lockConversation(tx, tweet.parentTweetId, "reply");
           const [parent] = await tx
-            .select({ id: tweets.id })
+            .select({ authorId: tweets.authorId })
             .from(tweets)
             .innerJoin(users, eq(users.id, tweets.authorId))
             .where(
@@ -45,6 +47,7 @@ export function createDrizzleTweetRepository(db: Database): TweetRepository {
           if (parent === undefined) {
             throw new TweetNotFoundError();
           }
+          parentAuthorId = parent.authorId;
         }
         const [created] = await tx
           .insert(tweets)
@@ -67,6 +70,19 @@ export function createDrizzleTweetRepository(db: Database): TweetRepository {
           .where(eq(users.id, tweet.authorId));
         if (created === undefined || author === undefined) {
           throw new Error("Tweet insert returned no row");
+        }
+        if (parentAuthorId !== null) {
+          // The parent's author hears about the reply when it commits.
+          await recordNotification(
+            tx,
+            {
+              actorId: tweet.authorId,
+              recipientId: parentAuthorId,
+              tweetId: created.id,
+              type: "reply",
+            },
+            tweet.now,
+          );
         }
         return {
           author,

@@ -4,6 +4,7 @@ import {
   type Database,
   type DatabaseExecutor,
 } from "../../../platform/database/client.js";
+import { recordNotification } from "../../notifications/infrastructure/record-notification.js";
 import { tweets } from "../../tweets/infrastructure/tweets.schema.js";
 import { LikeTargetNotFoundError } from "../domain/errors.js";
 
@@ -38,15 +39,16 @@ export function interpretLikePersistenceError(error: unknown): never {
   throw error;
 }
 
+/** Locks the tweet and returns its author, who is notified of a like. */
 async function requireTweet(
   db: DatabaseExecutor,
   tweetId: string,
-): Promise<void> {
+): Promise<string> {
   // Share lock: a concurrent delete waits until this command commits, so the
   // like and the count refer to a tweet that still exists. Likers do not block
   // each other.
   const [row] = await db
-    .select({ id: tweets.id })
+    .select({ authorId: tweets.authorId })
     .from(tweets)
     .where(eq(tweets.id, tweetId))
     .limit(1)
@@ -54,6 +56,7 @@ async function requireTweet(
   if (row === undefined) {
     throw new LikeTargetNotFoundError();
   }
+  return row.authorId;
 }
 
 async function likeCount(
@@ -75,7 +78,7 @@ export function createDrizzleLikeRepository(db: Database): LikeRepository {
   return {
     async like(input: LikeWrite): Promise<LikeState> {
       return db.transaction(async (tx) => {
-        await requireTweet(tx, input.tweetId);
+        const authorId = await requireTweet(tx, input.tweetId);
         try {
           await tx
             .insert(likes)
@@ -88,6 +91,18 @@ export function createDrizzleLikeRepository(db: Database): LikeRepository {
         } catch (error: unknown) {
           interpretLikePersistenceError(error);
         }
+        // Same transaction: the author hears about the like exactly when it
+        // commits, once however often it is repeated (NOT-01).
+        await recordNotification(
+          tx,
+          {
+            actorId: input.memberId,
+            recipientId: authorId,
+            tweetId: input.tweetId,
+            type: "like",
+          },
+          input.now,
+        );
         return {
           likeCount: await likeCount(tx, input.tweetId),
           liked: true,
