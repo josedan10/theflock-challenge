@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { NotTweetAuthorError, TweetNotFoundError } from "../domain/errors.js";
 
@@ -64,6 +64,28 @@ describe("create tweet", () => {
     });
     expect(card).toMatchObject({
       content: "hello",
+      createdAt: NOW,
+      id: "tweet-1",
+    });
+  });
+
+  it("AC-F01.1 notifies after commit and still returns the card if fan-out fails", async () => {
+    const { repository } = fakeTweets();
+    const onCreated = vi.fn(async () => {
+      throw new Error("sse down");
+    });
+    const createTweet = createCreateTweet({
+      clock: () => NOW,
+      generateId: () => "tweet-1",
+      onCreated,
+      tweets: repository,
+    });
+
+    await expect(
+      createTweet({ authorId: "member-1", content: "hello" }),
+    ).resolves.toMatchObject({ id: "tweet-1" });
+    expect(onCreated).toHaveBeenCalledWith({
+      authorId: "member-1",
       createdAt: NOW,
       id: "tweet-1",
     });

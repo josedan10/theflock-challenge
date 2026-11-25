@@ -13,6 +13,7 @@ import { notificationsModule } from "./modules/notifications/notifications-modul
 import { followListsModule } from "./modules/social/follow-lists-module.js";
 import { followsModule } from "./modules/social/follows-module.js";
 import { likesModule } from "./modules/social/likes-module.js";
+import { createTimelineLiveRuntime } from "./modules/timeline/timeline-live-runtime.js";
 import { timelineModule } from "./modules/timeline/timeline-module.js";
 import { tweetsModule } from "./modules/tweets/tweets-module.js";
 import { usersModule } from "./modules/users/users-module.js";
@@ -47,6 +48,13 @@ export interface BuildAppOptions {
   likeWriteRateLimit?: AuthRateLimit;
   /** Override for the home-timeline read budget. Default: 120/minute. */
   timelineRateLimit?: AuthRateLimit;
+  /** Override for opening the live timeline stream. Default: 30/minute. */
+  timelineStreamRateLimit?: AuthRateLimit;
+  /** Test overrides for SSE heartbeat and per-viewer connection cap. */
+  timelineLive?: {
+    heartbeatMs?: number;
+    maxConnectionsPerViewer?: number;
+  };
   /** Override for the tweet create/delete budget. Default: 20/minute. */
   tweetWriteRateLimit?: AuthRateLimit;
 }
@@ -91,14 +99,33 @@ export async function buildApp(
   if (options.auth !== undefined) {
     const auth = createAuthRuntime(options.auth);
     await app.register(auth.plugin, { prefix: "/v1" });
+    const timelineLive = createTimelineLiveRuntime({
+      db: options.auth.db,
+      sessionSecret: options.auth.sessionSecret,
+      ...(options.timelineLive?.heartbeatMs === undefined
+        ? {}
+        : { heartbeatMs: options.timelineLive.heartbeatMs }),
+      ...(options.timelineLive?.maxConnectionsPerViewer === undefined
+        ? {}
+        : {
+            maxConnectionsPerViewer:
+              options.timelineLive.maxConnectionsPerViewer,
+          }),
+    });
+    app.addHook("onClose", async () => timelineLive.close());
     await app.register(
       timelineModule({
+        corsOrigin: options.corsOrigin,
         db: options.auth.db,
+        live: timelineLive,
         requireSession: auth.requireSession,
         sessionSecret: options.auth.sessionSecret,
         ...(options.timelineRateLimit === undefined
           ? {}
           : { rateLimit: options.timelineRateLimit }),
+        ...(options.timelineStreamRateLimit === undefined
+          ? {}
+          : { streamRateLimit: options.timelineStreamRateLimit }),
       }),
       { prefix: "/v1" },
     );
@@ -183,6 +210,7 @@ export async function buildApp(
         db: options.auth.db,
         requireCsrf: auth.requireCsrf,
         requireSession: auth.requireSession,
+        onTweetCreated: (tweet) => timelineLive.publish(tweet),
         ...(options.auth.clock === undefined
           ? {}
           : { clock: options.auth.clock }),
