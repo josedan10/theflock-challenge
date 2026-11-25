@@ -227,3 +227,17 @@
     animation: none;
   }
 }
+
+@keyframes undo-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* The undo window's bar empties once; the seconds text carries the meaning. */
+.undo-countdown {
+  animation: undo-countdown linear forwards;
+}
