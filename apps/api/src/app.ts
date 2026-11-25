@@ -9,6 +9,7 @@ import {
   type AuthModuleOptions,
   createAuthRuntime,
 } from "./modules/auth/auth-module.js";
+import { notificationsModule } from "./modules/notifications/notifications-module.js";
 import { followListsModule } from "./modules/social/follow-lists-module.js";
 import { followsModule } from "./modules/social/follows-module.js";
 import { likesModule } from "./modules/social/likes-module.js";
@@ -36,6 +37,10 @@ export interface BuildAppOptions {
   trustProxy?: string[];
   /** Override for the follow/unfollow budget. Default: 60/minute, separately. */
   followWriteRateLimit?: AuthRateLimit;
+  /** Overrides for notification list, unread-count and mark-read budgets. */
+  notificationRateLimits?: Partial<
+    Record<"count" | "list" | "write", AuthRateLimit>
+  >;
   /** Override for the followers/following read budget. Default: 120/minute. */
   followListRateLimit?: AuthRateLimit;
   /** Override for the like/unlike budget. Default: 60/minute, separately. */
@@ -139,6 +144,21 @@ export async function buildApp(
         ...(options.followListRateLimit === undefined
           ? {}
           : { readRateLimit: options.followListRateLimit }),
+      }),
+      { prefix: "/v1" },
+    );
+    await app.register(
+      notificationsModule({
+        db: options.auth.db,
+        requireCsrf: auth.requireCsrf,
+        requireSession: auth.requireSession,
+        sessionSecret: options.auth.sessionSecret,
+        ...(options.auth.clock === undefined
+          ? {}
+          : { clock: options.auth.clock }),
+        ...(options.notificationRateLimits === undefined
+          ? {}
+          : { rateLimits: options.notificationRateLimits }),
       }),
       { prefix: "/v1" },
     );
