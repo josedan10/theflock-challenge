@@ -20,7 +20,9 @@ FROM dependencies AS development
 ENV NODE_ENV=development
 COPY . .
 EXPOSE 4000
-CMD ["pnpm", "--filter", "@twitter-clone/api", "dev"]
+# The Compose node_modules volume hides the image install, so a dependency
+# added after that volume was created is missing until install runs there.
+CMD pnpm install --frozen-lockfile && pnpm --filter @twitter-clone/api dev
 
 FROM dependencies AS build
 COPY . .

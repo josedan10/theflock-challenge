@@ -1,3 +1,16 @@
+/** Outcome of an ownership-checked delete, decided inside one transaction. */
+export interface DeleteTweetResult {
+  objectKeys: readonly string[];
+  outcome: "deleted" | "not-author" | "not-found";
+}
+
+export interface TweetImageRecord {
+  alt: string;
+  height: number;
+  objectKey: string;
+  width: number;
+}
+
 /** Values needed to store a tweet; content must already satisfy the contract. */
 export interface NewTweet {
   id: string;
@@ -5,6 +18,8 @@ export interface NewTweet {
   parentTweetId?: string;
   content: string;
   now: Date;
+  /** Verified upload to attach in the same transaction (US-F02). */
+  image?: { alt: string; uploadId: string };
 }
 
 /** Public author fields shown on a card; email and credentials stay out. */
@@ -25,10 +40,11 @@ export interface TweetCard {
   likedByViewer: boolean;
   /** Direct replies to this tweet. */
   replyCount: number;
+  image: TweetImageRecord | null;
 }
 
 /** Outcome of an ownership-checked delete, decided inside one transaction. */
-export type DeleteTweetOutcome = "deleted" | "not-author" | "not-found";
+export type DeleteTweetOutcome = DeleteTweetResult;
 
 export interface TweetRepository {
   /** Stores the tweet and returns its card with the author's public fields. */

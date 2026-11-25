@@ -13,6 +13,7 @@ import {
   type AuthRateLimit,
 } from "../../auth/http/rate-limit.js";
 import { parseBody } from "../../auth/http/validation.js";
+import { ImageUnavailableError } from "../../media/domain/image-policy.js";
 import { TweetNotFoundError } from "../domain/errors.js";
 
 import { toTweet } from "./tweet-card.js";
@@ -34,6 +35,11 @@ function mapError(error: unknown): never {
   if (error instanceof TweetNotFoundError) {
     throw new AppError("NOT_FOUND", error.message);
   }
+  if (error instanceof ImageUnavailableError) {
+    throw new AppError("VALIDATION_ERROR", error.message, {
+      image: [error.message],
+    });
+  }
   if (error instanceof InvalidKeysetCursorError) {
     throw new AppError("MALFORMED_REQUEST", "Invalid thread cursor.");
   }
@@ -48,6 +54,8 @@ export async function threadRoutes(
     optionalSession: AuthGuard;
     requireSession: AuthGuard;
     requireCsrf: AuthGuard;
+    mediaOrigin: string;
+    uploadsEnabled: boolean;
     writeRateLimit?: AuthRateLimit;
   },
 ) {
@@ -90,14 +98,26 @@ export async function threadRoutes(
     },
     async (req, reply) => {
       const parentTweetId = tweetId(req.params.id);
-      const { content } = parseBody(createTweetRequestSchema, req.body);
+      const { content, image } = parseBody(createTweetRequestSchema, req.body);
+      if (image !== undefined && !deps.uploadsEnabled) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "Image uploads are not enabled.",
+          {
+            image: ["Image uploads are not enabled."],
+          },
+        );
+      }
       try {
         const card = await deps.createTweet({
           authorId: authContext(req).user.id,
           content,
           parentTweetId,
+          ...(image === undefined ? {} : { image }),
         });
-        const body: CreateTweetResponse = { tweet: toTweet(card) };
+        const body: CreateTweetResponse = {
+          tweet: toTweet(card, deps.mediaOrigin),
+        };
         return reply.code(201).header("cache-control", "no-store").send(body);
       } catch (e: unknown) {
         mapError(e);

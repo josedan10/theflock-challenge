@@ -19,6 +19,7 @@ const entry = (id: string): TimelineEntry => ({
   content: id,
   createdAt: "2026-11-24T12:00:01.000000Z",
   id,
+  image: null,
   likeCount: 0,
   likedByViewer: false,
   replyCount: 0,

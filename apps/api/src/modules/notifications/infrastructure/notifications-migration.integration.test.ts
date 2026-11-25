@@ -40,9 +40,15 @@ beforeAll(async () => {
     const journal = JSON.parse(
       await readFile(join(MIGRATIONS_FOLDER, "meta/_journal.json"), "utf8"),
     ) as { entries: { idx: number; tag: string }[] };
-    const entries = journal.entries.filter(
-      (entry) => !entry.tag.endsWith("_notifications"),
+    const notificationsAt = journal.entries.findIndex((entry) =>
+      entry.tag.endsWith("_notifications"),
     );
+    expect(notificationsAt).toBeGreaterThanOrEqual(0);
+    // Later migrations must stay out of the previous release. Drizzle skips a
+    // migration whose timestamp is older than the newest one already applied.
+    const entries = journal.entries
+      .slice(0, notificationsAt)
+      .map((entry, idx) => ({ ...entry, idx }));
     await mkdir(join(previous, "meta"));
     await writeFile(
       join(previous, "meta/_journal.json"),

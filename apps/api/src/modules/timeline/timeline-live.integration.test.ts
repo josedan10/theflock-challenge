@@ -364,7 +364,10 @@ describe("US-F01 live timeline stream", () => {
     const older = await tweetAt(viewer.id, "2026-11-24T11:00:00.000000Z");
     const newer = await tweetAt(viewer.id, "2026-11-24T13:00:00.000000Z");
     await tweetAt(other.id, "2026-11-24T14:00:00.000000Z");
-    const read = createReadTimelineSinceRows(database.db);
+    const read = createReadTimelineSinceRows(
+      database.db,
+      "http://localhost:4000",
+    );
     const rows = await read(
       viewer.id,
       { createdAt: "2026-11-24T12:00:00.000000Z", id: older },

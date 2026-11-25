@@ -61,6 +61,7 @@ describe("tweet persistence", () => {
       content: "Hello, world",
       createdAt: FIXED_NOW,
       id: input.id,
+      image: null,
       likeCount: 0,
       likedByViewer: false,
       replyCount: 0,
@@ -107,18 +108,20 @@ describe("tweet persistence", () => {
     it("US-B02 AC-B02.1 lets the author delete their tweet", async () => {
       const { id } = await repository.create(newTweet());
 
-      await expect(repository.deleteOwned(id, author.id)).resolves.toBe(
-        "deleted",
-      );
+      await expect(repository.deleteOwned(id, author.id)).resolves.toEqual({
+        objectKeys: [],
+        outcome: "deleted",
+      });
       await expect(database.db.$count(tweets)).resolves.toBe(0);
     });
 
     it("US-B02 AC-B02.2 refuses another member and keeps the tweet", async () => {
       const { id } = await repository.create(newTweet());
 
-      await expect(repository.deleteOwned(id, other.id)).resolves.toBe(
-        "not-author",
-      );
+      await expect(repository.deleteOwned(id, other.id)).resolves.toEqual({
+        objectKeys: [],
+        outcome: "not-author",
+      });
       await expect(database.db.$count(tweets)).resolves.toBe(1);
     });
 
@@ -126,12 +129,16 @@ describe("tweet persistence", () => {
       const { id } = await repository.create(newTweet());
       await repository.deleteOwned(id, author.id);
 
-      await expect(repository.deleteOwned(id, author.id)).resolves.toBe(
-        "not-found",
-      );
-      await expect(repository.deleteOwned(uuidv7(), author.id)).resolves.toBe(
-        "not-found",
-      );
+      await expect(repository.deleteOwned(id, author.id)).resolves.toEqual({
+        objectKeys: [],
+        outcome: "not-found",
+      });
+      await expect(
+        repository.deleteOwned(uuidv7(), author.id),
+      ).resolves.toEqual({
+        objectKeys: [],
+        outcome: "not-found",
+      });
     });
 
     it("US-B02 AC-B02.2 lets exactly one of two concurrent deletes succeed", async () => {
@@ -142,7 +149,10 @@ describe("tweet persistence", () => {
         repository.deleteOwned(id, author.id),
       ]);
 
-      expect(outcomes.sort()).toEqual(["deleted", "not-found"]);
+      expect(outcomes.map((result) => result.outcome).sort()).toEqual([
+        "deleted",
+        "not-found",
+      ]);
     });
   });
 });

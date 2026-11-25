@@ -1,8 +1,9 @@
+import { mediaObjectUrl } from "@twitter-clone/contracts";
 import { sql } from "drizzle-orm";
 
 import type { DatabaseExecutor } from "../../../platform/database/client.js";
 import type { KeysetPosition } from "../../../platform/pagination/signed-keyset-cursor.js";
-import type { ThreadItem } from "@twitter-clone/contracts";
+import type { ThreadItem, TweetImage } from "@twitter-clone/contracts";
 
 /** Index-keyset seek on descendants of any selected tweet; includes the selected card on each page in the same snapshot. */
 export function threadQuery(
@@ -27,8 +28,10 @@ export function threadQuery(
       to_char(t.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
       (select count(*) from likes where tweet_id=t.id) as like_count,
       exists(select 1 from likes where tweet_id=t.id and user_id=${viewer}::uuid) as liked,
-      (select count(*) from tweets c where c.parent_tweet_id=t.id) as reply_count
+      (select count(*) from tweets c where c.parent_tweet_id=t.id) as reply_count,
+      m.object_key, m.alt_text, m.width, m.height
     from entries e join tweets t on t.id=e.id join users u on u.id=t.author_id
+    left join tweet_media m on m.tweet_id=t.id
     order by e.selected desc,t.created_at,t.id`;
 }
 
@@ -43,9 +46,30 @@ interface CardRow extends Record<string, unknown> {
   like_count: string;
   liked: boolean;
   reply_count: string;
+  object_key: string | null;
+  alt_text: string | null;
+  width: number | string | null;
+  height: number | string | null;
 }
 
-export function createThreadReader(db: DatabaseExecutor) {
+function threadImage(row: CardRow, mediaOrigin: string): TweetImage | null {
+  if (
+    row.object_key === null ||
+    row.alt_text === null ||
+    row.width === null ||
+    row.height === null
+  ) {
+    return null;
+  }
+  return {
+    alt: row.alt_text,
+    height: Number(row.height),
+    url: mediaObjectUrl(mediaOrigin, row.object_key),
+    width: Number(row.width),
+  };
+}
+
+export function createThreadReader(db: DatabaseExecutor, mediaOrigin: string) {
   return async (
     root: string,
     viewer: string | null,
@@ -66,6 +90,7 @@ export function createThreadReader(db: DatabaseExecutor) {
         displayName: r.display_name,
         avatarUrl: null,
       },
+      image: threadImage(r, mediaOrigin),
       likedByViewer: r.liked,
       likeCount: Number(r.like_count),
       replyCount: Number(r.reply_count),

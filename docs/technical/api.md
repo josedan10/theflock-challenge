@@ -243,6 +243,17 @@ Both routes require a session and `X-CSRF-Token`. The author is always the sessi
 
 Tweet text is plain text that clients escape, and it is never logged: logs carry ids only. The basic write limit is 20 per minute per client, applied to create and to delete separately (set by `TWEET_RATE_LIMIT_PER_MINUTE`). Profiles now count committed tweets in `tweetCount`.
 
+## Tweet images (`IMG-01` / US-F02)
+
+Off unless `UPLOADS_ENABLED=true`. The web control is shown only when `NEXT_PUBLIC_UPLOADS_ENABLED=true`. One JPEG, PNG, or WebP per tweet or reply, at most 5 MiB and 4096 pixels on each edge. The composer does not collect a description; the stored text alternative is empty.
+
+1. `POST /v1/media/upload-intents` with `{ "mimeType", "byteSize" }` requires a session and `X-CSRF-Token`. `201` returns `{ uploadId, uploadToken, uploadPath, expiresAt }` for 15 minutes. The token is a secret shown once. Logs record ids only.
+2. `PUT` `uploadPath` with `Content-Type: application/octet-stream`, `X-CSRF-Token`, and `X-Upload-Token`. The body length must equal `byteSize`. The API decodes the image, rejects a mismatch, animation, or oversized result, rewrites the bytes, and answers `204`. A failed image is not readable. Another member's upload is `422` with the message "That image is not available."
+3. `POST /v1/tweets` may include `image: { "uploadId", "alt" }`. The tweet and the image row commit together. Reusing an upload, or one the member does not own, is `422` and stores no tweet. While uploads are off, `image` is `422`.
+4. Cards gain `image: { url, alt, width, height } | null`. `url` uses `PUBLIC_API_ORIGIN` plus `/v1/media/objects/:objectKey`. That GET needs no session. It is `404` until a tweet references the object, and `404` again after the tweet is deleted. The response sets the verified image type, `X-Content-Type-Options: nosniff`, `Content-Disposition: inline; filename="image.<ext>"`, and `Cross-Origin-Resource-Policy: cross-origin`.
+
+Limits follow OWASP ASVS 5.0.0 V5.2.1, V5.2.2, and V5.2.6. Paths are server-generated ids (V5.3.2). Objects are not executed (V5.3.1). There is no antivirus scan (V5.4.3); rewriting the image is the local mitigation. There is no per-member storage quota (V5.2.4 is level 3); size and the 20/minute intent and upload budgets are the limits. Expired unattached uploads are deleted when the next intent is created. Deleting a tweet deletes its object after the database commit. Rollback: stop the routes and leave the additive tables; forward-fix rather than dropping stored images.
+
 ## Home timeline (`GET /v1/timeline`)
 
 Requires a live session; no CSRF token is needed for this read. Returns `200 { items: Tweet[], nextCursor: string | null }` with `Cache-Control: no-store`. Cards contain only the member's and currently followed authors' tweets, newest first (ties: descending tweet ID), with committed like counts and the session member's liked state.

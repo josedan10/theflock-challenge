@@ -4,3 +4,4 @@ export * from "../../modules/auth/infrastructure/auth.schema.js";
 export * from "../../modules/tweets/infrastructure/tweets.schema.js";
 export * from "../../modules/social/infrastructure/social.schema.js";
 export * from "../../modules/notifications/infrastructure/notifications.schema.js";
+export * from "../../modules/media/infrastructure/media.schema.js";

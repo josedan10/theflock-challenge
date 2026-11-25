@@ -36,6 +36,10 @@ function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     createTweet: vi.fn(async () => {
       throw new Error("not used");
     }),
+    createUploadIntent: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    uploadImage: vi.fn(async () => undefined),
     deleteTweet: vi.fn(async () => undefined),
     follow: vi.fn(async () => {
       throw new Error("not used");

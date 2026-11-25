@@ -21,6 +21,7 @@ const app = await buildApp({
     sessionSecret: environment.SESSION_SECRET,
   },
   corsOrigin: environment.CORS_ORIGIN,
+  mediaOrigin: environment.PUBLIC_API_ORIGIN,
   tweetWriteRateLimit: {
     max: environment.TWEET_RATE_LIMIT_PER_MINUTE,
     timeWindowMs: 60_000,
@@ -29,6 +30,9 @@ const app = await buildApp({
   ...(environment.TRUST_PROXY === undefined
     ? {}
     : { trustProxy: environment.TRUST_PROXY }),
+  ...(environment.UPLOADS_ENABLED && environment.MEDIA_STORAGE_DIR !== undefined
+    ? { uploads: { storageDir: environment.MEDIA_STORAGE_DIR } }
+    : {}),
   readinessCheck: async () => {
     try {
       await sql`select 1`;

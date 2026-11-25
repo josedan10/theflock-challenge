@@ -82,9 +82,15 @@
 4. EventSource reconnects with `Last-Event-ID`. The API replays at most 30 missed eligible ids, newest first, then resumes live events. The client drops ids it already has.
 5. Disconnects, other authors' tweets, and a bad `Last-Event-ID` never expand what that member is allowed to see. Duplicate delivery is suppressed by tweet id.
 
-### Images
+### Images (IMG-01 / US-F02)
 
-API grants a short-lived upload intent; browser uploads to S3-compatible storage; tweet creation references a verified object. Do not proxy large files through the API.
+1. A signed-in member chooses one JPEG, PNG, or WebP. The composer checks the type and the 5 MiB limit before asking the API for anything.
+2. `POST /v1/media/upload-intents` checks the session, CSRF token, and declared type and size, then returns a short-lived upload id and token. No file bytes are on this request.
+3. The browser `PUT`s the bytes to that upload's content URL with the upload token. The API decodes and rewrites the image into the local object-storage adapter (a configured directory on a volume, not the container's own filesystem and not a cloud bucket). Tweet creation does not carry the file.
+4. `POST /v1/tweets` references the verified upload. The image becomes readable only after that tweet commits, from `GET /v1/media/objects/:objectKey`, with a fixed image content type.
+5. Deleting the tweet removes the metadata and the stored object. An upload that expires before it is attached, or that fails verification, is deleted and is never served.
+
+**Failure paths:** a bad file or someone else's upload keeps the draft and announces the error. No tweet is stored.
 
 ### Notifications
 

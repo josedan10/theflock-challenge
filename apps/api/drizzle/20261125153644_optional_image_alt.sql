@@ -1,0 +1,2 @@
+ALTER TABLE "tweet_media" DROP CONSTRAINT "tweet_media_alt_check";--> statement-breakpoint
+ALTER TABLE "tweet_media" ADD CONSTRAINT "tweet_media_alt_check" CHECK (char_length("tweet_media"."alt_text") <= 200 and "tweet_media"."alt_text" = btrim("tweet_media"."alt_text"));

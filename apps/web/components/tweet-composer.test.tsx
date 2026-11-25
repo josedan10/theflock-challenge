@@ -21,13 +21,22 @@ const signedIn = (overrides: Partial<ApiClient> = {}) =>
   fakeApiClient({ me: vi.fn(async () => testSession), ...overrides });
 
 /** Like HomeView: the composer mounts once the session (and CSRF token) is loaded. */
-function SignedInComposer() {
+function SignedInComposer({
+  uploadsEnabled = false,
+}: {
+  uploadsEnabled?: boolean;
+} = {}) {
   const session = useSession();
-  return session.data ? <TweetComposer member={member} /> : null;
+  return session.data ? (
+    <TweetComposer member={member} uploadsEnabled={uploadsEnabled} />
+  ) : null;
 }
 
-async function renderComposer(apiClient = signedIn()) {
-  const view = renderWithSession(<SignedInComposer />, apiClient);
+async function renderComposer(apiClient = signedIn(), uploadsEnabled = false) {
+  const view = renderWithSession(
+    <SignedInComposer uploadsEnabled={uploadsEnabled} />,
+    apiClient,
+  );
   await screen.findByRole("textbox", { name: "What's happening?" });
   return view;
 }
@@ -294,5 +303,66 @@ describe("TweetComposer keyboard shortcut", () => {
       "Meta+Enter Control+Enter",
     );
     expect(textbox()).toHaveAccessibleDescription(/Enter.*to post/);
+  });
+});
+
+describe("TweetComposer image", () => {
+  it("US-F02 AC-F02.4 uploads one image and posts the verified id with its description", async () => {
+    const png = Uint8Array.from(
+      atob(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      ),
+      (char) => char.charCodeAt(0),
+    );
+    const createUploadIntent = vi.fn(async () => ({
+      expiresAt: "2026-11-24T12:15:00.000Z",
+      uploadId: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f70",
+      uploadPath:
+        "/v1/media/uploads/0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f70/content",
+      uploadToken: "token",
+    }));
+    const uploadImage = vi.fn(async () => undefined);
+    const createTweet = vi.fn(async (input: { content: string }) => ({
+      tweet: { ...testTweet, content: input.content },
+    }));
+    await renderComposer(
+      signedIn({ createTweet, createUploadIntent, uploadImage }),
+      true,
+    );
+    const user = userEvent.setup();
+    const input = document.querySelector('input[type="file"]');
+    if (!(input instanceof HTMLInputElement)) {
+      throw new Error("image input missing");
+    }
+    await user.upload(input, new File([png], "dot.png", { type: "image/png" }));
+    await user.type(textbox(), "With a picture");
+    expect(submit()).toBeEnabled();
+    expect(
+      screen.queryByRole("textbox", { name: "Image description" }),
+    ).not.toBeInTheDocument();
+    await user.click(submit());
+
+    await waitFor(() => expect(createTweet).toHaveBeenCalled());
+    expect(createUploadIntent).toHaveBeenCalledWith(
+      { byteSize: png.byteLength, mimeType: "image/png" },
+      testSession.csrfToken,
+    );
+    expect(uploadImage).toHaveBeenCalledWith(
+      "/v1/media/uploads/0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f70/content",
+      "token",
+      expect.any(Uint8Array),
+      testSession.csrfToken,
+    );
+    expect(createTweet).toHaveBeenCalledWith(
+      {
+        content: "With a picture",
+        image: {
+          alt: "",
+          uploadId: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f70",
+        },
+      },
+      testSession.csrfToken,
+    );
+    expect(document.querySelector("img")).toBeNull();
   });
 });

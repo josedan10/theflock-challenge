@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { join } from "node:path";
 
 const webPort = 3100;
 const apiPort = 4100;
@@ -51,6 +52,9 @@ export default defineConfig({
         CORS_ORIGIN: webUrl,
         DATABASE_URL: databaseUrl,
         NODE_ENV: "test",
+        PUBLIC_API_ORIGIN: apiUrl,
+        UPLOADS_ENABLED: "true",
+        MEDIA_STORAGE_DIR: join(process.cwd(), "e2e", ".media"),
         SESSION_SECRET: "e2e-only-session-secret-not-for-real-use",
       },
       reuseExistingServer: false,
@@ -59,7 +63,10 @@ export default defineConfig({
     },
     {
       command: `pnpm --filter @twitter-clone/web dev --hostname 127.0.0.1 --port ${webPort}`,
-      env: { NEXT_PUBLIC_API_URL: apiUrl },
+      env: {
+        NEXT_PUBLIC_API_URL: apiUrl,
+        NEXT_PUBLIC_UPLOADS_ENABLED: "true",
+      },
       reuseExistingServer: false,
       timeout: 120_000,
       url: webUrl,
