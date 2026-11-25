@@ -86,6 +86,30 @@ services:
       # two `next dev` processes sharing one Turbopack cache corrupt it.
       - web-next:/workspace/apps/web/.next
 
+  # DEV-01 local activity simulator. Off by default: setup starts it only when
+  # ACTIVITY_SIMULATOR=true. Stop: pnpm activity:stop. Undo: pnpm activity:reset.
+  activity:
+    profiles: ["activity"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: development
+    command: ["pnpm", "--filter", "@twitter-clone/api", "activity"]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      ACTIVITY_API_URL: http://api:4000
+      ACTIVITY_INTERVAL_SECONDS: ${ACTIVITY_INTERVAL_SECONDS:-30}
+      ACTIVITY_SIMULATOR: ${ACTIVITY_SIMULATOR:-false}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      NODE_ENV: development
+    init: true
+    restart: "no"
+    volumes:
+      - .:/workspace
+      - workspace-node-modules:/workspace/node_modules
+
 volumes:
   postgres-data:
   media-data:
