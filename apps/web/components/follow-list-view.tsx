@@ -1,13 +1,21 @@
 "use client";
 
-import { CircleAlertIcon, UsersRoundIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ChevronDownIcon,
+  CircleAlertIcon,
+  RotateCwIcon,
+  UsersRoundIcon,
+} from "lucide-react";
 import Link from "next/link";
 
 import { ApiError, type FollowListDirection } from "../lib/api-client";
 import { useFollowList } from "../lib/follows";
 import { useSession } from "../lib/session";
+import { useHydrated } from "../lib/use-hydrated";
 
 import { FollowButton } from "./follow-button";
+import { FollowListSkeleton } from "./skeletons";
 
 import type { FollowListItem } from "@twitter-clone/contracts";
 
@@ -29,7 +37,6 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { Spinner } from "@/components/ui/spinner";
 
 const copy: Record<
   FollowListDirection,
@@ -59,7 +66,9 @@ export function FollowListView({
 }: Readonly<{ direction: FollowListDirection; username: string }>) {
   const list = useFollowList(username, direction);
   const session = useSession();
-  const viewer = session.data?.user ?? null;
+  const hydrated = useHydrated();
+  // Follow controls depend on the session; keep the first render server-equal.
+  const viewer = hydrated ? (session.data?.user ?? null) : null;
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
   const text = copy[direction];
   const notFound =
@@ -69,10 +78,11 @@ export function FollowListView({
     <section aria-labelledby="follow-list-heading" className="grid gap-4">
       <div className="grid gap-3">
         <Link
-          className="text-sm text-muted-foreground"
+          className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground"
           href={`/u/${encodeURIComponent(username)}`}
         >
-          ← Back to @{username}
+          <ArrowLeftIcon aria-hidden="true" className="size-4" />
+          Back to @{username}
         </Link>
         <h1 className="text-2xl font-bold" id="follow-list-heading">
           {text.title}
@@ -95,7 +105,7 @@ export function FollowListView({
         </nav>
       </div>
 
-      {list.isPending ? <Loading label="Loading…" /> : null}
+      {list.isPending ? <FollowListSkeleton label="Loading people…" /> : null}
 
       {list.isError && !list.isFetchNextPageError ? (
         <div className="grid gap-4">
@@ -113,6 +123,7 @@ export function FollowListView({
               type="button"
               variant="outline"
             >
+              <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
               Try again
             </Button>
           )}
@@ -134,7 +145,10 @@ export function FollowListView({
       ) : null}
 
       {items.length > 0 ? (
-        <ul aria-labelledby="follow-list-heading" className="grid gap-2">
+        <ul
+          aria-labelledby="follow-list-heading"
+          className="content-enter grid gap-2"
+        >
           {items.map((item) => (
             <li key={item.user.id}>
               <MemberRow item={item} viewerUsername={viewer?.username} />
@@ -152,13 +166,20 @@ export function FollowListView({
 
       {list.hasNextPage === true ? (
         <div className="grid justify-items-center gap-3">
-          {list.isFetchingNextPage ? <Loading label="Loading more…" /> : null}
+          {list.isFetchingNextPage ? (
+            <FollowListSkeleton count={2} label="Loading more people…" />
+          ) : null}
           <Button
             disabled={list.isFetchingNextPage}
             onClick={() => void list.fetchNextPage()}
             type="button"
             variant="outline"
           >
+            {list.isFetchNextPageError ? (
+              <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
+            ) : (
+              <ChevronDownIcon aria-hidden="true" data-icon="inline-start" />
+            )}
             {list.isFetchNextPageError ? "Try again" : "Load more"}
           </Button>
         </div>
@@ -210,19 +231,5 @@ function MemberRow({
         </ItemActions>
       )}
     </Item>
-  );
-}
-
-function Loading({ label }: Readonly<{ label: string }>) {
-  return (
-    <p className="flex items-center gap-2 text-muted-foreground" role="status">
-      <Spinner
-        aria-hidden="true"
-        aria-label={undefined}
-        className="motion-reduce:animate-none"
-        role="presentation"
-      />
-      {label}
-    </p>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { UserMinusIcon, UserPlusIcon } from "lucide-react";
+
 import { useFollowMember } from "../lib/follows";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,11 @@ export function FollowButton({
         type="button"
         variant={following ? "outline" : "default"}
       >
+        {following ? (
+          <UserMinusIcon aria-hidden="true" data-icon="inline-start" />
+        ) : (
+          <UserPlusIcon aria-hidden="true" data-icon="inline-start" />
+        )}
         {label}
       </Button>
       <p className="text-xs text-destructive" role="status">

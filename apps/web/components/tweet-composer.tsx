@@ -5,7 +5,7 @@ import {
   createTweetRequestSchema,
   TWEET_MAX_LENGTH,
 } from "@twitter-clone/contracts";
-import { CircleAlertIcon } from "lucide-react";
+import { CircleAlertIcon, SendIcon } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 
 import { apiFormErrors, type FormErrors, NO_ERRORS } from "../lib/form-errors";
@@ -157,7 +157,10 @@ export function TweetComposer({
                 Posting…
               </>
             ) : (
-              "Post"
+              <>
+                <SendIcon aria-hidden="true" data-icon="inline-start" />
+                Post
+              </>
             )}
           </Button>
         </div>

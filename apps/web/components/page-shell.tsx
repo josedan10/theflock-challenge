@@ -7,7 +7,10 @@ export function PageShell({
 }: Readonly<{ children: ReactNode; labelledBy?: string }>) {
   return (
     <main className="grid min-h-dvh place-items-center px-4 py-6 sm:px-6 sm:py-12">
-      <section aria-labelledby={labelledBy} className="w-full max-w-md">
+      <section
+        aria-labelledby={labelledBy}
+        className="page-enter w-full max-w-md"
+      >
         {children}
       </section>
     </main>

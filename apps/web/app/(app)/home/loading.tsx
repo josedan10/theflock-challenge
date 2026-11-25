@@ -1,5 +1,5 @@
-import { PageSkeleton } from "@/components/page-skeleton";
+import { HomeSkeleton } from "@/components/skeletons";
 
 export default function HomeLoading() {
-  return <PageSkeleton label="Loading your account" />;
+  return <HomeSkeleton label="Loading your account…" />;
 }

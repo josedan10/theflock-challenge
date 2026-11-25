@@ -1,7 +1,12 @@
 "use client";
 
 import { useMutationState } from "@tanstack/react-query";
-import { CircleAlertIcon } from "lucide-react";
+import {
+  ArrowUpIcon,
+  ChevronDownIcon,
+  CircleAlertIcon,
+  RotateCwIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -15,6 +20,7 @@ import {
   usePendingTweets,
 } from "../lib/tweets";
 
+import { TimelineSkeleton } from "./skeletons";
 import { TweetCard } from "./tweet-card";
 
 import type { SessionUser } from "@twitter-clone/contracts";
@@ -188,13 +194,14 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       {deferNewPosts && ahead.length > 0 ? (
         <p role="status">
           <Button onClick={showNewPosts} type="button" variant="outline">
+            <ArrowUpIcon aria-hidden="true" data-icon="inline-start" />
             Show {ahead.length} new {ahead.length === 1 ? "post" : "posts"}
           </Button>
         </p>
       ) : null}
 
       {timeline.isPending && items.length === 0 ? (
-        <LoadingOlder label="Loading your timeline…" />
+        <TimelineSkeleton label="Loading your timeline…" />
       ) : null}
 
       {showInitialError ? (
@@ -208,6 +215,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             type="button"
             variant="outline"
           >
+            <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
             Try again
           </Button>
         </div>
@@ -223,7 +231,10 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       {isPosting ? <PostingTweet /> : null}
 
       {items.length > 0 ? (
-        <ol aria-labelledby="home-timeline-heading" className="grid gap-3">
+        <ol
+          aria-labelledby="home-timeline-heading"
+          className="content-enter grid gap-3"
+        >
           {items.map((tweet) => (
             <li
               className={appearing.has(tweet.id) ? "tweet-appear" : undefined}
@@ -247,6 +258,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             <AlertDescription>We couldn't load older posts.</AlertDescription>
           </Alert>
           <Button onClick={loadOlder} type="button" variant="outline">
+            <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
             Try again
           </Button>
         </div>
@@ -255,7 +267,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
       {timeline.hasNextPage === true ? (
         <div className="grid justify-items-center gap-3">
           {timeline.isFetchingNextPage ? (
-            <LoadingOlder label="Loading older posts…" />
+            <TimelineSkeleton count={2} label="Loading older posts…" />
           ) : null}
           <Button
             disabled={timeline.isFetchingNextPage}
@@ -263,6 +275,7 @@ export function TimelineFeed({ user }: Readonly<{ user: SessionUser }>) {
             type="button"
             variant="outline"
           >
+            <ChevronDownIcon aria-hidden="true" data-icon="inline-start" />
             Load more
           </Button>
           <div aria-hidden="true" className="h-px w-full" ref={sentinel} />
@@ -291,20 +304,6 @@ function PostingTweet() {
         role="presentation"
       />
       Posting your tweet…
-    </p>
-  );
-}
-
-function LoadingOlder({ label }: Readonly<{ label: string }>) {
-  return (
-    <p className="flex items-center gap-2 text-muted-foreground" role="status">
-      <Spinner
-        aria-hidden="true"
-        aria-label={undefined}
-        className="motion-reduce:animate-none"
-        role="presentation"
-      />
-      {label}
     </p>
   );
 }

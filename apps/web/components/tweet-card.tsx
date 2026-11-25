@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlertIcon } from "lucide-react";
+import { CircleAlertIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -81,9 +81,16 @@ export function TweetCard({
             <AlertDialogTrigger
               aria-label="Delete tweet"
               ref={deleteButton}
-              render={<Button size="sm" type="button" variant="ghost" />}
+              render={
+                <Button
+                  className="size-11 text-muted-foreground hover:text-destructive sm:size-9"
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                />
+              }
             >
-              Delete
+              <Trash2Icon aria-hidden="true" />
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -102,6 +109,7 @@ export function TweetCard({
                   type="button"
                   variant="destructive"
                 >
+                  <Trash2Icon aria-hidden="true" data-icon="inline-start" />
                   Delete
                 </Button>
               </AlertDialogFooter>

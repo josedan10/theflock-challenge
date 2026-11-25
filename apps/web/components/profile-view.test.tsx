@@ -33,6 +33,30 @@ describe("profile view", () => {
     expect(screen.getByText("7")).toBeVisible();
   });
 
+  it("PRO-02 shortens large counts and keeps the exact number in the title", async () => {
+    renderWithSession(
+      <ProfileView username="ada" />,
+      fakeApiClient({
+        getProfile: vi.fn(async () => ({
+          profile: {
+            ...profile,
+            followerCount: 2_345_678,
+            followingCount: 1_100,
+            tweetCount: 999,
+          },
+        })),
+      }),
+    );
+
+    const followers = await screen.findByRole("link", {
+      name: "2.3M Followers",
+    });
+    expect(followers).toHaveAttribute("title", "2,345,678 followers");
+    expect(screen.getByRole("link", { name: "1.1k Following" })).toBeVisible();
+    const stats = screen.getByRole("list", { name: "Profile statistics" });
+    expect(stats).toHaveTextContent("999 Tweets");
+  });
+
   it("US-C03 links the follower and following counts to their lists", async () => {
     renderWithSession(
       <ProfileView username="ada" />,

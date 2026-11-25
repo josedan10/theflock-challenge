@@ -1,12 +1,14 @@
 "use client";
 
-import { CircleAlertIcon } from "lucide-react";
+import { CircleAlertIcon, RotateCwIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useSession } from "../lib/session";
+import { useHydrated } from "../lib/use-hydrated";
 
+import { HomeSkeleton } from "./skeletons";
 import { TimelineFeed } from "./timeline-feed";
 import { TweetComposer } from "./tweet-composer";
 
@@ -21,7 +23,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Spinner } from "@/components/ui/spinner";
 
 /**
  * Member home. Private content renders only after `GET /v1/me` confirms the
@@ -30,6 +31,7 @@ import { Spinner } from "@/components/ui/spinner";
 export function HomeView() {
   const router = useRouter();
   const session = useSession();
+  const hydrated = useHydrated();
   // Logout leaves with a full page navigation (see AppHeader), so a null
   // session here always means the visitor is not signed in.
   const signedOut = session.isSuccess && session.data === null;
@@ -40,8 +42,10 @@ export function HomeView() {
     }
   }, [router, signedOut]);
 
-  if (session.isPending) {
-    return <LoadingStatus />;
+  // Until hydration ends, match the server HTML even if the header has
+  // already loaded the session.
+  if (!hydrated || session.isPending) {
+    return <HomeSkeleton label="Loading your account…" />;
   }
   if (session.isError) {
     return (
@@ -55,6 +59,7 @@ export function HomeView() {
           type="button"
           variant="outline"
         >
+          <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
           Try again
         </Button>
       </div>
@@ -62,7 +67,7 @@ export function HomeView() {
   }
   if (session.data === null) {
     // Signed out: the effect above is already redirecting to /login.
-    return <LoadingStatus />;
+    return <HomeSkeleton label="Loading your account…" />;
   }
 
   return <MemberHome user={session.data.user} />;
@@ -91,20 +96,5 @@ function MemberHome({ user }: Readonly<{ user: SessionUser }>) {
       </Card>
       <TimelineFeed user={user} />
     </div>
-  );
-}
-
-/** One live status region; the shadcn Spinner inside it is decorative only. */
-function LoadingStatus() {
-  return (
-    <p className="flex items-center gap-2 text-muted-foreground" role="status">
-      <Spinner
-        aria-hidden="true"
-        aria-label={undefined}
-        className="motion-reduce:animate-none"
-        role="presentation"
-      />
-      Loading your account…
-    </p>
   );
 }

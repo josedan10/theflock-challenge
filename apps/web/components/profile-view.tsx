@@ -1,7 +1,12 @@
 "use client";
 
 import { updateProfileRequestSchema } from "@twitter-clone/contracts";
-import { CircleAlertIcon, UserRoundIcon } from "lucide-react";
+import {
+  CircleAlertIcon,
+  PencilIcon,
+  RotateCwIcon,
+  UserRoundIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useRef, useState } from "react";
 
@@ -12,8 +17,11 @@ import {
   NO_ERRORS,
   zodFieldErrors,
 } from "../lib/form-errors";
+import { formatCount, formatExactCount } from "../lib/format-count";
 import { usePublicProfile, useSession, useUpdateProfile } from "../lib/session";
+import { useHydrated } from "../lib/use-hydrated";
 
+import { ProfileSkeleton } from "./skeletons";
 import { TextField } from "./text-field";
 import { useFocusFirstError } from "./use-focus-first-error";
 
@@ -27,15 +35,15 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { Spinner } from "@/components/ui/spinner";
 
 /** Public, responsive profile route for PROFILE-01 and US-A03. */
 export function ProfileView({ username }: Readonly<{ username: string }>) {
   const profileQuery = usePublicProfile(username);
   const session = useSession();
+  const hydrated = useHydrated();
 
   if (profileQuery.isPending) {
-    return <ProfileStatus>Loading profile…</ProfileStatus>;
+    return <ProfileSkeleton label="Loading profile…" />;
   }
   if (profileQuery.isError) {
     const notFound =
@@ -60,6 +68,7 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
             </Link>
           ) : (
             <Button onClick={() => void profileQuery.refetch()} type="button">
+              <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
               Try again
             </Button>
           )}
@@ -69,10 +78,14 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
   }
 
   const { profile } = profileQuery.data;
-  const isOwner = session.isSuccess && session.data?.user.id === profile.id;
+  const isOwner =
+    hydrated && session.isSuccess && session.data?.user.id === profile.id;
 
   return (
-    <article aria-labelledby="profile-heading" className="grid gap-4">
+    <article
+      aria-labelledby="profile-heading"
+      className="content-enter grid gap-4"
+    >
       <Card className="overflow-hidden">
         <div aria-hidden="true" className="h-24 bg-muted sm:h-32" />
         <CardContent className="grid gap-6 pb-6">
@@ -102,9 +115,9 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
             )}
           </p>
 
-          <dl
+          <ul
             aria-label="Profile statistics"
-            className="grid grid-cols-3 gap-2 border-t pt-4 text-center"
+            className="grid grid-cols-3 gap-2 border-t pt-4"
           >
             <ProfileCount label="Tweets" value={profile.tweetCount} />
             <ProfileCount
@@ -117,7 +130,7 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
               label="Following"
               value={profile.followingCount}
             />
-          </dl>
+          </ul>
         </CardContent>
       </Card>
       <p className="text-sm text-muted-foreground">
@@ -159,40 +172,44 @@ function ProfileAvatar({
   );
 }
 
-/** One statistic; follower and following counts link to their lists (US-C03). */
+/**
+ * One statistic: the short count above its label, centered. Linked and plain
+ * cells share one box, so numbers and labels line up across the row. The
+ * follower and following cells link to their lists (US-C03). Large counts
+ * read 1k, 1.1k, 2.3M; the exact number is in the title.
+ */
 function ProfileCount({
   href,
   label,
   value,
 }: Readonly<{ href?: string; label: string; value: number }>) {
-  return (
-    <div className="flex min-w-0 flex-col">
-      <dt className="order-2 truncate text-sm text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="order-1 text-lg font-semibold tabular-nums">
-        {href === undefined ? (
-          value
-        ) : (
-          <Link
-            aria-label={`${value} ${label}`}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center underline-offset-4 hover:underline"
-            href={href}
-          >
-            {value}
-          </Link>
-        )}
-      </dd>
-    </div>
+  const cell =
+    "flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 text-center text-foreground no-underline";
+  const content = (
+    <>
+      <span className="text-lg leading-tight font-semibold tabular-nums">
+        {formatCount(value)}
+      </span>{" "}
+      <span className="truncate text-sm text-muted-foreground">{label}</span>
+    </>
   );
-}
-
-function ProfileStatus({ children }: Readonly<{ children: string }>) {
+  const title = `${formatExactCount(value)} ${label.toLowerCase()}`;
   return (
-    <p className="flex items-center gap-2 text-muted-foreground" role="status">
-      <Spinner aria-hidden="true" className="motion-reduce:animate-none" />
-      {children}
-    </p>
+    <li className="min-w-0">
+      {href === undefined ? (
+        <div className={cell} title={title}>
+          {content}
+        </div>
+      ) : (
+        <Link
+          className={`${cell} transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none`}
+          href={href}
+          title={title}
+        >
+          {content}
+        </Link>
+      )}
+    </li>
   );
 }
 
@@ -245,6 +262,7 @@ function EditProfile({
         type="button"
         variant="outline"
       >
+        <PencilIcon aria-hidden="true" data-icon="inline-start" />
         Edit profile
       </Button>
     );

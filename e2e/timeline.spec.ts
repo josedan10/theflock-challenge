@@ -14,6 +14,13 @@ test("FEED-02 US-B03 pages the home timeline without duplicates", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60_000);
+  // Scrolling to "Load more" also reveals the infinite-scroll sentinel, which
+  // could load the page and remove the button mid-click. Without
+  // IntersectionObserver the feed falls back to the button alone, so this
+  // journey exercises that path deterministically.
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(window, "IntersectionObserver");
+  });
   const member = uniqueMember(testInfo);
   await register(page, member);
   await expect(page).toHaveURL(/\/home$/);
