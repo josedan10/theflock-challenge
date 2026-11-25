@@ -28,6 +28,13 @@ import {
 } from "@/components/ui/navigation-menu";
 
 /**
+ * Below the md breakpoint the navigation is icons only: the words stay in
+ * each control's accessible name (visually hidden), and every icon keeps a
+ * 44px target.
+ */
+const iconNav = "no-underline max-md:size-11 max-md:justify-center max-md:p-0";
+
+/**
  * Primary navigation for the app pages (home and profiles). Members get Home,
  * their profile, and Log out; signed-out visitors reading a public profile get
  * Log in and Create account. The current page is marked with aria-current.
@@ -68,41 +75,40 @@ export function AppHeader() {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    className="no-underline"
+                    className={iconNav}
                     active={pathname === "/home"}
                     render={<Link href="/home" />}
                   >
                     <HouseIcon aria-hidden="true" />
-                    Home
+                    <span className="sr-only md:not-sr-only">Home</span>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    className="no-underline"
+                    className={iconNav}
                     active={pathname === "/search"}
                     render={<Link href="/search" />}
                   >
                     <SearchIcon aria-hidden="true" />
-                    Search
+                    <span className="sr-only md:not-sr-only">Search</span>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuLink
                     active={pathname === "/notifications"}
-                    className="relative no-underline"
+                    className={`relative ${iconNav}`}
                     render={<Link href="/notifications" />}
                   >
                     <BellIcon aria-hidden="true" />
                     {/* The name comes from this content, so it always matches
-                        what is visible: "Notifications 3 unread". On phones
-                        the word is visually hidden for room. */}
+                        what is visible: "Notifications 3 unread". */}
                     <span className="sr-only md:not-sr-only">
                       Notifications
                     </span>
                     {unread > 0 ? (
                       <>
                         {" "}
-                        <Badge className="absolute -top-1 left-4 h-4 min-w-4 px-1 text-[0.65rem] tabular-nums md:static">
+                        <Badge className="absolute top-1 right-0.5 h-4 min-w-4 px-1 text-[0.65rem] tabular-nums md:static">
                           {unread > 99 ? "99+" : unread}
                         </Badge>{" "}
                         <span className="sr-only">unread</span>
@@ -112,12 +118,12 @@ export function AppHeader() {
                 </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    className="no-underline"
+                    className={iconNav}
                     active={pathname === `/u/${user.username}`}
                     render={<Link href={`/u/${user.username}`} />}
                   >
                     <UserRoundIcon aria-hidden="true" />
-                    Profile
+                    <span className="sr-only md:not-sr-only">Profile</span>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -131,12 +137,15 @@ export function AppHeader() {
                   onSuccess: () => leaveTo("/"),
                 })
               }
+              className="max-md:size-11 max-md:px-0"
               size="sm"
               type="button"
               variant="ghost"
             >
               <LogOutIcon aria-hidden="true" data-icon="inline-start" />
-              {logOut.isPending ? "Logging out…" : "Log out"}
+              <span className="sr-only md:not-sr-only">
+                {logOut.isPending ? "Logging out…" : "Log out"}
+              </span>
             </Button>
           </div>
         )}
