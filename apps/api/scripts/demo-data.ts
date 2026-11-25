@@ -18,6 +18,11 @@ import type { Database } from "../src/platform/database/client.js";
 
 const namespace = "416b0bb3-5154-4ac6-9e33-3a58e76ce518";
 
+/** Stable ID of a seeded account, so other local tools can tell it from a real member. */
+export function demoUserId(username: string): string {
+  return uuid(username, namespace);
+}
+
 const givenNames = [
   "Maya",
   "Andre",
@@ -208,7 +213,7 @@ export async function seedDemo(
     const username = `demo_${index + 1}`;
     const email = `${username}@example.test`;
     return {
-      id: uuid(username, namespace),
+      id: demoUserId(username),
       username,
       email,
       emailNormalized: email,
