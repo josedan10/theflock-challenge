@@ -18,6 +18,15 @@ export interface TimelineEntry extends TimelinePosition {
   likedByViewer: boolean;
   /** Direct replies, counted for this bounded page only. */
   replyCount: number;
+  /**
+   * Parent of a reply. Null for a root tweet. `username` is null when that
+   * member is no longer visible; the parent text stays, because the tweet is public.
+   */
+  replyingTo: {
+    content: string;
+    id: string;
+    username: string | null;
+  } | null;
   image: TweetImage | null;
 }
 

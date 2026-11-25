@@ -47,7 +47,7 @@ export function timelineQuery(
       select posts.*, u.id as author_id, u.username, u.display_name
       from eligible e join users u on u.id = e.author_id and u.deleted_at is null
       cross join lateral (
-        select t.id, t.content, t.created_at from tweets t
+        select t.id, t.content, t.created_at, t.parent_tweet_id from tweets t
         where t.author_id = e.author_id ${boundary}
         order by t.created_at desc nulls last, t.id desc nulls last limit ${count}
       ) posts
@@ -57,11 +57,15 @@ export function timelineQuery(
       to_char(p.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
       p.author_id, p.username, p.display_name, reactions.like_count, reactions.liked,
       (select count(*) from tweets c where c.parent_tweet_id = p.id) as reply_count,
+      parent.id as parent_id, parent.content as parent_content, parent_user.username as parent_username,
       m.object_key, m.alt_text, m.width, m.height
     from page p cross join lateral (
       select count(*) as like_count, coalesce(bool_or(l.user_id = ${viewer}::uuid), false) as liked
       from likes l where l.tweet_id = p.id
     ) reactions
+    left join tweets parent on parent.id = p.parent_tweet_id
+    left join users parent_user
+      on parent_user.id = parent.author_id and parent_user.deleted_at is null
     left join tweet_media m on m.tweet_id = p.id
     order by p.created_at desc, p.id desc`;
 }
@@ -76,6 +80,9 @@ interface TimelineRow extends Record<string, unknown> {
   like_count: string;
   liked: boolean;
   reply_count: string;
+  parent_id: string | null;
+  parent_content: string | null;
+  parent_username: string | null;
   object_key: string | null;
   alt_text: string | null;
   width: number | string | null;
@@ -112,7 +119,7 @@ export function timelineSinceQuery(
       select posts.*, u.id as author_id, u.username, u.display_name
       from eligible e join users u on u.id = e.author_id and u.deleted_at is null
       cross join lateral (
-        select t.id, t.content, t.created_at from tweets t
+        select t.id, t.content, t.created_at, t.parent_tweet_id from tweets t
         where t.author_id = e.author_id ${boundary}
         order by t.created_at desc nulls last, t.id desc nulls last limit ${count}
       ) posts
@@ -122,11 +129,15 @@ export function timelineSinceQuery(
       to_char(p.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
       p.author_id, p.username, p.display_name, reactions.like_count, reactions.liked,
       (select count(*) from tweets c where c.parent_tweet_id = p.id) as reply_count,
+      parent.id as parent_id, parent.content as parent_content, parent_user.username as parent_username,
       m.object_key, m.alt_text, m.width, m.height
     from page p cross join lateral (
       select count(*) as like_count, coalesce(bool_or(l.user_id = ${viewer}::uuid), false) as liked
       from likes l where l.tweet_id = p.id
     ) reactions
+    left join tweets parent on parent.id = p.parent_tweet_id
+    left join users parent_user
+      on parent_user.id = parent.author_id and parent_user.deleted_at is null
     left join tweet_media m on m.tweet_id = p.id
     order by p.created_at desc, p.id desc`;
 }
@@ -186,5 +197,13 @@ function mapTimelineRow(r: TimelineRow, mediaOrigin: string): TimelineEntry {
     likeCount: Number(r.like_count),
     likedByViewer: r.liked,
     replyCount: Number(r.reply_count),
+    replyingTo:
+      r.parent_id === null || r.parent_content === null
+        ? null
+        : {
+            content: r.parent_content,
+            id: r.parent_id,
+            username: r.parent_username,
+          },
   };
 }
