@@ -84,7 +84,7 @@
 
 ### Images (IMG-01 / US-F02)
 
-1. A signed-in member chooses one JPEG, PNG, or WebP. A description is optional. The composer checks the type and the 5 MiB limit before asking the API for anything.
+1. A signed-in member chooses one JPEG, PNG, or WebP. The composer checks the type and the 5 MiB limit before asking the API for anything.
 2. `POST /v1/media/upload-intents` checks the session, CSRF token, and declared type and size, then returns a short-lived upload id and token. No file bytes are on this request.
 3. The browser `PUT`s the bytes to that upload's content URL with the upload token. The API decodes and rewrites the image into the local object-storage adapter (a configured directory on a volume, not the container's own filesystem and not a cloud bucket). Tweet creation does not carry the file.
 4. `POST /v1/tweets` references the verified upload. The image becomes readable only after that tweet commits, from `GET /v1/media/objects/:objectKey`, with a fixed image content type.
