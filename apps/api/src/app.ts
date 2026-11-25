@@ -10,6 +10,7 @@ import {
   createAuthRuntime,
 } from "./modules/auth/auth-module.js";
 import { followsModule } from "./modules/social/follows-module.js";
+import { likesModule } from "./modules/social/likes-module.js";
 import { timelineModule } from "./modules/timeline/timeline-module.js";
 import { tweetsModule } from "./modules/tweets/tweets-module.js";
 import { usersModule } from "./modules/users/users-module.js";
@@ -33,6 +34,8 @@ export interface BuildAppOptions {
   trustProxy?: string[];
   /** Override for the follow/unfollow budget. Default: 60/minute, separately. */
   followWriteRateLimit?: AuthRateLimit;
+  /** Override for the like/unlike budget. Default: 60/minute, separately. */
+  likeWriteRateLimit?: AuthRateLimit;
   /** Override for the home-timeline read budget. Default: 120/minute. */
   timelineRateLimit?: AuthRateLimit;
   /** Override for the tweet create/delete budget. Default: 20/minute. */
@@ -118,6 +121,20 @@ export async function buildApp(
         ...(options.followWriteRateLimit === undefined
           ? {}
           : { writeRateLimit: options.followWriteRateLimit }),
+      }),
+      { prefix: "/v1" },
+    );
+    await app.register(
+      likesModule({
+        db: options.auth.db,
+        requireCsrf: auth.requireCsrf,
+        requireSession: auth.requireSession,
+        ...(options.auth.clock === undefined
+          ? {}
+          : { clock: options.auth.clock }),
+        ...(options.likeWriteRateLimit === undefined
+          ? {}
+          : { writeRateLimit: options.likeWriteRateLimit }),
       }),
       { prefix: "/v1" },
     );
