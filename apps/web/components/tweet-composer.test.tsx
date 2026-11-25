@@ -336,6 +336,7 @@ describe("TweetComposer image", () => {
     }
     await user.upload(input, new File([png], "dot.png", { type: "image/png" }));
     await user.type(textbox(), "With a picture");
+    expect(submit()).toBeEnabled();
     await user.type(
       screen.getByRole("textbox", { name: "Image description" }),
       "A dot",

@@ -95,7 +95,6 @@ export function TweetComposer({
   const remaining = TWEET_MAX_LENGTH - codePointLength(content.trim());
   const over = remaining < 0;
   const empty = content.trim().length === 0;
-  const altMissing = imageFile !== null && imageAlt.trim().length === 0;
   const altTooLong = codePointLength(imageAlt.trim()) > IMAGE_ALT_MAX_LENGTH;
   const fieldErrors = errors.fields.content ?? [];
   const imageErrors = errors.fields.image ?? [];
@@ -313,7 +312,7 @@ export function TweetComposer({
             />
           )}
           {imageFile === null ? null : (
-            <Field data-invalid={altMissing || altTooLong}>
+            <Field data-invalid={altTooLong}>
               <FieldLabel htmlFor={altInputId}>Image description</FieldLabel>
               <Input
                 aria-describedby={`${altInputId}-hint`}
@@ -323,7 +322,7 @@ export function TweetComposer({
                 value={imageAlt}
               />
               <FieldDescription id={`${altInputId}-hint`}>
-                Required. This is the text alternative for the image.
+                Optional. This is the text alternative for the image.
               </FieldDescription>
             </Field>
           )}
@@ -358,12 +357,7 @@ export function TweetComposer({
           <Button
             aria-busy={busy || createTweet.isPending}
             disabled={
-              empty ||
-              over ||
-              altMissing ||
-              altTooLong ||
-              busy ||
-              createTweet.isPending
+              empty || over || altTooLong || busy || createTweet.isPending
             }
             type="submit"
           >
