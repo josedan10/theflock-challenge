@@ -14,13 +14,10 @@ import { useFollowList } from "../lib/follows";
 import { useSession } from "../lib/session";
 import { useHydrated } from "../lib/use-hydrated";
 
-import { FollowButton } from "./follow-button";
+import { MemberRow } from "./member-row";
 import { FollowListSkeleton } from "./skeletons";
 
-import type { FollowListItem } from "@twitter-clone/contracts";
-
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Empty,
@@ -29,14 +26,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
 
 const copy: Record<
   FollowListDirection,
@@ -191,45 +180,5 @@ export function FollowListView({
         </p>
       ) : null}
     </section>
-  );
-}
-
-function MemberRow({
-  item,
-  viewerUsername,
-}: Readonly<{ item: FollowListItem; viewerUsername: string | undefined }>) {
-  const { user } = item;
-  return (
-    <Item variant="outline">
-      <ItemMedia>
-        <Avatar aria-hidden="true">
-          <AvatarFallback>
-            {user.displayName.slice(0, 1).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      </ItemMedia>
-      <ItemContent className="min-w-0">
-        <ItemTitle className="truncate">
-          {user.displayName}
-          {item.isViewer ? (
-            <span className="text-muted-foreground"> (you)</span>
-          ) : null}
-        </ItemTitle>
-        <ItemDescription>
-          <Link href={`/u/${encodeURIComponent(user.username)}`}>
-            @{user.username}
-          </Link>
-        </ItemDescription>
-      </ItemContent>
-      {viewerUsername === undefined || item.isViewer ? null : (
-        <ItemActions>
-          <FollowButton
-            following={item.followedByViewer}
-            username={user.username}
-            viewerUsername={viewerUsername}
-          />
-        </ItemActions>
-      )}
-    </Item>
   );
 }

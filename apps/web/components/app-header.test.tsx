@@ -54,6 +54,15 @@ describe("AppHeader", () => {
     );
   });
 
+  it("US-D01 offers Search and marks it current on /search", async () => {
+    pathname.mockReturnValue("/search");
+    renderWithSession(<AppHeader />, signedIn());
+
+    const search = await screen.findByRole("link", { name: "Search" });
+    expect(search).toHaveAttribute("href", "/search");
+    expect(search).toHaveAttribute("aria-current", "page");
+  });
+
   it("offers Log in and Create account to a signed-out visitor", async () => {
     pathname.mockReturnValue("/u/ada");
     renderWithSession(<AppHeader />);

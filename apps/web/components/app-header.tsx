@@ -4,6 +4,7 @@ import {
   CircleAlertIcon,
   HouseIcon,
   LogOutIcon,
+  SearchIcon,
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -69,6 +70,16 @@ export function AppHeader() {
                   >
                     <HouseIcon aria-hidden="true" />
                     Home
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className="no-underline"
+                    active={pathname === "/search"}
+                    render={<Link href="/search" />}
+                  >
+                    <SearchIcon aria-hidden="true" />
+                    Search
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
