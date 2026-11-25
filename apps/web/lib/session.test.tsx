@@ -51,6 +51,7 @@ function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
       },
     })),
     getTimeline: vi.fn(async () => ({ items: [], nextCursor: null })),
+    timelineStreamUrl: vi.fn(() => "http://api.test/v1/timeline/stream"),
     logIn: vi.fn(async () => session),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),

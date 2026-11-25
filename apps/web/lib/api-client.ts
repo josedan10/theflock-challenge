@@ -89,6 +89,8 @@ export interface ApiClient {
    * page, sent only to this API and never stored. Omit it for the first page.
    */
   getTimeline(cursor?: string): Promise<TimelinePage>;
+  /** Credentialed SSE URL for live home-timeline ids (LIVE-01). */
+  timelineStreamUrl(): string;
   /** One page of a member's followers or following; cursor as for the timeline. */
   getFollowList(
     username: string,
@@ -243,6 +245,9 @@ export function createApiClient(
         method: "GET",
       });
       return publicProfileResponseSchema.parse(await response.json());
+    },
+    timelineStreamUrl() {
+      return `${baseUrl}/v1/timeline/stream`;
     },
     async getTimeline(cursor) {
       const params = new URLSearchParams();

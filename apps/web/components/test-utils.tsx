@@ -61,6 +61,7 @@ export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
     })),
     logIn: vi.fn(async () => testSession),
     getTimeline: vi.fn(async () => ({ items: [], nextCursor: null })),
+    timelineStreamUrl: vi.fn(() => "http://api.test/v1/timeline/stream"),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
     like: vi.fn(async () => ({ like: { likeCount: 1, liked: true } })),
