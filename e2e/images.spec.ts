@@ -18,13 +18,10 @@ async function postWithImage(page: Page) {
   await page
     .getByRole("textbox", { name: "What's happening?" })
     .fill("With a picture");
-  await page
-    .getByRole("textbox", { name: "Image description" })
-    .fill("One red pixel");
   await page.getByRole("button", { name: "Post", exact: true }).click();
 }
 
-test("IMG-01 US-F02 posts a tweet with an image and its description", async ({
+test("IMG-01 US-F02 posts a tweet with an image and no description", async ({
   page,
 }, testInfo) => {
   const member = uniqueMember(testInfo);
@@ -38,5 +35,6 @@ test("IMG-01 US-F02 posts a tweet with an image and its description", async ({
   await expect(card).toContainText("With a picture", {
     timeout: FIRST_VISIT_TIMEOUT_MS,
   });
-  await expect(card.getByRole("img", { name: "One red pixel" })).toBeVisible();
+  await expect(card.locator("img")).toBeVisible();
+  await expect(card.locator("img")).toHaveAttribute("alt", "");
 });
