@@ -34,6 +34,21 @@ export type AuthGuard = (
   reply: FastifyReply,
 ) => Promise<void>;
 
+async function findSession(
+  dependencies: AuthenticationDependencies,
+  request: FastifyRequest,
+): Promise<AuthContext | null> {
+  const sessionToken = request.cookies[SESSION_COOKIE_NAME];
+  if (sessionToken === undefined || sessionToken.length === 0) {
+    return null;
+  }
+  const active = await dependencies.sessions.findActiveByTokenHash(
+    dependencies.credentials.hash(sessionToken),
+    dependencies.clock(),
+  );
+  return active === null ? null : { ...active, sessionToken };
+}
+
 /**
  * Creates the `requireSession` pre-handler. Unknown, expired, and revoked
  * sessions all produce the same `401`, so the response never says why.
@@ -42,20 +57,31 @@ export function createRequireSession(
   dependencies: AuthenticationDependencies,
 ): AuthGuard {
   return async (request) => {
-    const sessionToken = request.cookies[SESSION_COOKIE_NAME];
-    const active =
-      sessionToken === undefined || sessionToken.length === 0
-        ? null
-        : await dependencies.sessions.findActiveByTokenHash(
-            dependencies.credentials.hash(sessionToken),
-            dependencies.clock(),
-          );
-
-    if (active === null || sessionToken === undefined) {
+    const auth = await findSession(dependencies, request);
+    if (auth === null) {
       throw new AppError("UNAUTHENTICATED", "Authentication required.");
     }
-    request.auth = { ...active, sessionToken };
+    request.auth = auth;
   };
+}
+
+/**
+ * Creates the `optionalSession` pre-handler for public reads that can add
+ * viewer-specific state. An active session sets `request.auth`; a missing,
+ * unknown, expired, or revoked one leaves it `null` and never fails the
+ * request. Read it with {@link viewerId}, never `authContext`.
+ */
+export function createOptionalSession(
+  dependencies: AuthenticationDependencies,
+): AuthGuard {
+  return async (request) => {
+    request.auth = await findSession(dependencies, request);
+  };
+}
+
+/** The signed-in member on an `optionalSession` route, or `null`. */
+export function viewerId(request: FastifyRequest): string | null {
+  return request.auth?.user.id ?? null;
 }
 
 /** Returns the context set by `requireSession`; a programming error otherwise. */

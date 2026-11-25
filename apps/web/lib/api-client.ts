@@ -6,6 +6,10 @@ import {
   createTweetResponseSchema,
   type ErrorCode,
   errorResponseSchema,
+  type FollowListPage,
+  followListPageSchema,
+  type FollowResponse,
+  followResponseSchema,
   type LoginRequest,
   type PublicProfileResponse,
   publicProfileResponseSchema,
@@ -55,10 +59,23 @@ export interface ApiClient {
    * page, sent only to this API and never stored. Omit it for the first page.
    */
   getTimeline(cursor?: string): Promise<TimelinePage>;
+  /** One page of a member's followers or following; cursor as for the timeline. */
+  getFollowList(
+    username: string,
+    direction: FollowListDirection,
+    cursor?: string,
+  ): Promise<FollowListPage>;
+  /** Follows a member; resolves with the committed relationship and count. */
+  follow(username: string, csrfToken: string): Promise<FollowResponse>;
+  /** Unfollows a member; resolves with the committed relationship and count. */
+  unfollow(username: string, csrfToken: string): Promise<FollowResponse>;
 }
 
+/** Which follow list of a member to read. */
+export type FollowListDirection = "followers" | "following";
+
 interface RequestOptions {
-  method: "DELETE" | "GET" | "PATCH" | "POST";
+  method: "DELETE" | "GET" | "PATCH" | "POST" | "PUT";
   body?: unknown;
   csrfToken?: string | null;
 }
@@ -131,6 +148,24 @@ export function createApiClient(
         method: "DELETE",
       });
     },
+    async follow(username, csrfToken) {
+      const response = await request(
+        `/users/${encodeURIComponent(username)}/follow`,
+        { csrfToken, method: "PUT" },
+      );
+      return followResponseSchema.parse(await response.json());
+    },
+    async getFollowList(username, direction, cursor) {
+      const query =
+        cursor === undefined
+          ? ""
+          : `?${new URLSearchParams({ cursor }).toString()}`;
+      const response = await request(
+        `/users/${encodeURIComponent(username)}/${direction}${query}`,
+        { method: "GET" },
+      );
+      return followListPageSchema.parse(await response.json());
+    },
     async getProfile(username) {
       const response = await request(`/users/${encodeURIComponent(username)}`, {
         method: "GET",
@@ -165,6 +200,13 @@ export function createApiClient(
     },
     async register(input) {
       return session("/auth/register", input);
+    },
+    async unfollow(username, csrfToken) {
+      const response = await request(
+        `/users/${encodeURIComponent(username)}/follow`,
+        { csrfToken, method: "DELETE" },
+      );
+      return followResponseSchema.parse(await response.json());
     },
     async updateProfile(input, csrfToken) {
       const response = await request("/me/profile", {

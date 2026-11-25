@@ -316,4 +316,80 @@ describe("API client", () => {
       });
     });
   });
+
+  describe("follows", () => {
+    const relationship = { followerCount: 3, following: true };
+    const member = {
+      followedByViewer: false,
+      isViewer: false,
+      user: {
+        avatarUrl: null,
+        displayName: "Grace",
+        id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
+        username: "grace",
+      },
+    };
+
+    it("US-C01 AC-C01.1 follows by encoded username with the CSRF token", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { relationship }),
+      );
+
+      await expect(client.follow("grace", "csrf-token")).resolves.toEqual({
+        relationship,
+      });
+      expect(fetchImpl).toHaveBeenCalledWith(
+        "http://api.test/v1/users/grace/follow",
+        {
+          credentials: "include",
+          headers: { accept: "application/json", "x-csrf-token": "csrf-token" },
+          method: "PUT",
+        },
+      );
+    });
+
+    it("US-C01 AC-C01.2 unfollows with DELETE", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, {
+          relationship: { followerCount: 2, following: false },
+        }),
+      );
+
+      await client.unfollow("a/b", "csrf-token");
+
+      expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/users/a%2Fb/follow",
+      );
+      expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({ method: "DELETE" });
+    });
+
+    it("US-C03 AC-C03.1 reads a follow list page with an encoded cursor", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { items: [member], nextCursor: null }),
+      );
+
+      await expect(
+        client.getFollowList("grace", "followers", "a+b"),
+      ).resolves.toEqual({ items: [member], nextCursor: null });
+      expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/users/grace/followers?cursor=a%2Bb",
+      );
+      expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
+        credentials: "include",
+        method: "GET",
+      });
+    });
+
+    it("US-C03 reads the first following page without a cursor", async () => {
+      const { client, fetchImpl } = clientReturning(
+        jsonResponse(200, { items: [], nextCursor: null }),
+      );
+
+      await client.getFollowList("grace", "following");
+
+      expect(fetchImpl.mock.calls[0]?.[0]).toBe(
+        "http://api.test/v1/users/grace/following",
+      );
+    });
+  });
 });

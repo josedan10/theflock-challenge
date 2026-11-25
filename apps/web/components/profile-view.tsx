@@ -107,8 +107,16 @@ export function ProfileView({ username }: Readonly<{ username: string }>) {
             className="grid grid-cols-3 gap-2 border-t pt-4 text-center"
           >
             <ProfileCount label="Tweets" value={profile.tweetCount} />
-            <ProfileCount label="Followers" value={profile.followerCount} />
-            <ProfileCount label="Following" value={profile.followingCount} />
+            <ProfileCount
+              href={`/u/${encodeURIComponent(profile.username)}/followers`}
+              label="Followers"
+              value={profile.followerCount}
+            />
+            <ProfileCount
+              href={`/u/${encodeURIComponent(profile.username)}/following`}
+              label="Following"
+              value={profile.followingCount}
+            />
           </dl>
         </CardContent>
       </Card>
@@ -151,16 +159,30 @@ function ProfileAvatar({
   );
 }
 
+/** One statistic; follower and following counts link to their lists (US-C03). */
 function ProfileCount({
+  href,
   label,
   value,
-}: Readonly<{ label: string; value: number }>) {
+}: Readonly<{ href?: string; label: string; value: number }>) {
   return (
     <div className="flex min-w-0 flex-col">
       <dt className="order-2 truncate text-sm text-muted-foreground">
         {label}
       </dt>
-      <dd className="order-1 text-lg font-semibold tabular-nums">{value}</dd>
+      <dd className="order-1 text-lg font-semibold tabular-nums">
+        {href === undefined ? (
+          value
+        ) : (
+          <Link
+            aria-label={`${value} ${label}`}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center underline-offset-4 hover:underline"
+            href={href}
+          >
+            {value}
+          </Link>
+        )}
+      </dd>
     </div>
   );
 }

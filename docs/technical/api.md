@@ -146,6 +146,34 @@ Self-follow and self-unfollow return `422 VALIDATION_ERROR` with `fields.usernam
 
 Following makes the target's existing tweets eligible for the follower's next home-timeline read (AC-C01.3). Unfollow removes that eligibility on the next read. Issued cursors are not rewritten. SOC-01 adds no migration: the `follows` table already exists. To roll the API back, stop serving these routes and leave the table in place.
 
+## Followers and following (`GET /v1/users/:username/followers`, `GET /v1/users/:username/following`)
+
+Public reads (US-C03). A session is optional: an active `sid` cookie adds the viewer's relationship to each row, and a missing, expired or revoked one is treated as signed out, never `401`. The username is matched case-insensitively. Unknown, malformed and soft-deleted usernames return `404 NOT_FOUND` ("That profile does not exist.").
+
+`200` (`followListPageSchema`), with `Cache-Control: no-store` because rows depend on the viewer:
+
+```json
+{
+  "items": [
+    {
+      "user": {
+        "id": "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
+        "username": "grace",
+        "displayName": "Grace",
+        "avatarUrl": null
+      },
+      "followedByViewer": true,
+      "isViewer": false
+    }
+  ],
+  "nextCursor": "v1.<payload>.<mac>"
+}
+```
+
+Members are ordered by when the follow edge was created, newest first; ties order by member id, matching the composite follow indexes, so each page is an index range scan. Each member appears once (AC-C03.1): the follow primary key allows one edge per pair and the strict keyset never repeats its anchor. Soft-deleted members are skipped. `followedByViewer` is whether the signed-in viewer follows that member (`false` when signed out). `isViewer` marks the viewer's own row, which gets no follow control.
+
+`cursor` and `limit` follow the home-timeline rules: omit `cursor` on the first page, pass it back unchanged, and `null` means the end (AC-C03.2). `limit` defaults to 20 and is capped at 30. The cursor is signed under a follow-list key and scoped to the direction and member, not the viewer, because the lists are public: a cursor from another list or member is `400 MALFORMED_REQUEST`, as is any invalid or repeated query parameter. Reads allow 120 per minute per client address. No migration: these reads use the existing follow indexes.
+
 ## Like (`PUT /v1/tweets/:id/like`, `DELETE /v1/tweets/:id/like`)
 
 Both require a session and `X-CSRF-Token` (US-C02). The member is the session member; a body cannot name one, and an empty body is valid. Any member may like any tweet, including their own. Unknown, malformed, and deleted tweet ids all return `404 NOT_FOUND` ("That tweet does not exist."), the same answer as deleting a missing tweet.
@@ -214,7 +242,7 @@ Omit `cursor` on the first page. Pass the returned cursor unchanged for the next
 ## Rate-limit starting points
 
 - Login/register: 5/minute per privacy-safe composite key, with measured tuning.
-- Profile updates: 20/minute per client address. Profile reads: 120/minute per client address.
+- Profile updates: 20/minute per client address. Profile reads and followers/following reads: 120/minute per client address.
 - Tweet creation: 20/minute per client address; follow and unfollow: 60/minute per client address, counted separately; like and unlike: 60/minute per client address, counted separately.
 - Reads: 120/minute/user/IP. Health checks are separately limited/allowlisted.
 

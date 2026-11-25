@@ -9,6 +9,7 @@ import {
   type AuthModuleOptions,
   createAuthRuntime,
 } from "./modules/auth/auth-module.js";
+import { followListsModule } from "./modules/social/follow-lists-module.js";
 import { followsModule } from "./modules/social/follows-module.js";
 import { likesModule } from "./modules/social/likes-module.js";
 import { timelineModule } from "./modules/timeline/timeline-module.js";
@@ -34,6 +35,8 @@ export interface BuildAppOptions {
   trustProxy?: string[];
   /** Override for the follow/unfollow budget. Default: 60/minute, separately. */
   followWriteRateLimit?: AuthRateLimit;
+  /** Override for the followers/following read budget. Default: 120/minute. */
+  followListRateLimit?: AuthRateLimit;
   /** Override for the like/unlike budget. Default: 60/minute, separately. */
   likeWriteRateLimit?: AuthRateLimit;
   /** Override for the home-timeline read budget. Default: 120/minute. */
@@ -121,6 +124,17 @@ export async function buildApp(
         ...(options.followWriteRateLimit === undefined
           ? {}
           : { writeRateLimit: options.followWriteRateLimit }),
+      }),
+      { prefix: "/v1" },
+    );
+    await app.register(
+      followListsModule({
+        db: options.auth.db,
+        optionalSession: auth.optionalSession,
+        sessionSecret: options.auth.sessionSecret,
+        ...(options.followListRateLimit === undefined
+          ? {}
+          : { readRateLimit: options.followListRateLimit }),
       }),
       { prefix: "/v1" },
     );

@@ -33,6 +33,22 @@ describe("profile view", () => {
     expect(screen.getByText("7")).toBeVisible();
   });
 
+  it("US-C03 links the follower and following counts to their lists", async () => {
+    renderWithSession(
+      <ProfileView username="ada" />,
+      fakeApiClient({ getProfile: vi.fn(async () => ({ profile })) }),
+    );
+
+    expect(
+      await screen.findByRole("link", { name: "12 Followers" }),
+    ).toHaveAttribute("href", "/u/ada/followers");
+    expect(screen.getByRole("link", { name: "7 Following" })).toHaveAttribute(
+      "href",
+      "/u/ada/following",
+    );
+    expect(screen.queryByRole("link", { name: /Tweets/ })).toBeNull();
+  });
+
   it("US-A03 AC-A03.3 renders a hostile bio as text, never markup", async () => {
     const { container } = renderWithSession(
       <ProfileView username="ada" />,

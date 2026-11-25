@@ -82,3 +82,33 @@ export interface LikeRepository {
    */
   unlike(input: UnlikeWrite): Promise<LikeState>;
 }
+
+/** Which side of a member's follow edges a list shows. */
+export type FollowListDirection = "followers" | "following";
+
+/** One listed member, positioned by when the edge was created. */
+export interface FollowListEntry {
+  /** Edge creation time at microsecond precision, as UTC text. */
+  createdAt: string;
+  id: string;
+  username: string;
+  displayName: string;
+  /** Whether the viewer follows this member; `false` when signed out. */
+  followedByViewer: boolean;
+}
+
+export interface FollowListReader {
+  /** The visible member's id, or `null` for an unknown or soft-deleted one. */
+  findMemberId(username: string): Promise<string | null>;
+  /**
+   * Up to `count` members newest edge first, strictly after `before`.
+   * Soft-deleted members are skipped.
+   */
+  readPage(input: {
+    direction: FollowListDirection;
+    memberId: string;
+    viewerId: string | null;
+    before: { createdAt: string; id: string } | null;
+    count: number;
+  }): Promise<FollowListEntry[]>;
+}

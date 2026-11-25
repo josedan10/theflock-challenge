@@ -7,8 +7,10 @@ import { createCryptoSessionCredentialGenerator } from "../infrastructure/crypto
 
 import {
   authContext,
+  createOptionalSession,
   createRequireCsrf,
   createRequireSession,
+  viewerId,
 } from "./authentication.js";
 
 import type { ActiveSession, SessionRepository } from "../application/ports.js";
@@ -69,6 +71,17 @@ async function buildTestApp(): Promise<FastifyInstance> {
     username: authContext(request).user.username,
   }));
   app.get("/unguarded", async (request) => authContext(request));
+  app.get(
+    "/public",
+    {
+      preHandler: createOptionalSession({
+        clock: () => NOW,
+        credentials,
+        sessions,
+      }),
+    },
+    async (request) => ({ viewer: viewerId(request) }),
+  );
   app.post(
     "/mutation",
     { preHandler: [requireSession, createRequireCsrf(credentials)] },
@@ -125,6 +138,38 @@ describe("requireSession", () => {
     const response = await app.inject({ method: "GET", url: "/unguarded" });
 
     expect(response.statusCode).toBe(500);
+  });
+});
+
+describe("optionalSession", () => {
+  it("US-C03 AC-C03.1 exposes the member of an active session", async () => {
+    await buildTestApp();
+
+    const response = await app.inject({
+      cookies: { sid: issued.token },
+      method: "GET",
+      url: "/public",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ viewer: "user-1" });
+  });
+
+  it.each([
+    ["no cookie", {}],
+    ["an empty cookie", { sid: "" }],
+    ["an unknown, expired, or revoked token", { sid: "not-an-active-token" }],
+  ])("US-C03 AC-C03.1 serves %s as signed out", async (_case, cookies) => {
+    await buildTestApp();
+
+    const response = await app.inject({
+      cookies,
+      method: "GET",
+      url: "/public",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ viewer: null });
   });
 });
 

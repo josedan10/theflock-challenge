@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 import { createLogInMember } from "./application/log-in-member.js";
 import { createRegisterMember } from "./application/register-member.js";
 import {
+  createOptionalSession,
   createRequireCsrf,
   createRequireSession,
 } from "./http/authentication.js";
@@ -40,6 +41,8 @@ export interface AuthRuntime {
   plugin: (app: FastifyInstance) => Promise<void>;
   requireSession: AuthGuard;
   requireCsrf: AuthGuard;
+  /** Sets `request.auth` when a session is active; never rejects. */
+  optionalSession: AuthGuard;
 }
 
 /**
@@ -64,8 +67,14 @@ export function createAuthRuntime(options: AuthModuleOptions): AuthRuntime {
     options.rateLimit === undefined ? {} : { rateLimit: options.rateLimit };
   const requireSession = createRequireSession({ clock, credentials, sessions });
   const requireCsrf = createRequireCsrf(credentials);
+  const optionalSession = createOptionalSession({
+    clock,
+    credentials,
+    sessions,
+  });
 
   return {
+    optionalSession,
     requireCsrf,
     requireSession,
     plugin: async (app: FastifyInstance): Promise<void> => {

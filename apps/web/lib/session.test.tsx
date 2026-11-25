@@ -31,6 +31,10 @@ function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
       throw new Error("not used");
     }),
     deleteTweet: vi.fn(async () => undefined),
+    follow: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    getFollowList: vi.fn(async () => ({ items: [], nextCursor: null })),
     getProfile: vi.fn(async () => ({
       profile: {
         ...session.user,
@@ -44,6 +48,9 @@ function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
     register: vi.fn(async () => session),
+    unfollow: vi.fn(async () => {
+      throw new Error("not used");
+    }),
     updateProfile: vi.fn(async () => ({
       profile: {
         ...session.user,

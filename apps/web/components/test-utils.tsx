@@ -39,6 +39,10 @@ export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
       tweet: { ...testTweet, content: input.content },
     })),
     deleteTweet: vi.fn(async () => undefined),
+    follow: vi.fn(async () => ({
+      relationship: { followerCount: 1, following: true },
+    })),
+    getFollowList: vi.fn(async () => ({ items: [], nextCursor: null })),
     getProfile: vi.fn(async () => ({
       profile: {
         ...testSession.user,
@@ -52,6 +56,9 @@ export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
     register: vi.fn(async () => testSession),
+    unfollow: vi.fn(async () => ({
+      relationship: { followerCount: 0, following: false },
+    })),
     updateProfile: vi.fn(async () => ({
       profile: {
         ...testSession.user,
