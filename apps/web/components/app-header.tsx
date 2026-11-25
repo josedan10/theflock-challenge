@@ -89,24 +89,24 @@ export function AppHeader() {
                 <NavigationMenuItem>
                   <NavigationMenuLink
                     active={pathname === "/notifications"}
-                    aria-label={
-                      unread > 0
-                        ? `Notifications, ${unread} unread`
-                        : "Notifications"
-                    }
                     className="relative no-underline"
                     render={<Link href="/notifications" />}
                   >
                     <BellIcon aria-hidden="true" />
-                    {/* Icon only on phones, where the header has no room. */}
-                    <span className="hidden md:inline">Notifications</span>
+                    {/* The name comes from this content, so it always matches
+                        what is visible: "Notifications 3 unread". On phones
+                        the word is visually hidden for room. */}
+                    <span className="sr-only md:not-sr-only">
+                      Notifications
+                    </span>
                     {unread > 0 ? (
-                      <Badge
-                        aria-hidden="true"
-                        className="absolute -top-1 left-4 h-4 min-w-4 px-1 text-[0.65rem] tabular-nums md:static"
-                      >
-                        {unread > 99 ? "99+" : unread}
-                      </Badge>
+                      <>
+                        {" "}
+                        <Badge className="absolute -top-1 left-4 h-4 min-w-4 px-1 text-[0.65rem] tabular-nums md:static">
+                          {unread > 99 ? "99+" : unread}
+                        </Badge>{" "}
+                        <span className="sr-only">unread</span>
+                      </>
                     ) : null}
                   </NavigationMenuLink>
                 </NavigationMenuItem>

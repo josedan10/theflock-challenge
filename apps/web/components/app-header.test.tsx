@@ -74,7 +74,7 @@ describe("AppHeader", () => {
     );
 
     const bell = await screen.findByRole("link", {
-      name: "Notifications, 3 unread",
+      name: /^Notifications\s*3\s*unread$/,
     });
     expect(bell).toHaveAttribute("href", "/notifications");
     expect(bell).toHaveAttribute("aria-current", "page");
