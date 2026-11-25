@@ -80,11 +80,13 @@ async function run(mode: "loop" | "once" | "reset") {
     );
     await new Promise<void>((resolve) => {
       let timer: NodeJS.Timeout | undefined;
+      let current: Promise<void> = Promise.resolve();
       let stopping = false;
       const stop = () => {
         stopping = true;
         clearTimeout(timer);
-        resolve();
+        // Let an action in progress finish and record its tweet before closing.
+        void current.then(resolve);
       };
       process.once("SIGINT", stop);
       process.once("SIGTERM", stop);
@@ -96,10 +98,12 @@ async function run(mode: "loop" | "once" | "reset") {
         }
         // Schedule after the action finishes so slow actions never overlap.
         if (!stopping) {
-          timer = setTimeout(() => void tick(), config.intervalMs);
+          timer = setTimeout(() => {
+            current = tick();
+          }, config.intervalMs);
         }
       };
-      void tick();
+      current = tick();
     });
     console.log("Activity simulator stopped.");
   } finally {
