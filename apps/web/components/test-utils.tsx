@@ -29,6 +29,7 @@ export const testTweet: Tweet = {
   content: "First post!",
   createdAt: "2026-11-24T12:00:00.000Z",
   id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
+  image: null,
   likeCount: 0,
   likedByViewer: false,
   replyCount: 0,
@@ -45,6 +46,10 @@ export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
     createTweet: vi.fn(async (input: { content: string }) => ({
       tweet: { ...testTweet, content: input.content },
     })),
+    createUploadIntent: vi.fn(async () => {
+      throw new Error("not used");
+    }),
+    uploadImage: vi.fn(async () => undefined),
     deleteTweet: vi.fn(async () => undefined),
     follow: vi.fn(async () => ({
       relationship: { followerCount: 1, following: true },

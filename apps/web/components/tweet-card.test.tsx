@@ -35,6 +35,27 @@ describe("TweetCard content", () => {
     expect(screen.getByText(/hi\s+there/)).toHaveClass("whitespace-pre-wrap");
   });
 
+  it("US-F02 AC-F02.4 shows the image description as the text alternative", () => {
+    renderWithSession(
+      <TweetCard
+        tweet={{
+          ...testTweet,
+          image: {
+            alt: "Red square",
+            height: 2,
+            url: "http://127.0.0.1:4000/v1/media/objects/0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
+            width: 3,
+          },
+        }}
+        viewerId={null}
+      />,
+    );
+
+    const image = screen.getByRole("img", { name: "Red square" });
+    expect(image).toHaveAttribute("width", "3");
+    expect(image).toHaveAttribute("height", "2");
+  });
+
   it("renders hostile markup as plain text", () => {
     const { container } = renderWithSession(
       <TweetCard

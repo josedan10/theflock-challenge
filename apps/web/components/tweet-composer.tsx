@@ -1,14 +1,27 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   codePointLength,
   createTweetRequestSchema,
+  IMAGE_ALT_MAX_LENGTH,
+  IMAGE_MAX_BYTES,
+  IMAGE_MIME_TYPES,
   TWEET_MAX_LENGTH,
 } from "@twitter-clone/contracts";
-import { CircleAlertIcon, SendIcon } from "lucide-react";
-import { type FormEvent, type KeyboardEvent, useRef, useState } from "react";
+import { CircleAlertIcon, ImagePlusIcon, SendIcon, XIcon } from "lucide-react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 
+import { ApiError } from "../lib/api-client";
 import { apiFormErrors, type FormErrors, NO_ERRORS } from "../lib/form-errors";
+import { sessionCsrfToken, useApiClient } from "../lib/session";
 import { type TweetAuthorRef, useCreateTweet } from "../lib/tweets";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,6 +32,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -40,21 +54,85 @@ function limitAnnouncement(remaining: number): string {
 export function TweetComposer({
   member,
   parentTweetId,
-}: Readonly<{ member: TweetAuthorRef; parentTweetId?: string }>) {
+  uploadsEnabled = process.env.NEXT_PUBLIC_UPLOADS_ENABLED === "true",
+}: Readonly<{
+  member: TweetAuthorRef;
+  parentTweetId?: string;
+  /** Shows the image control when IMG-01 is enabled for this web build. */
+  uploadsEnabled?: boolean;
+}>) {
+  const apiClient = useApiClient();
+  const queryClient = useQueryClient();
   const createTweet = useCreateTweet(member, parentTweetId);
   const replying = parentTweetId !== undefined;
   const [content, setContent] = useState("");
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS);
   const [posted, setPosted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageAlt, setImageAlt] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputId = useId();
+  const altInputId = useId();
   // Blocks a second submit before the disabled state re-renders.
   const submitting = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl === null) {
+        return;
+      }
+      try {
+        URL.revokeObjectURL(previewUrl);
+      } catch {
+        // jsdom does not implement object URLs.
+      }
+    };
+  }, [previewUrl]);
 
   const remaining = TWEET_MAX_LENGTH - codePointLength(content.trim());
   const over = remaining < 0;
   const empty = content.trim().length === 0;
+  const altMissing = imageFile !== null && imageAlt.trim().length === 0;
+  const altTooLong = codePointLength(imageAlt.trim()) > IMAGE_ALT_MAX_LENGTH;
   const fieldErrors = errors.fields.content ?? [];
+  const imageErrors = errors.fields.image ?? [];
   const invalid = over || fieldErrors.length > 0;
+
+  function clearImage() {
+    setImageFile(null);
+    setImageAlt("");
+    setPreviewUrl(null);
+    if (fileInputRef.current !== null) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function onFile(file: File | undefined) {
+    if (file === undefined) {
+      return;
+    }
+    const allowed = IMAGE_MIME_TYPES.some((type) => type === file.type);
+    if (!allowed || file.size < 1 || file.size > IMAGE_MAX_BYTES) {
+      setErrors({
+        fields: {
+          image: ["Choose a JPEG, PNG, or WebP image up to 5 MB."],
+        },
+        form: null,
+      });
+      clearImage();
+      return;
+    }
+    setErrors(NO_ERRORS);
+    setImageFile(file);
+    try {
+      setPreviewUrl(URL.createObjectURL(file));
+    } catch {
+      setPreviewUrl(null);
+    }
+  }
 
   /**
    * ⌘+Enter (macOS) or Ctrl+Enter sends, through the form's normal submit so
@@ -72,26 +150,82 @@ export function TweetComposer({
     }
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const parsed = createTweetRequestSchema.safeParse({ content });
+    const parsed = createTweetRequestSchema.safeParse(
+      imageFile === null
+        ? { content }
+        : {
+            content,
+            image: {
+              alt: imageAlt,
+              uploadId: "00000000-0000-7000-8000-000000000001",
+            },
+          },
+    );
     if (submitting.current || !parsed.success) {
       return;
     }
     submitting.current = true;
+    setBusy(true);
     setErrors(NO_ERRORS);
     setPosted(false);
-    createTweet.mutate(parsed.data, {
-      onError: (error) => setErrors(apiFormErrors(error)),
-      onSettled: () => {
-        submitting.current = false;
-      },
-      onSuccess: () => {
-        setContent("");
-        setPosted(true);
-        textareaRef.current?.focus();
-      },
-    });
+    const finish = () => {
+      submitting.current = false;
+      setBusy(false);
+    };
+    try {
+      let image: { alt: string; uploadId: string } | undefined;
+      if (imageFile !== null && parsed.data.image !== undefined) {
+        const mimeType = imageFile.type;
+        if (
+          mimeType !== "image/jpeg" &&
+          mimeType !== "image/png" &&
+          mimeType !== "image/webp"
+        ) {
+          throw new ApiError(
+            0,
+            "VALIDATION_ERROR",
+            "Choose a JPEG, PNG, or WebP image up to 5 MB.",
+          );
+        }
+        const bytes = new Uint8Array(await imageFile.arrayBuffer());
+        const csrfToken = sessionCsrfToken(queryClient);
+        const intent = await apiClient.createUploadIntent(
+          { byteSize: bytes.byteLength, mimeType },
+          csrfToken,
+        );
+        await apiClient.uploadImage(
+          intent.uploadPath,
+          intent.uploadToken,
+          bytes,
+          csrfToken,
+        );
+        image = { alt: parsed.data.image.alt, uploadId: intent.uploadId };
+      }
+      createTweet.mutate(
+        image === undefined
+          ? { content: parsed.data.content }
+          : { content: parsed.data.content, image },
+        {
+          onError: (error) => setErrors(apiFormErrors(error)),
+          onSettled: finish,
+          onSuccess: () => {
+            setContent("");
+            clearImage();
+            setPosted(true);
+            textareaRef.current?.focus();
+          },
+        },
+      );
+    } catch (error: unknown) {
+      finish();
+      setErrors(
+        error instanceof ApiError
+          ? apiFormErrors(error)
+          : { fields: {}, form: "That image could not be uploaded." },
+      );
+    }
   }
 
   return (
@@ -142,6 +276,62 @@ export function TweetComposer({
           id="tweet-content-error"
         />
       </Field>
+      {uploadsEnabled ? (
+        <div className="grid gap-2">
+          <input
+            accept="image/jpeg,image/png,image/webp"
+            aria-hidden="true"
+            className="sr-only"
+            id={imageInputId}
+            onChange={(event) => onFile(event.target.files?.[0])}
+            ref={fileInputRef}
+            tabIndex={-1}
+            type="file"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              type="button"
+              variant="outline"
+            >
+              <ImagePlusIcon aria-hidden="true" data-icon="inline-start" />
+              {imageFile === null ? "Add image" : "Replace image"}
+            </Button>
+            {imageFile === null ? null : (
+              <Button onClick={clearImage} type="button" variant="ghost">
+                <XIcon aria-hidden="true" data-icon="inline-start" />
+                Remove image
+              </Button>
+            )}
+          </div>
+          {previewUrl === null ? null : (
+            // Local preview of a file the member just chose. It is not the stored object.
+            <img
+              alt={imageAlt.trim() === "" ? "Selected image preview" : imageAlt}
+              className="max-h-48 w-full rounded-xl border object-contain"
+              src={previewUrl}
+            />
+          )}
+          {imageFile === null ? null : (
+            <Field data-invalid={altMissing || altTooLong}>
+              <FieldLabel htmlFor={altInputId}>Image description</FieldLabel>
+              <Input
+                aria-describedby={`${altInputId}-hint`}
+                id={altInputId}
+                maxLength={IMAGE_ALT_MAX_LENGTH}
+                onChange={(event) => setImageAlt(event.target.value)}
+                value={imageAlt}
+              />
+              <FieldDescription id={`${altInputId}-hint`}>
+                Required. This is the text alternative for the image.
+              </FieldDescription>
+            </Field>
+          )}
+          {imageErrors.length === 0 ? null : (
+            <FieldError errors={imageErrors.map((message) => ({ message }))} />
+          )}
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-3">
         <span
           aria-hidden="true"
@@ -166,11 +356,18 @@ export function TweetComposer({
             {posted ? (replying ? "Reply posted." : "Posted.") : ""}
           </p>
           <Button
-            aria-busy={createTweet.isPending}
-            disabled={empty || over || createTweet.isPending}
+            aria-busy={busy || createTweet.isPending}
+            disabled={
+              empty ||
+              over ||
+              altMissing ||
+              altTooLong ||
+              busy ||
+              createTweet.isPending
+            }
             type="submit"
           >
-            {createTweet.isPending ? (
+            {busy || createTweet.isPending ? (
               <>
                 <Spinner
                   aria-hidden="true"
