@@ -207,3 +207,23 @@
     animation: none;
   }
 }
+
+@keyframes like-pop {
+  40% {
+    transform: scale(1.25);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* The heart pops once when a tweet becomes liked. */
+.like-pop {
+  animation: like-pop 300ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .like-pop {
+    animation: none;
+  }
+}
