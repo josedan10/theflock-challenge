@@ -27,7 +27,7 @@ Tasks are intentionally PR-sized. Each PR references requirement and acceptance-
 - [x] **TWT-02:** Composer/card components and optimistic/error behavior.
 - [x] **FEED-01:** Keyset timeline SQL, indexes, cursor signing/validation, integration and explain-plan tests.
 - [x] **FEED-02:** Infinite feed with deduplication, retry/end/empty states and Playwright tests.
-- [ ] **TWT-03:** Home-timeline posting shows the new tweet with the entrance animation only (no “Posting your tweet…” block, and no artificial wait to keep that block on screen). For 5 seconds after create, that tweet shows a countdown line and Undo, which deletes it without the usual confirmation. Then Undo disappears and AC-B02.3 applies (TWEET-03, US-B01, AC-B01.5–AC-B01.7). Replies stay as they are.
+- [x] **TWT-03:** Home-timeline posting shows the new tweet with the entrance animation only (no “Posting your tweet…” block, and no artificial wait to keep that block on screen). For 5 seconds after create, that tweet shows a countdown line and Undo, which deletes it without the usual confirmation. Then Undo disappears and AC-B02.3 applies (TWEET-03, US-B01, AC-B01.5–AC-B01.7). Replies stay as they are.
 
 ## Social/search
 
