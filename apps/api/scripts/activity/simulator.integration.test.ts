@@ -78,13 +78,16 @@ function simulator(random: Random) {
   });
 }
 
-async function registerGrace(): Promise<string> {
+async function registerAndPost(
+  username: string,
+  content: string,
+): Promise<string> {
   const registered = await app.inject({
     method: "POST",
     payload: {
-      email: "grace@example.com",
+      email: `${username}@example.com`,
       password: "correct horse battery",
-      username: "grace",
+      username,
     },
     url: "/v1/auth/register",
   });
@@ -95,7 +98,7 @@ async function registerGrace(): Promise<string> {
     cookies: { sid: sid?.value ?? "" },
     headers: { "x-csrf-token": csrfToken },
     method: "POST",
-    payload: { content: "Anyone up for the river walk?" },
+    payload: { content },
     url: "/v1/tweets",
   });
   expect(posted.statusCode).toBe(201);
@@ -104,7 +107,12 @@ async function registerGrace(): Promise<string> {
 
 describe("DEV-01 activity simulator", () => {
   it("posts as demo accounts through the API, reaches real members, and resets", async () => {
-    const graceTweet = await registerGrace();
+    const graceTweet = await registerAndPost(
+      "grace",
+      "Anyone up for the river walk?",
+    );
+    // Newest member and post, but a browser-test account: never engaged.
+    await registerAndPost("e2e_probe", "Written by a browser test.");
     const beforeIds = (
       await database.sql<{ id: string }[]>`select id from tweets`
     ).map((row) => row.id);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { activityConfig } from "./config.js";
+import { activityConfig, nextIntervalMs } from "./config.js";
 
 describe("DEV-01 activity simulator settings", () => {
   it("is off unless the flag is exactly true", () => {
@@ -11,26 +11,45 @@ describe("DEV-01 activity simulator settings", () => {
     }
   });
 
-  it("defaults to one action every 30 seconds against the local API", () => {
+  it("defaults to one action every 15 to 40 seconds against the local API", () => {
     expect(activityConfig({ ACTIVITY_SIMULATOR: "true" })).toEqual({
       apiOrigin: "http://localhost:4000",
-      intervalMs: 30_000,
+      maxIntervalMs: 40_000,
+      minIntervalMs: 15_000,
     });
   });
 
-  it("bounds the interval", () => {
+  it("picks each gap at random within the range", () => {
+    const range = { maxIntervalMs: 40_000, minIntervalMs: 15_000 };
+    expect(nextIntervalMs(range, () => 0)).toBe(15_000);
+    expect(nextIntervalMs(range, () => 0.5)).toBe(27_500);
+    expect(nextIntervalMs(range, () => 0.999_999)).toBe(40_000);
+  });
+
+  it("bounds both ends of the interval", () => {
     const on = { ACTIVITY_SIMULATOR: "true" };
     expect(
-      activityConfig({ ...on, ACTIVITY_INTERVAL_SECONDS: "15" })?.intervalMs,
-    ).toBe(15_000);
-    expect(
-      activityConfig({ ...on, ACTIVITY_INTERVAL_SECONDS: "3600" })?.intervalMs,
-    ).toBe(3_600_000);
-    for (const value of ["14", "0", "3601", "1.5", "-20", "abc", ""]) {
-      expect(() =>
-        activityConfig({ ...on, ACTIVITY_INTERVAL_SECONDS: value }),
-      ).toThrow();
+      activityConfig({
+        ...on,
+        ACTIVITY_MAX_INTERVAL_SECONDS: "3600",
+        ACTIVITY_MIN_INTERVAL_SECONDS: "3600",
+      }),
+    ).toMatchObject({ maxIntervalMs: 3_600_000, minIntervalMs: 3_600_000 });
+    for (const name of [
+      "ACTIVITY_MIN_INTERVAL_SECONDS",
+      "ACTIVITY_MAX_INTERVAL_SECONDS",
+    ]) {
+      for (const value of ["14", "0", "3601", "1.5", "-20", "abc", ""]) {
+        expect(() => activityConfig({ ...on, [name]: value })).toThrow(name);
+      }
     }
+    expect(() =>
+      activityConfig({
+        ...on,
+        ACTIVITY_MAX_INTERVAL_SECONDS: "20",
+        ACTIVITY_MIN_INTERVAL_SECONDS: "30",
+      }),
+    ).toThrow("must not be greater");
   });
 
   it("only targets a local API in development", () => {

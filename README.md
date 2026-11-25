@@ -10,7 +10,7 @@ Local setup includes 10 demo accounts and sample conversations. Use `pnpm stack:
 
 ### See it live
 
-With `ACTIVITY_SIMULATOR=true` in `.env`, the demo accounts keep posting, replying and liking while you use the app ([how to run, stop and reset it](docs/SETUP.md#local-activity-simulator-dev-01)). They favour real accounts: they reply to your posts, like them and mention you, so your Notifications fill up as well.
+With `ACTIVITY_SIMULATOR=true` in `.env`, the demo accounts keep posting, replying and liking while you use the app ([how to run, stop and reset it](docs/SETUP.md#local-activity-simulator-dev-01)). They interact mainly with real accounts: about 9 in 10 actions like or reply to your posts or mention you, so your Notifications fill up as well. A new action comes every 15 to 40 seconds.
 
 Home only shows live posts from people you follow. Register your own account, then follow some or all of these accounts, at `http://localhost:3000/u/<username>` or through Search:
 
@@ -133,15 +133,15 @@ If a default port is occupied, change `WEB_PORT`, `API_PORT`, or `POSTGRES_PORT`
 
 Optional features are off by default. Turn one on in `.env`, then apply it with the command in the last column.
 
-| Feature                  | Flags in `.env`                                                   | Values                            | Apply with                                            |
-| ------------------------ | ----------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------- |
-| Tweet images             | `UPLOADS_ENABLED=true` **and** `NEXT_PUBLIC_UPLOADS_ENABLED=true` | `true` / `false` (default)        | `pnpm compose:up`                                     |
-| Local activity simulator | `ACTIVITY_SIMULATOR=true`                                         | `true` / `false` (default)        | `pnpm stack:up`, or `pnpm activity` in the foreground |
-| Simulator pace           | `ACTIVITY_INTERVAL_SECONDS`                                       | `15`–`3600` seconds; default `30` | Restart the simulator                                 |
-| Number of demo accounts  | `SEED_USER_COUNT`                                                 | `10`–`100`; default `10`          | `pnpm db:seed`, or `pnpm stack:up --seed-users 25`    |
+| Feature                  | Flags in `.env`                                                     | Values                                     | Apply with                                            |
+| ------------------------ | ------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| Tweet images             | `UPLOADS_ENABLED=true` **and** `NEXT_PUBLIC_UPLOADS_ENABLED=true`   | `true` / `false` (default)                 | `pnpm compose:up`                                     |
+| Local activity simulator | `ACTIVITY_SIMULATOR=true`                                           | `true` / `false` (default)                 | `pnpm stack:up`, or `pnpm activity` in the foreground |
+| Simulator pace           | `ACTIVITY_MIN_INTERVAL_SECONDS` and `ACTIVITY_MAX_INTERVAL_SECONDS` | `15`–`3600` seconds; default `15` and `40` | Restart the simulator                                 |
+| Number of demo accounts  | `SEED_USER_COUNT`                                                   | `10`–`100`; default `10`                   | `pnpm db:seed`, or `pnpm stack:up --seed-users 25`    |
 
 - **Tweet images:** set both flags. The first lets the API accept uploads and the second shows the picture button in the composer; with only one, posting a picture does not work. Images are stored in the Compose `media-data` volume.
-- **Activity simulator:** demo accounts post, reply and like on their own, and lean toward real accounts. Follow the accounts in [See it live](#see-it-live) to watch it on Home. Stop it with `pnpm activity:stop` and undo what it did with `pnpm activity:reset`. Turn on tweet images too if you want its posts to carry pictures. Details in [the setup guide](docs/SETUP.md#local-activity-simulator-dev-01).
+- **Activity simulator:** demo accounts post, reply and like on their own, mostly with real accounts. Each gap between actions is random between the minimum and maximum. Follow the accounts in [See it live](#see-it-live) to watch it on Home. Stop it with `pnpm activity:stop` and undo what it did with `pnpm activity:reset`. Turn on tweet images too if you want its posts to carry pictures. Details in [the setup guide](docs/SETUP.md#local-activity-simulator-dev-01).
 - **Always on:** the live Home timeline and notifications need no flag. `REALTIME_ENABLED` and `NOTIFICATIONS_ENABLED` in `.env.example` are placeholders that nothing reads yet.
 
 ### Stop the project
