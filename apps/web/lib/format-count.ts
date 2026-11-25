@@ -9,9 +9,14 @@ const units = [
  *
  * One decimal at most, rounded down, so a count never looks larger than it
  * is and 999,999 stays "999.9k" instead of "1000k". A trailing ".0" is
- * dropped. Integer math avoids floating-point drift.
+ * dropped. Integer math avoids floating-point drift. A missing, non-finite
+ * or negative value reads "0".
  */
 export function formatCount(value: number): string {
+  // A card cached before a field existed must never print "undefined".
+  if (!Number.isFinite(value) || value < 0) {
+    return "0";
+  }
   for (const { size, suffix } of units) {
     if (value >= size) {
       const tenths = Math.floor((value * 10) / size);

@@ -19,5 +19,6 @@ export function toTweet(card: TweetCard): Tweet {
     id: card.id,
     likeCount: card.likeCount,
     likedByViewer: card.likedByViewer,
+    replyCount: card.replyCount,
   };
 }

@@ -23,6 +23,8 @@ export interface TweetCard {
   author: TweetAuthor;
   likeCount: number;
   likedByViewer: boolean;
+  /** Direct replies to this tweet. */
+  replyCount: number;
 }
 
 /** Outcome of an ownership-checked delete, decided inside one transaction. */

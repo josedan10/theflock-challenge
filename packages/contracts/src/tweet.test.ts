@@ -60,6 +60,7 @@ describe("tweet card contract", () => {
     id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
     likeCount: 0,
     likedByViewer: false,
+    replyCount: 0,
   };
 
   it("US-B01 AC-B01.1 accepts a complete card", () => {
@@ -75,5 +76,16 @@ describe("tweet card contract", () => {
     });
 
     expect(parsed.tweet.author).not.toHaveProperty("email");
+  });
+
+  it.each([
+    ["a missing reply count", { replyCount: undefined }],
+    ["a negative reply count", { replyCount: -1 }],
+    ["a fractional reply count", { replyCount: 0.5 }],
+  ])("US-B04 rejects %s", (_case, patch) => {
+    expect(
+      createTweetResponseSchema.safeParse({ tweet: { ...tweet, ...patch } })
+        .success,
+    ).toBe(false);
   });
 });

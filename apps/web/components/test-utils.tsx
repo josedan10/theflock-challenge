@@ -31,6 +31,7 @@ export const testTweet: Tweet = {
   id: "0190f3a4-7c2b-7d1e-8a3f-1b2c3d4e5f61",
   likeCount: 0,
   likedByViewer: false,
+  replyCount: 0,
 };
 
 export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
@@ -62,7 +63,9 @@ export function fakeApiClient(overrides: Partial<ApiClient> = {}): ApiClient {
     getTimeline: vi.fn(async () => ({ items: [], nextCursor: null })),
     logOut: vi.fn(async () => undefined),
     me: vi.fn(async () => null),
+    like: vi.fn(async () => ({ like: { likeCount: 1, liked: true } })),
     register: vi.fn(async () => testSession),
+    unlike: vi.fn(async () => ({ like: { likeCount: 0, liked: false } })),
     unfollow: vi.fn(async () => ({
       relationship: { followerCount: 0, following: false },
     })),

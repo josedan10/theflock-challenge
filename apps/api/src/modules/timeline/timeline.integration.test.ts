@@ -136,6 +136,7 @@ describe("US-B03 home timeline", () => {
       },
       likeCount: 2,
       likedByViewer: true,
+      replyCount: 0,
     });
     expect((await page(author.token)).items[0]).toMatchObject({
       id: followed,

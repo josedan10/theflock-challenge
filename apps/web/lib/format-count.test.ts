@@ -23,6 +23,15 @@ describe("formatCount", () => {
   });
 });
 
+describe("formatCount fallbacks", () => {
+  it.each([[undefined], [Number.NaN], [-3]])(
+    "reads %s as 0 instead of printing it",
+    (value) => {
+      expect(formatCount(value as unknown as number)).toBe("0");
+    },
+  );
+});
+
 describe("formatExactCount", () => {
   it("groups thousands", () => {
     expect(formatExactCount(2_345_678)).toBe("2,345,678");

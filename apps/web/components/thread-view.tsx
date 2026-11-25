@@ -1,40 +1,53 @@
 "use client";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  ChevronDownIcon,
+  CircleAlertIcon,
+  MessagesSquareIcon,
+  RotateCwIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { ApiError } from "../lib/api-client";
 import { threadHref } from "../lib/navigation";
 import { useApiClient, useSession } from "../lib/session";
+import { buildConversations } from "../lib/thread-conversations";
 import { THREAD_KEY, useDeleteTweet, type TweetAuthorRef } from "../lib/tweets";
+import { useHydrated } from "../lib/use-hydrated";
 
-import { TweetCard } from "./tweet-card";
+import { TimelineSkeleton } from "./skeletons";
+import { TweetCard, type TweetCardProps } from "./tweet-card";
 import { TweetComposer } from "./tweet-composer";
 
-import type { ThreadItem } from "@twitter-clone/contracts";
+import type { ThreadItem, ThreadPage } from "@twitter-clone/contracts";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
+type CardLayout = Omit<
+  TweetCardProps,
+  "failure" | "onDelete" | "tweet" | "viewerId"
+>;
+
+/** A card the signed-in author can delete, reporting a failed delete on it. */
 function MemberCard({
   item,
+  layout,
   member,
-  selected,
-}: {
-  item: ThreadItem;
-  member: TweetAuthorRef;
-  selected: boolean;
-}) {
+}: Readonly<{ item: ThreadItem; layout: CardLayout; member: TweetAuthorRef }>) {
   const remove = useDeleteTweet(member);
   const [failure, setFailure] = useState<string | null>(null);
   return (
     <TweetCard
-      tweet={item}
-      viewerId={member.id}
-      showThreadLink={!selected}
+      {...layout}
       failure={failure}
       onDelete={(id) => {
         setFailure(null);
@@ -46,143 +59,249 @@ function MemberCard({
           },
         });
       }}
+      tweet={item}
+      viewerId={member.id}
     />
   );
 }
 
-/** Public subtree reader. Opening a reply selects it as the new conversation and composer target. */
-export function ThreadView({ id }: { id: string }) {
+/**
+ * The tweet being replied to, above the selected one and joined to it by the
+ * conversation line. Earlier tweets are one link away.
+ */
+function ParentContext({
+  card,
+  parentId,
+  viewerId,
+}: Readonly<{
+  card: (item: ThreadItem, layout: CardLayout) => React.ReactNode;
+  parentId: string;
+  viewerId: string | null;
+}>) {
+  const client = useApiClient();
+  const parent = useQuery({
+    queryFn: () => client.getThread(parentId),
+    queryKey: [...THREAD_KEY, "parent", parentId, viewerId],
+  });
+  if (parent.isPending) {
+    return <TimelineSkeleton count={1} label="Loading the tweet above…" />;
+  }
+  if (parent.isError) {
+    return (
+      <Link
+        className="w-fit px-4 text-sm text-sky-700 dark:text-sky-400"
+        href={threadHref(parentId)}
+      >
+        View parent tweet
+      </Link>
+    );
+  }
+  const tweet = parent.data.selected;
+  return (
+    <div className="grid">
+      {tweet.parentTweetId === null ? null : (
+        <Link
+          className="w-fit px-4 pb-1 text-sm text-sky-700 no-underline hover:underline dark:text-sky-400"
+          href={threadHref(tweet.parentTweetId)}
+        >
+          Show earlier replies
+        </Link>
+      )}
+      {card(tweet, { connectBelow: true, variant: "row" })}
+    </div>
+  );
+}
+
+/**
+ * A tweet's thread, laid out like Twitter (US-B04): the tweet it replies to
+ * above, the selected tweet in focus with its reply box, then the replies as
+ * conversations, each a direct reply followed by the back-and-forth under it,
+ * joined by a line. Public; signed-out readers are invited to log in.
+ */
+export function ThreadView({ id }: Readonly<{ id: string }>) {
   const client = useApiClient();
   const session = useSession();
-  const member = session.data?.user;
+  const hydrated = useHydrated();
+  const member = hydrated ? (session.data?.user ?? undefined) : undefined;
   const query = useInfiniteQuery({
     enabled: !session.isPending,
-    queryKey: [...THREAD_KEY, id, member?.id ?? null],
+    getNextPageParam: (page: ThreadPage) => page.nextCursor ?? undefined,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) => client.getThread(id, pageParam),
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    queryKey: [...THREAD_KEY, id, member?.id ?? null],
   });
   const root = query.data?.pages[0]?.selected;
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
-  const byId = new Map(items.map((item) => [item.id, item]));
-  if (root) {
-    byId.set(root.id, root);
-  }
   const missing =
     query.error instanceof ApiError && query.error.code === "NOT_FOUND";
-  const card = (item: ThreadItem, selected = false) =>
+
+  const card = (item: ThreadItem, layout: CardLayout) =>
     member ? (
-      <MemberCard item={item} selected={selected} member={member} />
+      <MemberCard item={item} layout={layout} member={member} />
     ) : (
-      <TweetCard tweet={item} viewerId={null} showThreadLink={!selected} />
+      <TweetCard {...layout} tweet={item} viewerId={null} />
     );
+
+  const focusReplyBox = () => {
+    document.getElementById("tweet-content")?.focus();
+  };
+
   return (
-    <section className="grid gap-4" aria-labelledby="thread-heading">
-      <h1 className="text-2xl font-bold" id="thread-heading">
+    <section aria-labelledby="thread-heading" className="grid gap-2">
+      <h1 className="px-4 text-xl font-bold" id="thread-heading">
         Thread
       </h1>
-      {query.isPending ? (
-        <div role="status">
-          <span>Loading thread…</span>
-          <Skeleton className="h-20 w-full" />
+
+      {query.isPending ? <TimelineSkeleton label="Loading thread…" /> : null}
+
+      {query.isError && !query.isFetchNextPageError ? (
+        <div className="grid gap-3 px-4">
+          <Alert variant="destructive">
+            <CircleAlertIcon aria-hidden="true" />
+            <AlertDescription>
+              {missing
+                ? "This tweet no longer exists."
+                : "Couldn't load this thread."}
+            </AlertDescription>
+          </Alert>
+          {missing ? (
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href="/home"
+            >
+              Go home
+            </Link>
+          ) : (
+            <Button
+              className="justify-self-start"
+              onClick={() => void query.refetch()}
+              type="button"
+              variant="outline"
+            >
+              <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
+              Try again
+            </Button>
+          )}
         </div>
       ) : null}
-      {query.isError ? (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {missing
-              ? "This tweet no longer exists."
-              : "Couldn't load this thread."}
-            {!missing && (
-              <Button
-                variant="outline"
-                onClick={() =>
-                  void (query.isFetchNextPageError
-                    ? query.fetchNextPage()
-                    : query.refetch())
-                }
-              >
-                Try again
-              </Button>
-            )}
-          </AlertDescription>
-        </Alert>
-      ) : null}
+
       {!missing && root ? (
-        <>
-          {root.parentTweetId && (
-            <Link
-              className="w-fit underline"
-              href={threadHref(root.parentTweetId)}
-            >
-              View parent tweet
-            </Link>
-          )}
-          {card(root, true)}
-          {member ? (
-            <TweetComposer
-              key={root.id}
-              parentTweetId={root.id}
-              member={member}
-            />
-          ) : (
-            <Link className="w-fit underline" href="/login">
-              Log in to reply
-            </Link>
-          )}
-          <h2 className="text-lg font-semibold">Replies</h2>
-          {items.length === 0 ? (
-            <Empty role="status">
+        <div className="content-enter grid overflow-hidden rounded-xl border bg-card text-card-foreground">
+          <div className="grid pt-3">
+            {root.parentTweetId === null ? null : (
+              <ParentContext
+                card={card}
+                parentId={root.parentTweetId}
+                viewerId={member?.id ?? null}
+              />
+            )}
+            {card(root, {
+              connectAbove: root.parentTweetId !== null,
+              ...(member ? { onReply: focusReplyBox } : {}),
+              variant: "focus",
+            })}
+          </div>
+
+          <div className="border-b px-4 pb-4">
+            {member ? (
+              <div className="grid gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Replying to{" "}
+                  <span className="text-sky-700 dark:text-sky-400">
+                    @{root.author.username}
+                  </span>
+                </p>
+                <TweetComposer
+                  key={root.id}
+                  member={member}
+                  parentTweetId={root.id}
+                />
+              </div>
+            ) : (
+              <Link
+                className={buttonVariants({ variant: "outline" })}
+                href="/login"
+              >
+                Log in to reply
+              </Link>
+            )}
+          </div>
+
+          <h2 className="sr-only">Replies</h2>
+          {items.length === 0 && query.isSuccess ? (
+            <Empty className="py-8" role="status">
               <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <MessagesSquareIcon aria-hidden="true" />
+                </EmptyMedia>
                 <EmptyTitle>No replies yet.</EmptyTitle>
               </EmptyHeader>
             </Empty>
-          ) : (
-            <ol aria-label="Replies" className="grid gap-3">
-              {items.map((item) => (
-                <li className="grid gap-1 border-l-2 pl-3" key={item.id}>
-                  {item.parentTweetId && (
-                    <Link
-                      className="grid gap-1 rounded-md border-l-2 bg-muted/40 px-3 py-2 text-sm hover:bg-muted"
-                      href={threadHref(item.parentTweetId)}
-                    >
-                      <span className="font-medium">
-                        In reply to{" "}
-                        {byId.has(item.parentTweetId)
-                          ? `@${byId.get(item.parentTweetId)?.author.username}`
-                          : "parent tweet"}
-                      </span>
-                      {byId.has(item.parentTweetId) ? (
-                        <span className="line-clamp-2 text-muted-foreground">
-                          {byId.get(item.parentTweetId)?.content}
-                        </span>
-                      ) : null}
-                    </Link>
-                  )}
-                  {card(item)}
+          ) : null}
+
+          {items.length > 0 ? (
+            <ol aria-label="Replies" className="grid divide-y">
+              {buildConversations(root, items).map((conversation) => (
+                <li className="grid pb-1" key={conversation[0]?.item.id}>
+                  {conversation.map((entry) => (
+                    <div key={entry.item.id}>
+                      {card(entry.item, {
+                        connectAbove: entry.connectAbove,
+                        connectBelow: entry.connectBelow,
+                        replyingTo: entry.replyingTo,
+                        variant: "row",
+                      })}
+                    </div>
+                  ))}
                 </li>
               ))}
             </ol>
-          )}
-          <p role="status">
-            {query.isFetchingNextPage
-              ? "Loading more replies…"
-              : items.length === 0
-                ? ""
-                : query.hasNextPage
-                  ? `${items.length} replies shown.`
-                  : "End of thread."}
-          </p>
-          {query.hasNextPage && !query.isFetchNextPageError ? (
-            <Button
-              variant="outline"
-              disabled={query.isFetchingNextPage}
-              onClick={() => void query.fetchNextPage()}
-            >
-              Load more replies
-            </Button>
           ) : null}
-        </>
+
+          {query.isFetchNextPageError ? (
+            <div className="grid gap-3 border-t p-4">
+              <Alert variant="destructive">
+                <CircleAlertIcon aria-hidden="true" />
+                <AlertDescription>
+                  Couldn&apos;t load this thread.
+                </AlertDescription>
+              </Alert>
+              <Button
+                className="justify-self-start"
+                onClick={() => void query.fetchNextPage()}
+                type="button"
+                variant="outline"
+              >
+                <RotateCwIcon aria-hidden="true" data-icon="inline-start" />
+                Try again
+              </Button>
+            </div>
+          ) : null}
+
+          {query.isFetchingNextPage ? (
+            <TimelineSkeleton count={1} label="Loading more replies…" />
+          ) : null}
+
+          {query.hasNextPage && !query.isFetchNextPageError ? (
+            <div className="grid justify-items-center border-t p-3">
+              <Button
+                disabled={query.isFetchingNextPage}
+                onClick={() => void query.fetchNextPage()}
+                type="button"
+                variant="ghost"
+              >
+                <ChevronDownIcon aria-hidden="true" data-icon="inline-start" />
+                Load more replies
+              </Button>
+            </div>
+          ) : null}
+
+          <p className="sr-only" role="status">
+            {items.length > 0 && query.isSuccess && !query.hasNextPage
+              ? "End of thread."
+              : ""}
+          </p>
+        </div>
       ) : null}
     </section>
   );

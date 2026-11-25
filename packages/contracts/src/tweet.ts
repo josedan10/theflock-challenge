@@ -50,6 +50,8 @@ export const tweetSchema = z.object({
   id: z.uuid(),
   likeCount: z.number().int().nonnegative(),
   likedByViewer: z.boolean(),
+  /** Direct replies only, from committed rows; the chat bubble's count. */
+  replyCount: z.number().int().nonnegative(),
 });
 
 /** Tweet card. */

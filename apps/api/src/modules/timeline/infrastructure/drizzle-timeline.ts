@@ -23,8 +23,9 @@ import type {
  *
  * Those per-author slices are merged and capped at `count`, including the
  * lookahead row. The selected timestamp keeps six fractional digits so the
- * next cursor names that exact row. Like counts and the viewer's like are
- * projected only for this bounded page, in the same snapshot.
+ * next cursor names that exact row. Like counts, the viewer's like and direct
+ * reply counts (via `tweets_parent_tweet_id_idx`) are projected only for
+ * this bounded page, in the same snapshot.
  */
 export function timelineQuery(
   viewer: string,
@@ -51,7 +52,8 @@ export function timelineQuery(
     )
     select p.id, p.content,
       to_char(p.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
-      p.author_id, p.username, p.display_name, reactions.like_count, reactions.liked
+      p.author_id, p.username, p.display_name, reactions.like_count, reactions.liked,
+      (select count(*) from tweets c where c.parent_tweet_id = p.id) as reply_count
     from page p cross join lateral (
       select count(*) as like_count, coalesce(bool_or(l.user_id = ${viewer}::uuid), false) as liked
       from likes l where l.tweet_id = p.id
@@ -68,6 +70,7 @@ interface TimelineRow extends Record<string, unknown> {
   display_name: string;
   like_count: string;
   liked: boolean;
+  reply_count: string;
 }
 
 export function createReadTimelineRows(db: DatabaseExecutor): ReadTimelineRows {
@@ -87,6 +90,7 @@ export function createReadTimelineRows(db: DatabaseExecutor): ReadTimelineRows {
       },
       likeCount: Number(r.like_count),
       likedByViewer: r.liked,
+      replyCount: Number(r.reply_count),
     }));
   };
 }

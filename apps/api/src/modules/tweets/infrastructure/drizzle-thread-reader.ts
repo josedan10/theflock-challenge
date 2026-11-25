@@ -26,7 +26,8 @@ export function threadQuery(
     select t.id, t.content, t.parent_tweet_id, u.id as author_id, u.username, u.display_name,
       to_char(t.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_at,
       (select count(*) from likes where tweet_id=t.id) as like_count,
-      exists(select 1 from likes where tweet_id=t.id and user_id=${viewer}::uuid) as liked
+      exists(select 1 from likes where tweet_id=t.id and user_id=${viewer}::uuid) as liked,
+      (select count(*) from tweets c where c.parent_tweet_id=t.id) as reply_count
     from entries e join tweets t on t.id=e.id join users u on u.id=t.author_id
     order by e.selected desc,t.created_at,t.id`;
 }
@@ -41,6 +42,7 @@ interface CardRow extends Record<string, unknown> {
   created_at: string;
   like_count: string;
   liked: boolean;
+  reply_count: string;
 }
 
 export function createThreadReader(db: DatabaseExecutor) {
@@ -66,6 +68,7 @@ export function createThreadReader(db: DatabaseExecutor) {
       },
       likedByViewer: r.liked,
       likeCount: Number(r.like_count),
+      replyCount: Number(r.reply_count),
     }));
   };
 }
