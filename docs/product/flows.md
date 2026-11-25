@@ -59,10 +59,11 @@
 ## 8. Threaded replies
 
 1. Any visitor opens a tweet's thread; the parent and nested descendants are public.
-2. A signed-in member replies to the selected tweet or to any reply. The API validates the parent and derives the author from the session.
-3. The thread displays replies in deterministic parent-before-child order and fetches bounded pages without duplicating entries.
-4. A reply author may delete their own reply. Deleting any tweet removes all descendants, including replies by other users.
-5. Show confirmation before deletion and reconcile thread views after success; errors preserve the visible content and offer retry.
+2. A signed-in member replies to the selected tweet or to any reply. The API validates the parent and derives the author from the session. The reply is stored immediately; undo does not delay the request.
+3. For 5 seconds the new reply shows a countdown line and **Undo** on its card. Undo deletes it without the usual delete confirmation. After 5 seconds, Undo is gone and deletion uses the normal confirmation. Leaving the thread ends the window; the reply remains.
+4. The thread displays replies in deterministic parent-before-child order and fetches bounded pages without duplicating entries.
+5. A reply author may delete their own reply. Deleting any tweet removes all descendants, including replies by other users.
+6. Show confirmation before deletion and reconcile thread views after success; errors preserve the visible content and offer retry. A failed undo keeps the reply and announces the error.
 
 **Implementation caveat:** synchronous recursive deletion is an intentional local-challenge simplification. On a large thread it can cause expensive fan-out deletes and long transactions/locks; do not carry this design into a production-scale service without redesigning deletion.
 
