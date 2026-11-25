@@ -4,6 +4,7 @@ import { CircleAlertIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { compactTime } from "../lib/relative-time";
 import { cn } from "../lib/utils";
 
 import { TweetActions } from "./tweet-actions";
@@ -23,11 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-
-const timeFormat = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
 
 const fullTimeFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: "long",
@@ -96,28 +92,34 @@ export function TweetCard({
   );
 
   const names = (
+    // One line in rows, like Twitter: the handle gives way first, then the
+    // name; the time never wraps.
     <div
       className={cn(
-        "flex min-w-0 flex-1 gap-x-1.5 text-sm",
-        focus ? "flex-col" : "flex-wrap items-baseline",
+        "flex min-w-0 flex-1 gap-x-1 text-sm",
+        focus ? "flex-col" : "items-baseline",
       )}
     >
-      <span className="truncate font-semibold text-foreground">
+      <span className="min-w-0 shrink truncate font-semibold text-foreground">
         {tweet.author.displayName}
       </span>
       <Link
-        className="truncate text-muted-foreground no-underline hover:underline"
+        className="min-w-0 shrink-[3] truncate text-muted-foreground no-underline hover:underline"
         href={`/u/${tweet.author.username}`}
       >
         @{tweet.author.username}
       </Link>
       {focus ? null : (
         <>
-          <span aria-hidden="true" className="text-muted-foreground">
+          <span aria-hidden="true" className="shrink-0 text-muted-foreground">
             ·
           </span>
-          <time className="text-muted-foreground" dateTime={tweet.createdAt}>
-            {timeFormat.format(new Date(tweet.createdAt))}
+          <time
+            className="shrink-0 text-muted-foreground"
+            dateTime={tweet.createdAt}
+            title={fullTimeFormat.format(new Date(tweet.createdAt))}
+          >
+            {compactTime(tweet.createdAt)}
           </time>
         </>
       )}
