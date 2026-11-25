@@ -39,3 +39,25 @@ export interface ProfileRepository {
     now: Date,
   ): Promise<PublicProfile | null>;
 }
+
+/** One member found by people search, with the viewer's relationship. */
+export interface UserSearchEntry {
+  id: string;
+  username: string;
+  displayName: string;
+  followedByViewer: boolean;
+}
+
+export interface UserSearcher {
+  /**
+   * Visible members whose username or display name contains `text`,
+   * case-insensitively and literally, best matches first.
+   *
+   * @param text Already trimmed and lowercased; wildcards are still literal.
+   */
+  search(input: {
+    text: string;
+    viewerId: string;
+    limit: number;
+  }): Promise<UserSearchEntry[]>;
+}
