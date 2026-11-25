@@ -115,7 +115,18 @@ The scenarios use Given/When/Then language so they can become executable API or 
 - **AC-F01.3:** Given the stream reconnects with `Last-Event-ID`, the server emits missed eligible tweet ids (at most 30) and the client does not render the same tweet twice.
 - **AC-F01.4:** An unauthenticated stream request is `401`. Tweets from authors the viewer does not follow (except the viewer) are not emitted. A tampered or other-viewer's `Last-Event-ID` does not leak another member's events.
 - **AC-F01.5:** Opening the stream is rate limited per client address.
-- **US-F02 Image:** one JPEG/PNG/WebP, validated by decoded type/size/dimensions, uploads directly to object storage; inaccessible partial uploads are cleaned up.
+
+### US-F02 Attach one image to a tweet
+
+**As a member, I want to attach one image to a tweet so that a post can include a picture.**
+
+One image per tweet, including a reply. Text is still required (US-B01). JPEG, PNG, or WebP only. The file is at most 5 MiB and at most 4096 pixels on each edge. The member writes a description of 1–200 characters; that description is the image's text alternative. The browser sends the bytes to a short-lived upload URL backed by the local object-storage adapter. Creating the tweet only references the verified upload and does not carry the file. Unattached and rejected uploads are not publicly readable and are removed once they expire or fail verification. Deleting a tweet removes its image. The feature is off unless `UPLOADS_ENABLED` and `NEXT_PUBLIC_UPLOADS_ENABLED` are true.
+
+- **AC-F02.1:** Given a signed-in member, when they request an upload for a JPEG, PNG, or WebP of 1 byte through 5 MiB, then the API returns a short-lived upload id and token. An unauthenticated request is `401`. A missing CSRF token is `403`. Any other type or size is `422` and stores nothing.
+- **AC-F02.2:** Given that intent, when the same member uploads the bytes, then the API decodes the image, checks the type, size, and dimensions, rewrites it, and marks it verified. A mismatched, undecodable, animated, or oversized image is rejected and any stored bytes are removed. Another member cannot complete the upload. The bytes are not publicly readable before a tweet references them.
+- **AC-F02.3:** Given a verified upload the member owns, when they create a tweet or reply with that upload and a description, then the card includes one image. A second tweet cannot reuse it. An unverified, expired, foreign, or unknown upload is `422`, and no tweet is written. Image uploads stay unavailable while the feature is off.
+- **AC-F02.4:** Given a tweet with an image, when it appears on the home timeline or a thread, then the image is shown with its description as the text alternative.
+- **AC-F02.5:** Given the author deletes the tweet, when the delete commits, then the image metadata and stored object are removed. Expired uploads that were never attached are removed too.
 - **US-F03 Notifications:** follow and like events create deduplicated recipient notifications; self-actions do not; read state is user-specific and paginated.
 
 ## Cross-cutting acceptance criteria
