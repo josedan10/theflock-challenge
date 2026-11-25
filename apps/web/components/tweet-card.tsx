@@ -32,6 +32,8 @@ export interface TweetCardProps {
   /** The signed-in member's id, or `null` when signed out. */
   viewerId: string | null;
   showThreadLink?: boolean;
+  /** Number of replies returned by the API for this tweet. */
+  replyCount?: number;
   onDelete?: (tweetId: string) => void;
   /** Why the last delete of this tweet failed; focuses its Delete button. */
   failure?: string | null;
@@ -44,6 +46,7 @@ export interface TweetCardProps {
 export function TweetCard({
   failure = null,
   showThreadLink = true,
+  replyCount,
   onDelete,
   tweet,
   viewerId,
@@ -125,7 +128,11 @@ export function TweetCard({
       <p className="whitespace-pre-wrap break-words">{tweet.content}</p>
       {showThreadLink ? (
         <Link className="w-fit text-sm underline" href={threadHref(tweet.id)}>
-          Open thread
+          {replyCount === undefined
+            ? "Open thread"
+            : replyCount === 0
+              ? "Reply"
+              : `${replyCount} ${replyCount === 1 ? "reply" : "replies"} · Open thread`}
           <span className="sr-only">
             {" "}
             for @{tweet.author.username}&apos;s tweet

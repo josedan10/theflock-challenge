@@ -143,13 +143,21 @@ export function ThreadView({ id }: { id: string }) {
                 <li className="grid gap-1 border-l-2 pl-3" key={item.id}>
                   {item.parentTweetId && (
                     <Link
-                      className="w-fit text-sm underline"
+                      aria-label={`View parent tweet by ${byId.get(item.parentTweetId)?.author.displayName ?? "another member"}`}
+                      className="grid gap-1 rounded-md border-l-2 bg-muted/40 px-3 py-2 text-sm hover:bg-muted"
                       href={threadHref(item.parentTweetId)}
                     >
-                      In reply to{" "}
-                      {byId.has(item.parentTweetId)
-                        ? `@${byId.get(item.parentTweetId)?.author.username}`
-                        : "parent tweet"}
+                      <span className="font-medium">
+                        In reply to{" "}
+                        {byId.has(item.parentTweetId)
+                          ? `@${byId.get(item.parentTweetId)?.author.username}`
+                          : "parent tweet"}
+                      </span>
+                      {byId.has(item.parentTweetId) ? (
+                        <span className="line-clamp-2 text-muted-foreground">
+                          {byId.get(item.parentTweetId)?.content}
+                        </span>
+                      ) : null}
                     </Link>
                   )}
                   {card(item)}
