@@ -111,4 +111,14 @@ describe("TweetCard delete", () => {
       ).toHaveFocus(),
     );
   });
+
+  it("US-B02 shows Delete as a named trash-can icon button", () => {
+    render(
+      <TweetCard onDelete={vi.fn()} tweet={testTweet} viewerId={AUTHOR_ID} />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Delete tweet" });
+    expect(trigger.textContent).toBe("");
+    expect(trigger.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
 });
