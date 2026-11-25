@@ -131,6 +131,51 @@ describe("THR-01 AC-B04.5", () => {
     );
     expect(deleteTweet).toHaveBeenCalledWith(child.id, testSession.csrfToken);
   });
+  it("AC-B01.6 shows the new reply under the composer, above older replies", async () => {
+    const older = { ...child, id: "older-reply", content: "Older reply" };
+    const created = { ...child, content: "Just posted" };
+    const getThread = vi
+      .fn()
+      .mockResolvedValueOnce({ selected, items: [older], nextCursor: null })
+      .mockResolvedValue({
+        selected,
+        items: [older, created],
+        nextCursor: null,
+      });
+    renderWithSession(
+      <ThreadView id={selected.id} />,
+      fakeApiClient({
+        createReply: vi.fn(async () => ({ tweet: created })),
+        getThread,
+        me: async () => testSession,
+      }),
+    );
+    const user = userEvent.setup();
+    expect(await screen.findByText("Older reply")).toBeInTheDocument();
+    await user.type(
+      screen.getByRole("textbox", { name: "Your reply" }),
+      "Just posted",
+    );
+    await user.click(screen.getByRole("button", { name: "Post reply" }));
+    const justPosted = (await screen.findByText("Just posted")).closest(
+      "article",
+    );
+    const olderReply = screen.getByText("Older reply").closest("article");
+    expect(justPosted).not.toBeNull();
+    expect(olderReply).not.toBeNull();
+    expect(
+      (justPosted as HTMLElement).compareDocumentPosition(
+        olderReply as HTMLElement,
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      within(justPosted as HTMLElement).getByRole("button", { name: "Undo" }),
+    ).toBeVisible();
+    expect(
+      within(olderReply as HTMLElement).queryByRole("button", { name: "Undo" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText("Just posted")).toHaveLength(1);
+  });
   it("AC-B01.7 keeps the reply and announces a failed undo", async () => {
     const getThread = vi
       .fn()

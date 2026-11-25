@@ -13,6 +13,7 @@ import { SessionProvider, useSession } from "./session";
 import {
   useCreateTweet,
   useDeleteTweet,
+  useFreshReplies,
   useHomeTimeline,
   useTimelineItems,
   useTimelineLive,
@@ -71,6 +72,7 @@ function renderTweets(apiClient: ApiClient) {
     () => ({
       create: useCreateTweet(member),
       reply: useCreateTweet(member, "parent-id"),
+      fresh: useFreshReplies(member.id, "parent-id"),
       undo: useUndoWindows(member.id),
       remove: useDeleteTweet(member),
       posted: useTimelineItems(member.id),
@@ -148,6 +150,8 @@ describe("undo windows for new posts", () => {
     expect(result.current.undo.t1).toBeGreaterThanOrEqual(
       before + UNDO_WINDOW_MS,
     );
+    expect(result.current.fresh.map((tweet) => tweet.id)).toEqual(["r1"]);
+    expect(result.current.fresh[0]?.parentTweetId).toBe("parent-id");
   });
 });
 

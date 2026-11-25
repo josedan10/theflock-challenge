@@ -12,7 +12,7 @@ import {
   RotateCwIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiError } from "../lib/api-client";
 import { apiFormErrors } from "../lib/form-errors";
@@ -24,7 +24,13 @@ import {
 } from "../lib/post-undo";
 import { useApiClient, useSession } from "../lib/session";
 import { buildConversations } from "../lib/thread-conversations";
-import { THREAD_KEY, useDeleteTweet, type TweetAuthorRef } from "../lib/tweets";
+import {
+  forgetFreshReply,
+  THREAD_KEY,
+  useDeleteTweet,
+  useFreshReplies,
+  type TweetAuthorRef,
+} from "../lib/tweets";
 import { useHydrated } from "../lib/use-hydrated";
 
 import { PostUndo } from "./post-undo";
@@ -54,12 +60,15 @@ function MemberCard({
   item,
   layout,
   member,
+  onRemoved,
 }: Readonly<{
   /** A failed undo, which replaces the delete error until the next delete. */
   announce?: string | null;
   item: ThreadItem;
   layout: CardLayout;
   member: TweetAuthorRef;
+  /** The confirmed delete succeeded; drop a just-posted copy of this reply. */
+  onRemoved?: (tweetId: string) => void;
 }>) {
   const remove = useDeleteTweet(member);
   const [failure, setFailure] = useState<string | null>(null);
@@ -67,14 +76,15 @@ function MemberCard({
     <TweetCard
       {...layout}
       failure={announce ?? failure}
-      onDelete={(id) => {
+      onDelete={(tweetId) => {
         setFailure(null);
-        remove.mutate(id, {
+        remove.mutate(tweetId, {
           onError: (error) => {
             if (!(error instanceof ApiError && error.code === "NOT_FOUND")) {
               setFailure("Couldn't delete this tweet. Try again.");
             }
           },
+          onSuccess: () => onRemoved?.(tweetId),
         });
       }}
       tweet={item}
@@ -143,7 +153,9 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
   const hydrated = useHydrated();
   const member = hydrated ? (session.data?.user ?? undefined) : undefined;
   const memberId = member?.id;
+  const freshReplies = useFreshReplies(memberId ?? "signed-out", id);
   const undoWindows = useUndoWindows(memberId ?? "signed-out");
+  const pinnedTop = useRef<HTMLLIElement>(null);
   const undoReply = useDeleteTweet(
     member ?? { id: "signed-out", username: "signed-out" },
   );
@@ -169,6 +181,26 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
   });
   const root = query.data?.pages[0]?.selected;
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  // Just-posted replies stay under the composer while Undo is available, so
+  // the countdown is not at the bottom of an oldest-first thread (AC-B01.6).
+  const pinned = freshReplies.filter(
+    (tweet) => undoWindows[tweet.id] !== undefined,
+  );
+  const pinnedIds = new Set(pinned.map((tweet) => tweet.id));
+  const listed = items.filter((item) => !pinnedIds.has(item.id));
+  const pinnedKey = pinned.map((tweet) => tweet.id).join(" ");
+
+  useEffect(() => {
+    const node = pinnedTop.current;
+    if (
+      node === null ||
+      pinnedKey === "" ||
+      typeof node.scrollIntoView !== "function"
+    ) {
+      return;
+    }
+    node.scrollIntoView({ block: "nearest" });
+  }, [pinnedKey]);
   const missing =
     query.error instanceof ApiError && query.error.code === "NOT_FOUND";
 
@@ -179,6 +211,12 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
         item={item}
         layout={layout}
         member={member}
+        onRemoved={(tweetId) => {
+          if (item.parentTweetId === null) {
+            return;
+          }
+          forgetFreshReply(queryClient, member.id, item.parentTweetId, tweetId);
+        }}
       />
     ) : (
       <TweetCard {...layout} tweet={item} viewerId={null} />
@@ -195,6 +233,7 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
       onError: (error) => {
         if (error instanceof ApiError && error.code === "NOT_FOUND") {
           closeUndoWindow(queryClient, memberId, tweetId);
+          forgetFreshReply(queryClient, memberId, id, tweetId);
           return;
         }
         setUndoFailure({
@@ -204,8 +243,25 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
         });
       },
       onSettled: () => setUndoing(null),
-      onSuccess: () => closeUndoWindow(queryClient, memberId, tweetId),
+      onSuccess: () => {
+        closeUndoWindow(queryClient, memberId, tweetId);
+        forgetFreshReply(queryClient, memberId, id, tweetId);
+      },
     });
+  }
+
+  function undoFooter(tweetId: string) {
+    if (memberId === undefined || undoWindows[tweetId] === undefined) {
+      return null;
+    }
+    return (
+      <PostUndo
+        expiresAt={undoWindows[tweetId] ?? 0}
+        onExpire={() => closeUndoWindow(queryClient, memberId, tweetId)}
+        onUndo={() => onUndo(tweetId)}
+        pending={undoing === tweetId}
+      />
+    );
   }
 
   const focusReplyBox = () => {
@@ -294,7 +350,7 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
           </div>
 
           <h2 className="sr-only">Replies</h2>
-          {items.length === 0 && query.isSuccess ? (
+          {listed.length === 0 && pinned.length === 0 && query.isSuccess ? (
             <Empty className="py-8" role="status">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
@@ -305,31 +361,27 @@ export function ThreadView({ id }: Readonly<{ id: string }>) {
             </Empty>
           ) : null}
 
-          {items.length > 0 ? (
+          {pinned.length > 0 || listed.length > 0 ? (
             <ol aria-label="Replies" className="grid divide-y">
-              {buildConversations(root, items).map((conversation) => (
+              {pinned.map((tweet, index) => (
+                <li
+                  className="grid pb-1"
+                  key={tweet.id}
+                  ref={index === 0 ? pinnedTop : undefined}
+                >
+                  {card(tweet, {
+                    footer: undoFooter(tweet.id),
+                    variant: "row",
+                  })}
+                </li>
+              ))}
+              {buildConversations(root, listed).map((conversation) => (
                 <li className="grid pb-1" key={conversation[0]?.item.id}>
                   {conversation.map((entry) => (
                     <div key={entry.item.id}>
                       {card(entry.item, {
                         connectAbove: entry.connectAbove,
                         connectBelow: entry.connectBelow,
-                        footer:
-                          memberId === undefined ||
-                          undoWindows[entry.item.id] === undefined ? null : (
-                            <PostUndo
-                              expiresAt={undoWindows[entry.item.id] ?? 0}
-                              onExpire={() =>
-                                closeUndoWindow(
-                                  queryClient,
-                                  memberId,
-                                  entry.item.id,
-                                )
-                              }
-                              onUndo={() => onUndo(entry.item.id)}
-                              pending={undoing === entry.item.id}
-                            />
-                          ),
                         replyingTo: entry.replyingTo,
                         variant: "row",
                       })}
